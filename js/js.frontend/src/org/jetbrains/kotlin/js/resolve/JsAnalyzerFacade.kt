@@ -20,12 +20,14 @@ import com.intellij.psi.search.GlobalSearchScope
 import org.jetbrains.kotlin.analyzer.*
 import org.jetbrains.kotlin.config.TargetPlatformVersion
 import org.jetbrains.kotlin.container.get
+import org.jetbrains.kotlin.container.useImpl
 import org.jetbrains.kotlin.context.ModuleContext
 import org.jetbrains.kotlin.descriptors.PackagePartProvider
 import org.jetbrains.kotlin.descriptors.impl.CompositePackageFragmentProvider
 import org.jetbrains.kotlin.descriptors.impl.ModuleDescriptorImpl
 import org.jetbrains.kotlin.frontend.di.createContainerForLazyResolve
 import org.jetbrains.kotlin.resolve.BindingTraceContext
+import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TargetEnvironment
 import org.jetbrains.kotlin.resolve.TargetPlatform
 import org.jetbrains.kotlin.resolve.lazy.ResolveSession
@@ -57,8 +59,6 @@ object JsAnalyzerFacade : AnalyzerFacade<PlatformAnalysisParameters>() {
                 moduleInfo
         )
 
-        val languageVersionSettings = LanguageSettingsProvider.getInstance(project).getLanguageVersionSettings(moduleInfo, project)
-
         val container = createContainerForLazyResolve(
                 moduleContext,
                 declarationProviderFactory,
@@ -66,8 +66,10 @@ object JsAnalyzerFacade : AnalyzerFacade<PlatformAnalysisParameters>() {
                 JsPlatform,
                 TargetPlatformVersion.NoVersion,
                 targetEnvironment,
-                languageVersionSettings
+                languageSettingsProvider.getLanguageVersionSettings(moduleInfo, project)
         )
+        container.useImpl<LazyTopDownAnalyzer>()
+
         var packageFragmentProvider = container.get<ResolveSession>().packageFragmentProvider
 
         val libraryProviders = (moduleInfo as? LibraryModuleInfo)?.getLibraryRoots().orEmpty()

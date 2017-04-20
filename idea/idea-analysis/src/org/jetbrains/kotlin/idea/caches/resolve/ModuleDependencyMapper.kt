@@ -83,7 +83,7 @@ fun createModuleResolverProvider(
                 },
                 modulesContent, jvmPlatformParameters,
                 LanguageSettingsProvider.getInstance(project),
-                IdeaEnvironment, builtIns,
+                IdeaEnvironment, { builtIns },
                 delegateResolver, { _, c -> IDEPackagePartProvider(c.moduleContentScope) },
                 analysisSettings.sdk?.let { SdkInfo(project, it) },
                 project.service<IdePackageOracleFactory>()
