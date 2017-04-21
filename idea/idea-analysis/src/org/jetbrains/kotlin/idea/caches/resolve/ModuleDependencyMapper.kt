@@ -25,6 +25,7 @@ import com.intellij.openapi.roots.JdkOrderEntry
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ModuleRootManager
 import org.jetbrains.kotlin.analyzer.AnalyzerFacade
+import org.jetbrains.kotlin.analyzer.LanguageSettingsProvider
 import org.jetbrains.kotlin.analyzer.ModuleContent
 import org.jetbrains.kotlin.analyzer.ResolverForProject
 import org.jetbrains.kotlin.builtins.DefaultBuiltIns
@@ -77,7 +78,9 @@ fun createModuleResolverProvider(
         return AnalyzerFacade.setupResolverForProject(
                 debugName, globalContext.withProject(project), modulesToCreateResolversFor,
                 { module -> AnalyzerFacadeProvider.getAnalyzerFacade(module.platform ?: analysisSettings.platform) },
-                modulesContent, jvmPlatformParameters, IdeaEnvironment, builtIns,
+                modulesContent, jvmPlatformParameters,
+                LanguageSettingsProvider.getInstance(project),
+                IdeaEnvironment, builtIns,
                 delegateResolver, { _, c -> IDEPackagePartProvider(c.moduleContentScope) },
                 analysisSettings.sdk?.let { SdkInfo(project, it) },
                 modulePlatforms = { module -> module.platform?.multiTargetPlatform },
