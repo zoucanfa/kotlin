@@ -1167,6 +1167,7 @@ fun main(args: Array<String>) {
 
         testClass(AbstractIncrementalLazyCachesTest::class.java) {
             model("incremental/lazyKotlinCaches", extension = null, excludeParentDirs = true)
+            model("incremental/changeIncrementalOption", extension = null, excludeParentDirs = true)
         }
 
         testClass(AbstractIncrementalCacheVersionChangedTest::class.java) {
@@ -1189,10 +1190,6 @@ fun main(args: Array<String>) {
 
         testClass<AbstractDataContainerVersionChangedTest> {
             model("incremental/cacheVersionChanged", extension = null, excludeParentDirs = true)
-        }
-
-        testClass<AbstractExperimentalChangeIncrementalOptionTest> {
-            model("incremental/changeIncrementalOption", extension = null, excludeParentDirs = true)
         }
     }
 
