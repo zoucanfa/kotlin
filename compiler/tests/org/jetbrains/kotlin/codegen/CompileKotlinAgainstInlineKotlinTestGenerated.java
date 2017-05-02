@@ -2732,4 +2732,19 @@ public class CompileKotlinAgainstInlineKotlinTestGenerated extends AbstractCompi
             doTest(fileName);
         }
     }
+
+    @TestMetadata("compiler/testData/codegen/boxInline/varargs")
+    @TestDataPath("$PROJECT_ROOT")
+    @RunWith(JUnit3RunnerWithInners.class)
+    public static class Varargs extends AbstractCompileKotlinAgainstInlineKotlinTest {
+        public void testAllFilesPresentInVarargs() throws Exception {
+            KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("compiler/testData/codegen/boxInline/varargs"), Pattern.compile("^(.+)\\.kt$"), TargetBackend.ANY, true);
+        }
+
+        @TestMetadata("kt17653.kt")
+        public void testKt17653() throws Exception {
+            String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/codegen/boxInline/varargs/kt17653.kt");
+            doTest(fileName);
+        }
+    }
 }
