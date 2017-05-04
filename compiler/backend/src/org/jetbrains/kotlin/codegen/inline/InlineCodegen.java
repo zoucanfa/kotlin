@@ -414,7 +414,10 @@ public class InlineCodegen extends CallGenerator {
         defaultSourceMapper.setCallSiteMarker(new CallSiteMarker(codegen.getLastLineNumber()));
         MethodNode node = nodeAndSmap.getNode();
         if (callDefault) {
-            MethodInlinerUtilKt.expandMaskConditionsAndUpdateVariableNodes(node, maskStartIndex, maskValues, methodHandleInDefaultMethodIndex);
+            Set<Integer> defaultLambdaIndices = DefaultMethodUtilKt.extractDefaultLambdaIndices(jvmSignature, functionDescriptor);
+            DefaultMethodUtilKt.expandMaskConditionsAndUpdateVariableNodes(
+                    node, maskStartIndex, maskValues, methodHandleInDefaultMethodIndex, defaultLambdaIndices
+            );
         }
         ReifiedTypeParametersUsages reificationResult = reifiedTypeInliner.reifyInstructions(node);
         generateClosuresBodies();
