@@ -16,7 +16,9 @@
 
 package org.jetbrains.kotlin.gradle.internal
 
+import com.android.build.gradle.AppExtension
 import com.android.build.gradle.BaseExtension
+import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.AndroidSourceSet
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -58,32 +60,74 @@ class AndroidSubplugin : KotlinGradleSubplugin<KotlinCompile> {
             javaSourceSet: SourceSet?
     ): List<SubpluginOption> {
         val androidExtension = project.extensions.getByName("android") as? BaseExtension ?: return emptyList()
-        val sourceSets = androidExtension.sourceSets
-
         val pluginOptions = arrayListOf<SubpluginOption>()
 
-        val mainSourceSet = sourceSets.getByName("main")
-        val manifestFile = mainSourceSet.manifest.srcFile
-        val applicationPackage = getApplicationPackageFromManifest(manifestFile) ?: run {
-            project.logger.warn(
-                    "Application package name is not present in the manifest file (${manifestFile.absolutePath})")
-            ""
+        val mainSourceSet = androidExtension.sourceSets.getByName("main")
+        pluginOptions += SubpluginOption("package", getApplicationPackage(project, mainSourceSet))
+
+        fun addVariant(name: String, resDirectories: Set<File>, isDeprecated: Boolean = false) {
+            pluginOptions += SubpluginOption("variant", buildString {
+                if (isDeprecated) {
+                    append("deprecated:")
+                }
+
+                append(name)
+                append(';')
+                resDirectories.joinTo(this, separator = ";") { it.absolutePath }
+            })
         }
-        pluginOptions += SubpluginOption("package", applicationPackage)
 
-        fun addVariant(sourceSet: AndroidSourceSet) {
-            pluginOptions += SubpluginOption("variant", sourceSet.name + ';' +
-                    sourceSet.res.srcDirs.joinToString(";") { it.absolutePath })
+        val variants = mutableMapOf<String, List<File>>()
+        if (androidExtension is AppExtension) {
+            for (variant in androidExtension.applicationVariants) {
+                variants[variant.name] = variant.mergeResources.rawInputFolders.toList()
+            }
+        } else if (androidExtension is LibraryExtension) {
+            for (variant in androidExtension.libraryVariants) {
+                variants[variant.name] = variant.mergeResources.rawInputFolders.toList()
+            }
         }
 
-        addVariant(mainSourceSet)
+        val commonResDirectories = getCommonResDirectories(variants.map { it.value })
 
+        addVariant("main", commonResDirectories)
+
+        for ((name, resDirectories) in variants) {
+            addVariant(name, resDirectories.toSet().minus(commonResDirectories))
+        }
+
+        // Deprecated
         val flavorSourceSets = AndroidGradleWrapper.getProductFlavorsSourceSets(androidExtension).filterNotNull()
         for (sourceSet in flavorSourceSets) {
-            addVariant(sourceSet)
+            if (sourceSet.name in variants) continue
+            addVariant(sourceSet.name, sourceSet.res.srcDirs, isDeprecated = true)
         }
 
         return pluginOptions
+    }
+
+    private fun getCommonResDirectories(resDirectories: List<List<File>>): Set<File> {
+        var common = resDirectories.firstOrNull()?.toSet() ?: return emptySet()
+
+        for (resDirs in resDirectories.drop(1)) {
+            common = common.intersect(resDirs)
+        }
+
+        return common
+    }
+
+    private fun getApplicationPackage(project: Project, mainSourceSet: AndroidSourceSet): String {
+        val manifestFile = mainSourceSet.manifest.srcFile
+        val applicationPackage = getApplicationPackageFromManifest(manifestFile)
+
+        if (applicationPackage == null) {
+            project.logger.warn("Application package name is not present in the manifest file " +
+                    "(${manifestFile.absolutePath})")
+
+            return ""
+        } else {
+            return applicationPackage
+        }
     }
 
     private fun getApplicationPackageFromManifest(manifestFile: File): String? {
