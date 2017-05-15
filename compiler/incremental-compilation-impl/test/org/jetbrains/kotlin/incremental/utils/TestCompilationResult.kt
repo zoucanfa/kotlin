@@ -14,8 +14,18 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.js.translate.general
+package org.jetbrains.kotlin.incremental.utils
 
-import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.cli.common.ExitCode
+import java.io.File
 
-class FileTranslationResult(val file: KtFile, val metadata: ByteArray?, val binaryAst: ByteArray?)
+data class TestCompilationResult(
+        val exitCode: ExitCode,
+        val compiledSources: Iterable<File>,
+        val compileErrors: Collection<String>
+) {
+    constructor(
+            icReporter: TestICReporter,
+            messageCollector: TestMessageCollector
+    ) : this(icReporter.exitCode, icReporter.compiledSources, messageCollector.errors)
+}

@@ -25,6 +25,12 @@ internal const val STANDALONE_VERSION_FILE_NAME = "standalone-ic-format-version.
 fun standaloneCacheVersion(dataRoot: File): CacheVersion =
         customCacheVersion(STANDALONE_CACHE_VERSION, STANDALONE_VERSION_FILE_NAME, dataRoot)
 
+internal const val JS_CACHE_VERSION = 0
+internal const val JS_VERSION_FILE_NAME = "js-ic-format-version.txt"
+
+fun jsCacheVersion(dataRoot: File): CacheVersion =
+        customCacheVersion(JS_CACHE_VERSION, JS_VERSION_FILE_NAME, dataRoot)
+
 fun customCacheVersion(version: Int, fileName: String, dataRoot: File, forceEnable: Boolean = false): CacheVersion =
         CacheVersion(ownVersion = version,
                 versionFile = File(dataRoot, fileName),

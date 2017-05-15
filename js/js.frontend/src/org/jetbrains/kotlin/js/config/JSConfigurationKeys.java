@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.js.config;
 
 import org.jetbrains.kotlin.config.CompilerConfigurationKey;
+import org.jetbrains.kotlin.js.incremental.IncrementalJsService;
 import org.jetbrains.kotlin.serialization.js.ModuleKind;
 import org.jetbrains.kotlin.serialization.js.PackagesWithHeaderMetadata;
 
@@ -44,7 +45,8 @@ public class JSConfigurationKeys {
     public static final CompilerConfigurationKey<PackagesWithHeaderMetadata> FALLBACK_METADATA =
             CompilerConfigurationKey.create("fallback metadata");
 
-    public static final CompilerConfigurationKey<Boolean> SERIALIZE_FRAGMENTS = CompilerConfigurationKey.create("serialize fragments");
+    public static final CompilerConfigurationKey<IncrementalJsService>
+            INCREMENTAL_SERVICE = CompilerConfigurationKey.create("js incremental service");
 
     public static final CompilerConfigurationKey<Boolean> FRIEND_PATHS_DISABLED =
             CompilerConfigurationKey.create("disable support for friend paths");

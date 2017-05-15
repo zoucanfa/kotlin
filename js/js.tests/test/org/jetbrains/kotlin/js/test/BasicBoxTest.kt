@@ -41,6 +41,7 @@ import org.jetbrains.kotlin.js.facade.K2JSTranslator
 import org.jetbrains.kotlin.js.facade.MainCallParameters
 import org.jetbrains.kotlin.js.facade.TranslationResult
 import org.jetbrains.kotlin.js.facade.TranslationUnit
+import org.jetbrains.kotlin.js.incremental.IncrementalJsServiceImpl
 import org.jetbrains.kotlin.js.test.utils.DirectiveTestUtils
 import org.jetbrains.kotlin.js.test.utils.JsTestUtils
 import org.jetbrains.kotlin.js.test.utils.verifyAst
@@ -330,10 +331,14 @@ abstract class BasicBoxTest(
 
     private fun removeRecompiledSuffix(text: String): String = text.replace("-recompiled.js", ".js")
 
-    protected fun translateFiles(units: List<TranslationUnit>, outputFile: File, config: JsConfig,
+    protected fun translateFiles(
+            units: List<TranslationUnit>,
+            outputFile: File,
+            config: JsConfig,
             outputPrefixFile: File?,
             outputPostfixFile: File?,
-            mainCallParameters: MainCallParameters) {
+            mainCallParameters: MainCallParameters
+    ) {
         val translator = K2JSTranslator(config)
         val translationResult = translator.translateUnits(units, mainCallParameters)
 
@@ -364,25 +369,19 @@ abstract class BasicBoxTest(
             FileUtil.writeToFile(outputFile, wrappedContent)
         }
 
-        val incrementalDir = File(outputDir, "incremental/${outputFile.nameWithoutExtension}")
+        config.configuration[JSConfigurationKeys.INCREMENTAL_SERVICE]?.let {
+            val incrementalService = it as IncrementalJsServiceImpl
 
-        for ((index, unit) in units.withIndex()) {
-            if (unit !is TranslationUnit.SourceFile) continue
-            val fileTranslationResult = translationResult.fileTranslationResults[unit.file]!!
-            val basePath = "$index."
-            val binaryAst = fileTranslationResult.binaryAst
-            val binaryMetadata = fileTranslationResult.metadata
+            val incrementalDir = File(outputDir, "incremental/${outputFile.nameWithoutExtension}")
 
-            if (binaryAst != null) {
-                FileUtil.writeToFile(File(incrementalDir, basePath + AST_EXTENSION), binaryAst)
+            for ((i, packagePart) in incrementalService.packageParts.withIndex()) {
+                FileUtil.writeToFile(File(incrementalDir, "$i.$AST_EXTENSION"), packagePart.binaryAst)
+                FileUtil.writeToFile(File(incrementalDir, "$i.$METADATA_EXTENSION"), packagePart.proto.toByteArray())
             }
-            if (binaryMetadata != null) {
-                FileUtil.writeToFile(File(incrementalDir, basePath + METADATA_EXTENSION), binaryMetadata)
-            }
-        }
 
-        translationResult.metadataHeader?.let {
-            FileUtil.writeToFile(File(incrementalDir, HEADER_FILE), it)
+            incrementalService.headerProto?.let {
+                FileUtil.writeToFile(File(incrementalDir, HEADER_FILE), it.toByteArray())
+            }
         }
 
         processJsProgram(translationResult.program, units.filterIsInstance<TranslationUnit.SourceFile>().map { it.file })
@@ -426,7 +425,9 @@ abstract class BasicBoxTest(
 
         val hasFilesToRecompile = module.hasFilesToRecompile
         configuration.put(JSConfigurationKeys.META_INFO, multiModule)
-        configuration.put(JSConfigurationKeys.SERIALIZE_FRAGMENTS, hasFilesToRecompile)
+        if (hasFilesToRecompile) {
+            configuration.put(JSConfigurationKeys.INCREMENTAL_SERVICE, IncrementalJsServiceImpl())
+        }
         configuration.put(JSConfigurationKeys.SOURCE_MAP, hasFilesToRecompile)
 
         if (additionalMetadata != null) {
