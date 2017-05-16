@@ -18,8 +18,8 @@ package org.jetbrains.kotlin.search
 
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.search.searches.DefinitionsScopedSearch
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
 import org.jetbrains.kotlin.idea.test.PluginTestCaseBase
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass
 import org.jetbrains.kotlin.test.InTextDirectivesUtils
 import java.io.File
 

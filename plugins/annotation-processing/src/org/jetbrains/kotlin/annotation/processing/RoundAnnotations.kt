@@ -18,10 +18,10 @@ package org.jetbrains.kotlin.annotation.processing
 
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.asJava.findFacadeClass
-import org.jetbrains.kotlin.asJava.toLightClass
 import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper
 import org.jetbrains.kotlin.java.model.internal.getAnnotationsWithInherited
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.findFacadeClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.toLightClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext

@@ -30,14 +30,14 @@ import kotlin.collections.CollectionsKt;
 import kotlin.jvm.functions.Function1;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.kotlin.asJava.LightClassUtil;
-import org.jetbrains.kotlin.asJava.LightClassUtilsKt;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtil;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt;
 import org.jetbrains.kotlin.psi.*;
 import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 
 import java.util.Map;
 
-import static org.jetbrains.kotlin.asJava.LightClassUtilsKt.toLightClass;
+import static org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt.toLightClass;
 
 public abstract class KotlinCallTreeStructure extends HierarchyTreeStructure {
     protected final String scopeType;

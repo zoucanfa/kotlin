@@ -18,7 +18,7 @@ package org.jetbrains.uast.kotlin.declarations
 
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiNameIdentifierOwner
-import org.jetbrains.kotlin.asJava.elements.KtLightIdentifier
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightIdentifier
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
 
 class UastLightIdentifier(lightOwner: PsiNameIdentifierOwner, ktDeclaration: KtNamedDeclaration?)

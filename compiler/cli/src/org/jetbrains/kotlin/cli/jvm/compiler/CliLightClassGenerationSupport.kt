@@ -25,12 +25,10 @@ import com.intellij.util.Function
 import com.intellij.util.SmartList
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.annotations.TestOnly
-import org.jetbrains.kotlin.asJava.LightClassBuilder
 import org.jetbrains.kotlin.asJava.LightClassGenerationSupport
-import org.jetbrains.kotlin.asJava.builder.*
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration
+import org.jetbrains.kotlin.cli.jvm.lightClasses.KtCliLightClassForFacade
+import org.jetbrains.kotlin.cli.jvm.lightClasses.KtCliLightClassForSourceDeclaration
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.PackageViewDescriptor
@@ -64,7 +62,7 @@ class CliLightClassGenerationSupport(project: Project) : LightClassGenerationSup
     private var bindingContext: BindingContext by Delegates.notNull()
     private var module: ModuleDescriptor by Delegates.notNull()
 
-    
+
     override fun initialize(trace: BindingTrace, module: ModuleDescriptor, codeAnalyzer: KotlinCodeAnalyzer) {
         this.bindingContext = trace.bindingContext
         this.module = module
@@ -74,26 +72,6 @@ class CliLightClassGenerationSupport(project: Project) : LightClassGenerationSup
         }
 
         trace.setKotlinCodeAnalyzer(codeAnalyzer)
-    }
-
-    override fun createDataHolderForClass(
-            classOrObject: KtClassOrObject, builder: LightClassBuilder
-    ): LightClassDataHolder.ForClass {
-        //force resolve companion for light class generation
-        bindingContext.get(BindingContext.CLASS, classOrObject)?.companionObjectDescriptor
-
-        val (stub, bindingContext, diagnostics) = builder(getContext())
-
-        bindingContext.get(BindingContext.CLASS, classOrObject) ?: return InvalidLightClassDataHolder
-
-        return LightClassDataHolderImpl(
-                stub,
-                diagnostics
-        )
-    }
-
-    private fun getContext(): LightClassConstructionContext {
-        return LightClassConstructionContext(bindingContext, module)
     }
 
     override fun findClassOrObjectDeclarations(fqName: FqName, searchScope: GlobalSearchScope): Collection<KtClassOrObject> {
@@ -143,24 +121,16 @@ class CliLightClassGenerationSupport(project: Project) : LightClassGenerationSup
         })
     }
 
-    override fun getLightClass(classOrObject: KtClassOrObject): KtLightClass? {
-        return KtLightClassForSourceDeclaration.create(classOrObject)
+    override fun getLightClass(classOrObject: KtClassOrObject): PsiClass? {
+        val classDescriptor = bindingContext.get(BindingContext.DECLARATION_TO_DESCRIPTOR, classOrObject) as? ClassDescriptor ?: return null
+        return KtCliLightClassForSourceDeclaration(classDescriptor, psiManager)
     }
-
-    override fun resolveToDescriptor(declaration: KtDeclaration): DeclarationDescriptor? {
-        return bindingContext.get(BindingContext.DECLARATION_TO_DESCRIPTOR, declaration)
-    }
-
-    override fun analyze(element: KtElement) = bindingContext
-
-    override fun analyzeFully(element: KtElement) = bindingContext
 
     override fun getFacadeClasses(facadeFqName: FqName, scope: GlobalSearchScope): Collection<PsiClass> {
         val filesForFacade = findFilesForFacade(facadeFqName, scope)
         if (filesForFacade.isEmpty()) return emptyList()
 
-        return listOfNotNull<PsiClass>(
-                KtLightClassForFacade.createForFacade(psiManager, facadeFqName, scope, filesForFacade))
+        return listOfNotNull<PsiClass>(KtCliLightClassForFacade(psiManager, facadeFqName, filesForFacade))
     }
 
     override fun getMultifilePartClasses(partFqName: FqName, scope: GlobalSearchScope): Collection<PsiClass> {
@@ -174,11 +144,6 @@ class CliLightClassGenerationSupport(project: Project) : LightClassGenerationSup
         return PackagePartClassUtils.getFilesWithCallables(findFilesForPackage(facadeFqName.parent(), scope)).filter {
             JvmFileClassUtil.getFileClassInfoNoResolve(it).facadeClassFqName == facadeFqName
         }
-    }
-
-    override fun createDataHolderForFacade(files: Collection<KtFile>, builder: LightClassBuilder): LightClassDataHolder.ForFacade {
-        val (stub, _, diagnostics) = builder(getContext())
-        return LightClassDataHolderImpl(stub, diagnostics)
     }
 
     override fun createTrace(): BindingTraceContext {
@@ -232,7 +197,7 @@ class CliLightClassGenerationSupport(project: Project) : LightClassGenerationSup
     override fun getFacadeClassesInPackage(packageFqName: FqName, scope: GlobalSearchScope): Collection<PsiClass> {
         return PackagePartClassUtils.getFilesWithCallables(findFilesForPackage(packageFqName, scope)).groupBy {
             JvmFileClassUtil.getFileClassInfoNoResolve(it).facadeClassFqName
-        }.mapNotNull { KtLightClassForFacade.createForFacade(psiManager, it.key, scope, it.value) }
+        }.mapNotNull { KtCliLightClassForFacade(psiManager, it.key, it.value) }
     }
 
     override fun getFacadeNames(packageFqName: FqName, scope: GlobalSearchScope): Collection<String> {

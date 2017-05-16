@@ -2,9 +2,9 @@ package org.jetbrains.uast.kotlin.psi
 
 import com.intellij.psi.*
 import com.intellij.psi.impl.light.LightTypeElement
-import org.jetbrains.kotlin.asJava.elements.LightVariableBuilder
 import org.jetbrains.kotlin.builtins.createFunctionType
 import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.LightVariableBuilder
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.resolve.BindingContext

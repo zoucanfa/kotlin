@@ -38,5 +38,6 @@
     <orderEntry type="library" name="javaslang" level="project" />
     <orderEntry type="library" name="kotlin-reflect" level="project" />
     <orderEntry type="module" module-name="frontend.script" />
+    <orderEntry type="module" module-name="light-classes-impl" scope="TEST" />
   </component>
 </module>

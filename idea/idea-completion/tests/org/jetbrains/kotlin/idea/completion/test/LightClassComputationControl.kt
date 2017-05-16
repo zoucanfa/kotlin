@@ -20,8 +20,8 @@ import com.intellij.openapi.components.ComponentManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.impl.java.stubs.PsiClassStub
 import com.intellij.psi.impl.java.stubs.PsiJavaFileStub
-import org.jetbrains.kotlin.asJava.builder.LightClassConstructionContext
-import org.jetbrains.kotlin.asJava.builder.StubComputationTracker
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.LightClassConstructionContext
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.StubComputationTracker
 import org.jetbrains.kotlin.test.InTextDirectivesUtils
 import org.junit.Assert
 import org.picocontainer.MutablePicoContainer

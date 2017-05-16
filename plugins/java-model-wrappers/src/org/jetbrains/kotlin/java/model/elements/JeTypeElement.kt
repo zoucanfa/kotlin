@@ -19,12 +19,12 @@ package org.jetbrains.kotlin.java.model.elements
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.PsiClassReferenceType
 import com.intellij.psi.util.ClassUtil
-import org.jetbrains.kotlin.asJava.elements.LightParameter
 import org.jetbrains.kotlin.java.model.*
 import org.jetbrains.kotlin.java.model.internal.DefaultConstructorPsiMethod
 import org.jetbrains.kotlin.java.model.internal.getTypeWithTypeParameters
 import org.jetbrains.kotlin.java.model.types.JeNoneType
 import org.jetbrains.kotlin.java.model.types.toJeType
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.LightParameter
 import javax.lang.model.element.*
 import javax.lang.model.type.TypeMirror
 

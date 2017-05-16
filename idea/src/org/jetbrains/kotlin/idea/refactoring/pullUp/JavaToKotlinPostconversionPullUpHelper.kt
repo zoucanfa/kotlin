@@ -23,12 +23,12 @@ import com.intellij.psi.PsiSubstitutor
 import com.intellij.refactoring.memberPullUp.PullUpData
 import com.intellij.refactoring.memberPullUp.PullUpHelper
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import org.jetbrains.kotlin.asJava.unwrapped
 import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.unwrapped
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedElementSelector
 import org.jetbrains.kotlin.psi.psiUtil.getReceiverExpression
-import java.util.LinkedHashSet
+import java.util.*
 
 class JavaToKotlinPostconversionPullUpHelper(private val data: PullUpData) : PullUpHelper<MemberInfo> {
     override fun setCorrectVisibility(info: MemberInfo?) { }

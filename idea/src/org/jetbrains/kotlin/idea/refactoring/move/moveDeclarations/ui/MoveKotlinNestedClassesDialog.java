@@ -39,8 +39,7 @@ import kotlin.collections.CollectionsKt;
 import kotlin.jvm.functions.Function1;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.kotlin.asJava.LightClassUtilsKt;
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt;
 import org.jetbrains.kotlin.idea.completion.CompletionUtilsKt;
 import org.jetbrains.kotlin.idea.core.completion.DeclarationLookupObject;
 import org.jetbrains.kotlin.idea.projectView.KtClassOrObjectTreeNode;
@@ -50,6 +49,7 @@ import org.jetbrains.kotlin.idea.refactoring.memberInfo.KotlinMemberSelectionPan
 import org.jetbrains.kotlin.idea.refactoring.memberInfo.KotlinMemberSelectionTable;
 import org.jetbrains.kotlin.idea.refactoring.move.moveDeclarations.*;
 import org.jetbrains.kotlin.idea.refactoring.ui.KotlinTypeReferenceEditorComboWithBrowseButton;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForSourceDeclaration;
 import org.jetbrains.kotlin.psi.*;
 
 import javax.swing.*;

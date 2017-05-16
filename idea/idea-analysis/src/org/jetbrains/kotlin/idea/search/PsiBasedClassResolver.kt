@@ -21,13 +21,13 @@ import com.intellij.psi.PsiModifier
 import com.intellij.psi.search.PsiShortNamesCache
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.kotlin.analyzer.LanguageSettingsProvider
-import org.jetbrains.kotlin.asJava.ImpreciseResolveResult
-import org.jetbrains.kotlin.asJava.ImpreciseResolveResult.*
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.caches.resolve.getNullableModuleInfo
 import org.jetbrains.kotlin.idea.project.TargetPlatformDetector
 import org.jetbrains.kotlin.idea.stubindex.KotlinTypeAliasShortNameIndex
 import org.jetbrains.kotlin.idea.util.application.runReadAction
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.ImpreciseResolveResult
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.ImpreciseResolveResult.*
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
 import org.jetbrains.kotlin.psi.KtFile

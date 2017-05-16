@@ -35,7 +35,7 @@ import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.HashMap;
 import gnu.trove.TObjectHashingStrategy;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.kotlin.asJava.LightClassUtil;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtil;
 import org.jetbrains.kotlin.idea.caches.resolve.ResolutionUtils;
 import org.jetbrains.kotlin.idea.hierarchy.HierarchyUtilsKt;
 import org.jetbrains.kotlin.idea.references.KtReference;

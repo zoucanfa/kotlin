@@ -18,13 +18,15 @@ package org.jetbrains.kotlin.idea.caches.resolve.lightClasses
 
 import com.intellij.psi.CommonClassNames
 import com.intellij.psi.PsiClass
-import org.jetbrains.kotlin.asJava.ImpreciseResolveResult
-import org.jetbrains.kotlin.asJava.ImpreciseResolveResult.*
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration
-import org.jetbrains.kotlin.asJava.classes.LightClassInheritanceHelper
-import org.jetbrains.kotlin.asJava.classes.defaultJavaAncestorQualifiedName
 import org.jetbrains.kotlin.idea.search.PsiBasedClassResolver
-import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForSourceDeclaration
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.LightClassInheritanceHelper
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.defaultJavaAncestorQualifiedName
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.ImpreciseResolveResult
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.ImpreciseResolveResult.*
+import org.jetbrains.kotlin.psi.KtSimpleNameExpression
+import org.jetbrains.kotlin.psi.KtSuperTypeCallEntry
+import org.jetbrains.kotlin.psi.KtSuperTypeListEntry
 
 class IdeLightClassInheritanceHelper : LightClassInheritanceHelper {
     override fun isInheritor(

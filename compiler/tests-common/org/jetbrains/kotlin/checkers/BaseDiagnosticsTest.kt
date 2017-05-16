@@ -24,13 +24,13 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.containers.ContainerUtil
-import org.jetbrains.kotlin.asJava.getJvmSignatureDiagnostics
 import org.jetbrains.kotlin.checkers.BaseDiagnosticsTest.TestFile
 import org.jetbrains.kotlin.checkers.BaseDiagnosticsTest.TestModule
 import org.jetbrains.kotlin.checkers.CheckerTestUtil.ActualDiagnostic
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.diagnostics.*
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.getJvmSignatureDiagnostics
 import org.jetbrains.kotlin.load.java.InternalFlexibleTypeTransformer
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtFile
@@ -203,10 +203,7 @@ abstract class BaseDiagnosticsTest : KotlinMultiFileTestWithJava<TestModule, Tes
             }
 
             // TODO: report JVM signature diagnostics also for implementing modules
-            val jvmSignatureDiagnostics = if (skipJvmSignatureDiagnostics)
-                emptySet<ActualDiagnostic>()
-            else
-                computeJvmSignatureDiagnostics(bindingContext)
+            val jvmSignatureDiagnostics = emptySet<ActualDiagnostic>()
 
             val ok = booleanArrayOf(true)
             val diagnostics = ContainerUtil.filter(

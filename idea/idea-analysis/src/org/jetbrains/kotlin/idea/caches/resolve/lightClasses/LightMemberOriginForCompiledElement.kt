@@ -19,14 +19,14 @@ package org.jetbrains.kotlin.idea.caches.resolve.lightClasses
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiMember
 import com.intellij.psi.PsiMethod
-import org.jetbrains.kotlin.asJava.builder.LightMemberOrigin
-import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.MapPsiToAsmDesc
 import org.jetbrains.kotlin.idea.decompiler.classFile.KtClsFile
 import org.jetbrains.kotlin.idea.decompiler.textBuilder.DecompiledTextIndexer
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.LightMemberOrigin
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.lazyPub
 import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.load.kotlin.MemberSignature
 import org.jetbrains.kotlin.name.Name

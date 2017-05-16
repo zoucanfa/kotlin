@@ -21,7 +21,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ClassesWithAnnotatedMembersSearch
 import com.intellij.psi.search.searches.ScopedQueryExecutor
 import com.intellij.util.Processor
-import org.jetbrains.kotlin.asJava.toLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.toLightClass
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.search.allScope
 import org.jetbrains.kotlin.psi.KtClassOrObject

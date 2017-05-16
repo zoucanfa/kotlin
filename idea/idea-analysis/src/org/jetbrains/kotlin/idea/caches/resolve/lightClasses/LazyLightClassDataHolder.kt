@@ -21,14 +21,14 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMember
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.java.stubs.PsiJavaFileStub
-import org.jetbrains.kotlin.asJava.LightClassBuilder
-import org.jetbrains.kotlin.asJava.builder.*
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
-import org.jetbrains.kotlin.asJava.classes.lazyPub
-import org.jetbrains.kotlin.asJava.elements.KtLightField
-import org.jetbrains.kotlin.asJava.elements.KtLightFieldImpl
-import org.jetbrains.kotlin.asJava.elements.KtLightMethod
-import org.jetbrains.kotlin.asJava.elements.KtLightMethodImpl
+import org.jetbrains.kotlin.jvm.lightClasses.structure.LightClassBuilder
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.*
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.lazyPub
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightField
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightFieldImpl
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightMethod
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightMethodImpl
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.NotNullableUserDataProperty
 

@@ -24,9 +24,9 @@ import com.intellij.psi.ElementDescriptionUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
 import com.intellij.usageView.UsageViewLongNameLocation
-import org.jetbrains.kotlin.asJava.getRepresentativeLightMethod
-import org.jetbrains.kotlin.asJava.unwrapped
 import org.jetbrains.kotlin.idea.KotlinBundle
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.getRepresentativeLightMethod
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.unwrapped
 import org.jetbrains.kotlin.psi.KtDeclaration
 import javax.swing.JPanel
 

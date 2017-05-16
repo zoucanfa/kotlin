@@ -26,14 +26,7 @@ import com.intellij.psi.impl.compiled.ClsClassImpl
 import com.intellij.psi.impl.compiled.ClsFileImpl
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.asJava.LightClassBuilder
 import org.jetbrains.kotlin.asJava.LightClassGenerationSupport
-import org.jetbrains.kotlin.asJava.builder.ClsWrapperStubPsiFactory
-import org.jetbrains.kotlin.asJava.builder.LightClassDataHolder
-import org.jetbrains.kotlin.asJava.classes.FakeLightClassForFileOfPackage
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration
 import org.jetbrains.kotlin.asJava.finder.JavaElementFinder
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
@@ -48,6 +41,14 @@ import org.jetbrains.kotlin.idea.stubindex.*
 import org.jetbrains.kotlin.idea.stubindex.KotlinSourceFilterScope.Companion.sourceAndClassFiles
 import org.jetbrains.kotlin.idea.util.ProjectRootsUtil
 import org.jetbrains.kotlin.idea.util.application.runReadAction
+import org.jetbrains.kotlin.jvm.lightClasses.structure.LazyLightClassesSupport
+import org.jetbrains.kotlin.jvm.lightClasses.structure.LightClassBuilder
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.ClsWrapperStubPsiFactory
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.LightClassDataHolder
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.FakeLightClassForFileOfPackage
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForFacade
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForSourceDeclaration
 import org.jetbrains.kotlin.load.kotlin.PackagePartClassUtils
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
@@ -58,38 +59,7 @@ import org.jetbrains.kotlin.utils.sure
 import java.util.*
 
 class IDELightClassGenerationSupport(private val project: Project) : LightClassGenerationSupport() {
-    private val scopeFileComparator = JavaElementFinder.byClasspathComparator(GlobalSearchScope.allScope(project))
     private val psiManager: PsiManager = PsiManager.getInstance(project)
-
-    override fun createDataHolderForClass(classOrObject: KtClassOrObject, builder: LightClassBuilder): LightClassDataHolder.ForClass {
-        return if (classOrObject.isLocal) {
-            LazyLightClassDataHolder.ForClass(
-                    builder,
-                    exactContextProvider = { IDELightClassContexts.contextForLocalClassOrObject(classOrObject) },
-                    dummyContextProvider = null
-            )
-        }
-        else {
-            LazyLightClassDataHolder.ForClass(
-                    builder,
-                    exactContextProvider = { IDELightClassContexts.contextForNonLocalClassOrObject(classOrObject) },
-                    dummyContextProvider = { IDELightClassContexts.lightContextForClassOrObject(classOrObject) }
-            )
-        }
-    }
-
-
-    override fun createDataHolderForFacade(files: Collection<KtFile>, builder: LightClassBuilder): LightClassDataHolder.ForFacade {
-        assert(!files.isEmpty()) { "No files in facade" }
-
-        val sortedFiles = files.sortedWith(scopeFileComparator)
-
-        return LazyLightClassDataHolder.ForFacade(
-                builder,
-                exactContextProvider = { IDELightClassContexts.contextForFacade(sortedFiles) },
-                dummyContextProvider = { IDELightClassContexts.lightContextForFacade(sortedFiles) }
-        )
-    }
 
     override fun findClassOrObjectDeclarations(fqName: FqName, searchScope: GlobalSearchScope): Collection<KtClassOrObject> {
         return runReadAction {
@@ -202,19 +172,6 @@ class IDELightClassGenerationSupport(private val project: Project) : LightClassG
             KotlinFileFacadeFqNameIndex.INSTANCE.get(facadeFqName.asString(), project, scope)
         }
     }
-
-    override fun resolveToDescriptor(declaration: KtDeclaration): DeclarationDescriptor? {
-        try {
-            return declaration.resolveToDescriptor()
-        }
-        catch (e: NoDescriptorForDeclarationException) {
-            return null
-        }
-    }
-
-    override fun analyze(element: KtElement) = element.analyze(BodyResolveMode.PARTIAL)
-
-    override fun analyzeFully(element: KtElement) = element.analyzeFully()
 
     override fun getFacadeNames(packageFqName: FqName, scope: GlobalSearchScope): Collection<String> {
         val facadeFilesInPackage = runReadAction {
@@ -350,4 +307,52 @@ class KtFileClassProviderImpl(val lightClassGenerationSupport: LightClassGenerat
 
         return result.toTypedArray()
     }
+}
+
+class IdeLazyLightClassesSupport(project: Project): LazyLightClassesSupport {
+    private val scopeFileComparator = JavaElementFinder.byClasspathComparator(GlobalSearchScope.allScope(project))
+
+
+    override fun createDataHolderForClass(classOrObject: KtClassOrObject, builder: LightClassBuilder): LightClassDataHolder.ForClass {
+        return if (classOrObject.isLocal) {
+            LazyLightClassDataHolder.ForClass(
+                    builder,
+                    exactContextProvider = { IDELightClassContexts.contextForLocalClassOrObject(classOrObject) },
+                    dummyContextProvider = null
+            )
+        }
+        else {
+            LazyLightClassDataHolder.ForClass(
+                    builder,
+                    exactContextProvider = { IDELightClassContexts.contextForNonLocalClassOrObject(classOrObject) },
+                    dummyContextProvider = { IDELightClassContexts.lightContextForClassOrObject(classOrObject) }
+            )
+        }
+    }
+
+
+    override fun createDataHolderForFacade(files: Collection<KtFile>, builder: LightClassBuilder): LightClassDataHolder.ForFacade {
+        assert(!files.isEmpty()) { "No files in facade" }
+
+        val sortedFiles = files.sortedWith(scopeFileComparator)
+
+        return LazyLightClassDataHolder.ForFacade(
+                builder,
+                exactContextProvider = { IDELightClassContexts.contextForFacade(sortedFiles) },
+                dummyContextProvider = { IDELightClassContexts.lightContextForFacade(sortedFiles) }
+        )
+    }
+
+    override fun resolveToDescriptor(declaration: KtDeclaration): DeclarationDescriptor? {
+        try {
+            return declaration.resolveToDescriptor()
+        }
+        catch (e: NoDescriptorForDeclarationException) {
+            return null
+        }
+    }
+
+    override fun analyze(element: KtElement) = element.analyze(BodyResolveMode.PARTIAL)
+
+    override fun analyzeFully(element: KtElement) = element.analyzeFully()
 }

@@ -19,10 +19,10 @@ package org.jetbrains.kotlin.idea.inspections
 import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInspection.*
 import com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.asJava.unwrapped
 import org.jetbrains.kotlin.caches.resolve.KotlinCacheService
 import org.jetbrains.kotlin.diagnostics.Severity
 import org.jetbrains.kotlin.idea.highlighter.createSuppressWarningActions
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.unwrapped
 
 abstract class AbstractKotlinInspection: LocalInspectionTool(), CustomSuppressableInspectionTool {
     override fun getSuppressActions(element: PsiElement?): Array<SuppressIntentionAction>? {

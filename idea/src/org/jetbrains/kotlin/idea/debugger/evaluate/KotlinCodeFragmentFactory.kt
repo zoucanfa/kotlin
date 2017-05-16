@@ -41,7 +41,6 @@ import com.intellij.xdebugger.impl.ui.tree.ValueMarkup
 import com.sun.jdi.*
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.eval4j.jdi.asValue
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.codeInsight.CodeInsightUtils
 import org.jetbrains.kotlin.idea.core.quoteIfNeeded
@@ -53,6 +52,7 @@ import org.jetbrains.kotlin.idea.util.IdeDescriptorRenderers
 import org.jetbrains.kotlin.idea.util.application.executeWriteCommand
 import org.jetbrains.kotlin.idea.versions.getKotlinJvmRuntimeMarkerClass
 import org.jetbrains.kotlin.j2k.AfterConversionPass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getElementTextWithContext
 import org.jetbrains.kotlin.types.KotlinType

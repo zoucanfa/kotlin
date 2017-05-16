@@ -33,10 +33,10 @@ import com.intellij.psi.search.searches.OverridingMethodsSearch
 import com.intellij.util.AdapterProcessor
 import com.intellij.util.CommonProcessors
 import com.intellij.util.Function
-import org.jetbrains.kotlin.asJava.LightClassUtil
-import org.jetbrains.kotlin.asJava.getAccessorLightMethods
 import org.jetbrains.kotlin.idea.KotlinBundle
 import org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinDefinitionsSearcher
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtil
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.getAccessorLightMethods
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import java.awt.event.MouseEvent

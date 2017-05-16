@@ -17,10 +17,10 @@
 package org.jetbrains.uast.kotlin.declarations
 
 import com.intellij.psi.*
-import org.jetbrains.kotlin.asJava.elements.KtLightElement
-import org.jetbrains.kotlin.asJava.elements.KtLightMethod
-import org.jetbrains.kotlin.asJava.elements.isGetter
-import org.jetbrains.kotlin.asJava.elements.isSetter
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightElement
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightMethod
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.isGetter
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.isSetter
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.uast.*

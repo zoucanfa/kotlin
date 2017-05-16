@@ -20,7 +20,7 @@ import com.intellij.psi.*
 import com.intellij.psi.PsiModifier.*
 import com.intellij.psi.impl.PsiSubstitutorImpl
 import com.intellij.psi.util.PsiTypesUtil
-import org.jetbrains.kotlin.asJava.elements.KtLightAnnotationForSourceEntry
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightAnnotationForSourceEntry
 import javax.lang.model.element.Modifier
 
 private val HAS_DEFAULT by lazy {

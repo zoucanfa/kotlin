@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.asJava
+package org.jetbrains.kotlin.jvm.lightClasses.structure
 
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.impl.ResolveScopeManager
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
 import org.jetbrains.kotlin.idea.caches.resolve.lightClasses.KtLightClassForDecompiledDeclaration
 import org.jetbrains.kotlin.idea.test.JdkAndMockLibraryProjectDescriptor
 import org.jetbrains.kotlin.idea.test.KotlinCodeInsightTestCase
 import org.jetbrains.kotlin.idea.test.PluginTestCaseBase
 import org.jetbrains.kotlin.idea.test.configureAs
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForFacade
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForSourceDeclaration
 import java.io.File
 import kotlin.test.assertNotNull
 

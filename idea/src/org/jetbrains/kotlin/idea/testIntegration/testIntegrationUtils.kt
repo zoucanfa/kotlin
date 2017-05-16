@@ -20,7 +20,7 @@ import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.extensions.Extensions
 import com.intellij.testIntegration.TestFramework
 import com.intellij.util.SmartList
-import org.jetbrains.kotlin.asJava.toLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.toLightClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 
 fun findSuitableFrameworks(klass: KtClassOrObject): List<TestFramework> {

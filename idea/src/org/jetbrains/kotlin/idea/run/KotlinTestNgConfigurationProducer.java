@@ -36,7 +36,7 @@ import com.theoryinpractice.testng.util.TestNGUtil;
 import kotlin.collections.CollectionsKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.kotlin.asJava.LightClassUtilsKt;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt;
 import org.jetbrains.kotlin.idea.project.TargetPlatformDetector;
 import org.jetbrains.kotlin.idea.util.ProjectRootsUtil;
 import org.jetbrains.kotlin.psi.*;
@@ -44,7 +44,8 @@ import org.jetbrains.kotlin.resolve.jvm.platform.JvmPlatform;
 
 import java.util.List;
 
-import static org.jetbrains.kotlin.asJava.LightClassUtilsKt.toLightClass;
+import static org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt.toLightClass;
+
 
 public class KotlinTestNgConfigurationProducer extends TestNGConfigurationProducer {
     @Override

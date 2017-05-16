@@ -24,7 +24,7 @@ import com.intellij.execution.junit.TestClassConfigurationProducer
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.PsiElementProcessor
-import org.jetbrains.kotlin.asJava.toLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.toLightClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 
 class KotlinPatternConfigurationProducer : PatternConfigurationProducer() {

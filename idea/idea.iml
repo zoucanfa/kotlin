@@ -66,5 +66,6 @@
     <orderEntry type="library" name="kotlinx-coroutines-core" level="project" />
     <orderEntry type="module" module-name="frontend.script" />
     <orderEntry type="module" module-name="idea-maven" />
+    <orderEntry type="module" module-name="light-classes-impl" scope="TEST" />
   </component>
 </module>

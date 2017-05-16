@@ -44,8 +44,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-import static org.jetbrains.kotlin.asJava.LightClassUtilsKt.toLightClass;
-
 public class JavaElementFinder extends PsiElementFinder implements KotlinFinderMarker {
 
     @NotNull
@@ -239,5 +237,10 @@ public class JavaElementFinder extends PsiElementFinder implements KotlinFinderM
         }
 
         return classes;
+    }
+
+    @Nullable
+    private PsiClass toLightClass(@NotNull KtClassOrObject classOrObject) {
+        return LightClassGenerationSupport.getInstance(project).getLightClass(classOrObject);
     }
 }

@@ -20,7 +20,7 @@ import com.intellij.psi.ElementDescriptionLocation
 import com.intellij.psi.ElementDescriptionProvider
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.util.NonCodeSearchDescriptionLocation
-import org.jetbrains.kotlin.asJava.namedUnwrappedElement
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.namedUnwrappedElement
 import org.jetbrains.kotlin.psi.KtClassOrObject
 
 class KotlinNonCodeSearchElementDescriptionProvider : ElementDescriptionProvider {

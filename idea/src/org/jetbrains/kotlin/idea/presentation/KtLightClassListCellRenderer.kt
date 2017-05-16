@@ -18,7 +18,7 @@ package org.jetbrains.kotlin.idea.presentation
 
 import com.intellij.ide.util.PsiElementListCellRenderer
 import com.intellij.psi.presentation.java.ClassPresentationUtil
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass
 import org.jetbrains.kotlin.name.FqName
 
 class KtLightClassListCellRenderer : PsiElementListCellRenderer<KtLightClass>() {

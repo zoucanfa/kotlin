@@ -37,8 +37,8 @@ import com.intellij.psi.util.PsiUtil
 import com.intellij.util.CommonProcessors
 import com.intellij.util.Processor
 import gnu.trove.THashSet
-import org.jetbrains.kotlin.asJava.elements.KtLightMethod
-import org.jetbrains.kotlin.asJava.elements.isTraitFakeOverride
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightMethod
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.isTraitFakeOverride
 import java.awt.event.MouseEvent
 import java.util.*
 import javax.swing.JComponent

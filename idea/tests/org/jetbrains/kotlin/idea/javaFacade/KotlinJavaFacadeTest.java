@@ -21,16 +21,16 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightProjectDescriptor;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.kotlin.asJava.LightClassUtil;
-import org.jetbrains.kotlin.asJava.classes.KtLightClass;
-import org.jetbrains.kotlin.asJava.elements.KtLightMethod;
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase;
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor;
 import org.jetbrains.kotlin.idea.test.PluginTestCaseBase;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightMethod;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtil;
 import org.jetbrains.kotlin.name.SpecialNames;
 import org.jetbrains.kotlin.psi.*;
 
-import static org.jetbrains.kotlin.asJava.LightClassUtilsKt.toLightClass;
+import static org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt.toLightClass;
 
 public class KotlinJavaFacadeTest extends KotlinLightCodeInsightFixtureTestCase {
     @NotNull

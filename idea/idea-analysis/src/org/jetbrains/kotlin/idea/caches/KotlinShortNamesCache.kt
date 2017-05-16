@@ -25,13 +25,13 @@ import com.intellij.psi.search.PsiShortNamesCache
 import com.intellij.util.Processor
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.HashSet
-import org.jetbrains.kotlin.asJava.LightClassUtil
-import org.jetbrains.kotlin.asJava.defaultImplsChild
 import org.jetbrains.kotlin.asJava.finder.JavaElementFinder
-import org.jetbrains.kotlin.asJava.getAccessorLightMethods
-import org.jetbrains.kotlin.asJava.getAccessorNamesCandidatesByPropertyName
 import org.jetbrains.kotlin.fileClasses.javaFileFacadeFqName
 import org.jetbrains.kotlin.idea.stubindex.*
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtil
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.defaultImplsChild
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.getAccessorLightMethods
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.getAccessorNamesCandidatesByPropertyName
 import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.load.java.getPropertyNamesCandidatesByAccessorName
 import org.jetbrains.kotlin.name.FqName

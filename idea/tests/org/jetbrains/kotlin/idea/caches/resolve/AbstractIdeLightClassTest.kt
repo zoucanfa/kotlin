@@ -26,18 +26,18 @@ import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
 import org.jetbrains.kotlin.asJava.LightClassTestCommon
-import org.jetbrains.kotlin.asJava.builder.LightClassConstructionContext
-import org.jetbrains.kotlin.asJava.builder.StubComputationTracker
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration
-import org.jetbrains.kotlin.asJava.elements.*
 import org.jetbrains.kotlin.idea.KotlinDaemonAnalyzerTestCase
 import org.jetbrains.kotlin.idea.caches.resolve.LightClassLazinessChecker.Tracker.Level.*
 import org.jetbrains.kotlin.idea.caches.resolve.lightClasses.IDELightClassConstructionContext
 import org.jetbrains.kotlin.idea.completion.test.withServiceRegistered
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.LightClassConstructionContext
+import org.jetbrains.kotlin.jvm.lightClasses.structure.builder.StubComputationTracker
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForFacade
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForSourceDeclaration
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.*
 import org.jetbrains.kotlin.load.java.JvmAnnotationNames
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
@@ -325,7 +325,7 @@ object LightClassLazinessChecker {
     }.filter { modifierList.hasModifierProperty(it) }
 
     private fun checkModifierList(modifierList: PsiModifierList) {
-        // see org.jetbrains.kotlin.asJava.elements.KtLightNonSourceAnnotation
+        // see org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightNonSourceAnnotation
         val isAnnotationClass = (modifierList.parent as? PsiClass)?.isAnnotationType ?: false
 
         if (!isAnnotationClass) {

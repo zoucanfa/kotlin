@@ -16,15 +16,15 @@
 
 package org.jetbrains.kotlin.idea.hierarchy.overrides
 
-import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
-import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
+import com.intellij.ide.hierarchy.HierarchyTreeStructure
 import com.intellij.ide.hierarchy.method.MethodHierarchyNodeDescriptor
 import com.intellij.ide.hierarchy.method.MethodHierarchyTreeStructure
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import com.intellij.util.ArrayUtil
-import org.jetbrains.kotlin.asJava.toLightMethods
 import com.intellij.util.containers.ContainerUtil
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.toLightMethods
 
 class KotlinOverrideTreeStructure(project: Project, val element: PsiElement) : HierarchyTreeStructure(project, null) {
     val javaTreeStructures = element.toLightMethods().map { method -> MethodHierarchyTreeStructure(project, method) }

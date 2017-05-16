@@ -21,9 +21,9 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiModifierList;
 import com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.kotlin.asJava.classes.KtLightClass;
 import org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt;
 import org.jetbrains.kotlin.config.CompilerConfiguration;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass;
 import org.jetbrains.kotlin.test.KotlinTestUtils;
 
 import java.io.File;

@@ -17,9 +17,9 @@
 package org.jetbrains.uast.kotlin
 
 import com.intellij.psi.*
-import org.jetbrains.kotlin.asJava.classes.KtLightClass
-import org.jetbrains.kotlin.asJava.elements.KtLightMethod
-import org.jetbrains.kotlin.asJava.toLightMethods
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightMethod
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.toLightMethods
 import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
@@ -71,7 +71,7 @@ class KotlinUClass private constructor(
 
         fun createUMethod(psiMethod: PsiMethod): UMethod {
             return if (psiMethod is KtLightMethod && psiMethod.isConstructor && initBlocks.isNotEmpty()
-                    && (primaryConstructor == null || psiMethod == primaryConstructor)) {
+                       && (primaryConstructor == null || psiMethod == primaryConstructor)) {
                 object : KotlinUMethod(psiMethod, this@KotlinUClass) {
                     override val uastBody by lz {
                         val initializers = ktClass?.getAnonymousInitializers() ?: return@lz UastEmptyExpression

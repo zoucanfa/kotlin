@@ -30,17 +30,17 @@ import com.intellij.psi.PsiModifier;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.StateRestoringCheckBox;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.kotlin.asJava.LightClassUtilsKt;
 import org.jetbrains.kotlin.idea.KotlinBundle;
 import org.jetbrains.kotlin.idea.findUsages.KotlinClassFindUsagesOptions;
 import org.jetbrains.kotlin.idea.refactoring.RenderingUtilsKt;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt;
 import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtClassOrObject;
 import org.jetbrains.kotlin.psi.psiUtil.KtPsiUtilKt;
 
 import javax.swing.*;
 
-import static org.jetbrains.kotlin.asJava.LightClassUtilsKt.toLightClass;
+import static org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt.toLightClass;
 
 public class KotlinFindClassUsagesDialog extends FindClassUsagesDialog {
     private StateRestoringCheckBox constructorUsages;

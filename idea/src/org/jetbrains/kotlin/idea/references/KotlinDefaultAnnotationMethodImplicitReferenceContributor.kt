@@ -21,9 +21,9 @@ import com.intellij.psi.*
 import com.intellij.psi.util.MethodSignatureUtil
 import com.intellij.util.ArrayUtil
 import com.intellij.util.IncorrectOperationException
-import org.jetbrains.kotlin.asJava.unwrapped
 import org.jetbrains.kotlin.idea.core.quoteIfNeeded
 import org.jetbrains.kotlin.idea.core.replaced
+import org.jetbrains.kotlin.jvm.lightClasses.structure.util.unwrapped
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject

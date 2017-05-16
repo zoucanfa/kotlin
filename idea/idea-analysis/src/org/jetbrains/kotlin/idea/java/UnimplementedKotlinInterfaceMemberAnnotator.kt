@@ -26,9 +26,9 @@ import com.intellij.lang.annotation.Annotation
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.psi.*
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration
-import org.jetbrains.kotlin.asJava.elements.KtLightMethod
 import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForSourceDeclaration
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightMethod
 import org.jetbrains.kotlin.utils.ifEmpty
 
 class UnimplementedKotlinInterfaceMemberAnnotator : Annotator {

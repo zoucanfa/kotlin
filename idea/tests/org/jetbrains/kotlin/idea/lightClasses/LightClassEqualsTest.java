@@ -20,14 +20,15 @@ import com.intellij.psi.PsiClass;
 import com.intellij.testFramework.LightProjectDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.kotlin.asJava.classes.KtLightClass;
-import org.jetbrains.kotlin.asJava.classes.KtLightClassForSourceDeclaration;
 import org.jetbrains.kotlin.idea.caches.resolve.lightClasses.KtLightClassForDecompiledDeclaration;
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase;
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClass;
+import org.jetbrains.kotlin.jvm.lightClasses.structure.classes.KtLightClassForSourceDeclaration;
 import org.jetbrains.kotlin.psi.KtClassOrObject;
 
-import static org.jetbrains.kotlin.asJava.LightClassUtilsKt.toLightClass;
+import static org.jetbrains.kotlin.jvm.lightClasses.structure.util.LightClassUtilsKt.toLightClass;
+
 
 public class LightClassEqualsTest extends KotlinLightCodeInsightFixtureTestCase {
     @NotNull

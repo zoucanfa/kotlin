@@ -17,10 +17,10 @@
 package org.jetbrains.kotlin.idea.resolve
 
 import com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.asJava.elements.KtLightElement
 import org.jetbrains.kotlin.idea.decompiler.classFile.KtClsFile
 import org.jetbrains.kotlin.idea.test.JdkAndMockLibraryProjectDescriptor
 import org.jetbrains.kotlin.idea.test.PluginTestCaseBase
+import org.jetbrains.kotlin.jvm.lightClasses.structure.elements.KtLightElement
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.junit.Assert
 
