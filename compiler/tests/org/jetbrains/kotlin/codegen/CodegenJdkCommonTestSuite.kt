@@ -16,62 +16,86 @@
 
 package org.jetbrains.kotlin.codegen
 
+import junit.framework.JUnit4TestAdapter
+import junit.framework.TestSuite
 import org.jetbrains.kotlin.test.clientserver.TestProcessServer
 import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
 import org.junit.AfterClass
 import org.junit.Assert.assertNotNull
 import org.junit.BeforeClass
 import org.junit.runner.RunWith
+import org.junit.runners.AllTests
+import org.junit.runners.JUnit4
 import org.junit.runners.Suite
 import java.io.File
+import org.junit.runners.model.RunnerBuilder
+import purejavacomm.testsuite.Test2
+import purejavacomm.testsuite.Test1
+import org.junit.runners.Suite.SuiteClasses
+
 
 /**
  * This suite is used to run java codegen tests under jdk 1.6, 1.8 and 9
  * with different default targets - 1.6, 1.8, 1.9.
  */
-@RunWith(Suite::class)
-@Suite.SuiteClasses(
-        BlackBoxCodegenTestGenerated::class,
-        BlackBoxInlineCodegenTestGenerated::class,
-        CompileKotlinAgainstInlineKotlinTestGenerated::class,
-        CompileKotlinAgainstKotlinTestGenerated::class,
-        BlackBoxAgainstJavaCodegenTestGenerated::class
-)
-object CodegenJdkCommonTestSuite {
+@RunWith(AllTests::class)
+//@Suite.SuiteClasses(
+//        BlackBoxCodegenTestGenerated::class,
+//        BlackBoxInlineCodegenTestGenerated::class,
+//        CompileKotlinAgainstInlineKotlinTestGenerated::class,
+//        CompileKotlinAgainstKotlinTestGenerated::class,
+//        BlackBoxAgainstJavaCodegenTestGenerated::class
+//)
 
-    private var jdkProcess: Process? = null
+class CodegenJdkCommonTestSuite : TestSuite("123")  {
 
-    @BeforeClass
-    @JvmStatic
-    fun setUp() {
-        val boxInSeparateProcessPort = System.getProperty(CodegenTestCase.RUN_BOX_TEST_IN_SEPARATE_PROCESS_PORT)
-        if (boxInSeparateProcessPort != null) {
-            val classpath = "out/test/tests-common" +
-                            File.pathSeparatorChar +
-                            ForTestCompileRuntime.runtimeJarForTests() +
-                            File.pathSeparatorChar +
-                            ForTestCompileRuntime.kotlinTestJarForTests()
+    companion object {
 
-            val jdk16 = System.getenv("JDK_16")
-            assertNotNull(jdk16, "Please specify JDK_16 system property to run codegen test in separate process")
+        private var jdkProcess: Process? = null
 
-            val builder = ProcessBuilder(
-                    jdk16 + "/bin/java", "-cp", classpath,
-                    TestProcessServer::class.java.name, boxInSeparateProcessPort
-            )
-            println("Starting separate process to run test: " + builder.command().joinToString())
-            builder.inheritIO()
-            builder.redirectErrorStream(true)
-            jdkProcess = builder.start()
+        @BeforeClass
+        @JvmStatic
+        fun setUp() {
+            val boxInSeparateProcessPort = System.getProperty(CodegenTestCase.RUN_BOX_TEST_IN_SEPARATE_PROCESS_PORT)
+            if (boxInSeparateProcessPort != null) {
+                val classpath = "out/test/tests-common" +
+                                File.pathSeparatorChar +
+                                ForTestCompileRuntime.runtimeJarForTests() +
+                                File.pathSeparatorChar +
+                                ForTestCompileRuntime.kotlinTestJarForTests()
+
+                val jdk16 = System.getenv("JDK_16")
+                assertNotNull(jdk16, "Please specify JDK_16 system property to run codegen test in separate process")
+
+                val builder = ProcessBuilder(
+                        jdk16 + "/bin/java", "-cp", classpath,
+                        TestProcessServer::class.java.name, boxInSeparateProcessPort
+                )
+                println("Starting separate process to run test: " + builder.command().joinToString())
+                builder.inheritIO()
+                builder.redirectErrorStream(true)
+                jdkProcess = builder.start()
+            }
+        }
+
+        @AfterClass
+        @JvmStatic
+        fun tearDown() {
+            if (jdkProcess != null) {
+                println("Stop separate test process")
+                jdkProcess!!.destroy()
+            }
+        }
+
+        @JvmStatic
+        fun suite(): TestSuite {
+            return CodegenJdkCommonTestSuite().apply {
+                addTest(JUnit4TestAdapter(BlackBoxCodegenTestGenerated::class.java))
+                addTest(JUnit4TestAdapter(BlackBoxInlineCodegenTestGenerated::class.java))
+                addTest(JUnit4TestAdapter(BlackBoxInlineCodegenTestGenerated::class.java))
+            }
         }
     }
 
-    @AfterClass
-    @JvmStatic
-    fun tearDown() {
-        if (jdkProcess != null) {
-            println("Stop separate test process")
-            jdkProcess!!.destroy()
-        }
-    }
+
 }
