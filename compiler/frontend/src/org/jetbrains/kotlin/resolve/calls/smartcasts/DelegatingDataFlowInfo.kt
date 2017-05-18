@@ -282,10 +282,10 @@ internal class DelegatingDataFlowInfo private constructor(
 
     private fun Set<KotlinType>.containsNothing() = any { KotlinBuiltIns.isNothing(it) }
 
-    private fun Set<KotlinType>.intersect(other: Set<KotlinType>) =
+    private fun Set<KotlinType>.intersectTypes(other: Set<KotlinType>) =
             if (other.containsNothing()) this
             else if (this.containsNothing()) other
-            else Sets.intersection(this, other)
+            else this.intersect(other)
 
     override fun or(other: DataFlowInfo): DataFlowInfo {
         if (other === DataFlowInfo.EMPTY) return DataFlowInfo.EMPTY
@@ -304,8 +304,8 @@ internal class DelegatingDataFlowInfo private constructor(
         val otherTypeInfo = other.completeTypeInfo
         val newTypeInfo = newTypeInfo()
 
-        for (key in Sets.intersection(myTypeInfo.keySet(), otherTypeInfo.keySet())) {
-            newTypeInfo.putAll(key, myTypeInfo[key].intersect(otherTypeInfo[key]))
+        for (key in myTypeInfo.keySet().intersect(otherTypeInfo.keySet())) {
+            newTypeInfo.putAll(key, myTypeInfo[key].intersectTypes(otherTypeInfo[key]))
         }
 
         return create(null, ImmutableMap.copyOf(nullabilityMapBuilder), newTypeInfo)
