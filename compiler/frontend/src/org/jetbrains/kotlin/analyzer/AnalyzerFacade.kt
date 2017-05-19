@@ -155,6 +155,12 @@ interface ModuleInfo {
     }
 }
 
+interface LibraryModuleInfo : ModuleInfo {
+    override val platform: TargetPlatform
+
+    fun getLibraryRoots(): Collection<String>
+}
+
 abstract class AnalyzerFacade<in P : PlatformAnalysisParameters> {
     companion object {
         fun <P : PlatformAnalysisParameters, M : ModuleInfo> setupResolverForProject(

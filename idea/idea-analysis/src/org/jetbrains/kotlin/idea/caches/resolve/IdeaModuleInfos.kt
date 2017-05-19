@@ -29,8 +29,8 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.util.PathUtil
 import com.intellij.util.SmartList
+import org.jetbrains.kotlin.analyzer.LibraryModuleInfo
 import org.jetbrains.kotlin.analyzer.ModuleInfo
-import org.jetbrains.kotlin.caches.resolve.LibraryModuleInfo
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.idea.project.TargetPlatformDetector
 import org.jetbrains.kotlin.idea.stubindex.KotlinSourceFilterScope
