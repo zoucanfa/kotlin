@@ -6,12 +6,12 @@ internal abstract class KotlinJvmOptionsBase : org.jetbrains.kotlin.gradle.dsl.K
 
     private var apiVersionField: kotlin.String? = null
     override var apiVersion: kotlin.String
-        get() = apiVersionField ?: "1.1"
+        get() = apiVersionField ?: "1.2"
         set(value) { apiVersionField = value }
 
     private var languageVersionField: kotlin.String? = null
     override var languageVersion: kotlin.String
-        get() = languageVersionField ?: "1.1"
+        get() = languageVersionField ?: "1.2"
         set(value) { languageVersionField = value }
 
     private var suppressWarningsField: kotlin.Boolean? = null
@@ -75,8 +75,8 @@ internal abstract class KotlinJvmOptionsBase : org.jetbrains.kotlin.gradle.dsl.K
 }
 
 internal fun org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments.fillDefaultValues() {
-    apiVersion = "1.1"
-    languageVersion = "1.1"
+    apiVersion = "1.2"
+    languageVersion = "1.2"
     suppressWarnings = false
     verbose = false
     includeRuntime = false
