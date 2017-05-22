@@ -16,8 +16,10 @@
 
 package org.jetbrains.kotlin.resolve.jvm.platform
 
+import org.jetbrains.kotlin.analyzer.AnalyzerFacade
 import org.jetbrains.kotlin.platform.JvmBuiltIns
 import org.jetbrains.kotlin.resolve.*
+import org.jetbrains.kotlin.resolve.jvm.JvmAnalyzerFacade
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
@@ -49,4 +51,7 @@ object JvmPlatform : TargetPlatform("JVM") {
     override val platformConfigurator: PlatformConfigurator = JvmPlatformConfigurator
 
     override val multiTargetPlatform = MultiTargetPlatform.Specific(platformName)
+
+    override val analyzerFacade: AnalyzerFacade<*>
+        get() = JvmAnalyzerFacade
 }

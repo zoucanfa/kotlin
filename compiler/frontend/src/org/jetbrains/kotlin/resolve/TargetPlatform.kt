@@ -16,6 +16,8 @@
 
 package org.jetbrains.kotlin.resolve
 
+import org.jetbrains.kotlin.analyzer.AnalyzerFacade
+import org.jetbrains.kotlin.analyzer.common.DefaultAnalyzerFacade
 import org.jetbrains.kotlin.container.StorageComponentContainer
 import org.jetbrains.kotlin.container.composeContainer
 import org.jetbrains.kotlin.container.useInstance
@@ -38,6 +40,8 @@ abstract class TargetPlatform(val platformName: String) {
     open val excludedImports: List<FqName> get() = emptyList()
 
     abstract val multiTargetPlatform: MultiTargetPlatform
+
+    abstract val analyzerFacade: AnalyzerFacade<*>
 
     object Default : TargetPlatform("Default") {
         private val defaultImports = LockBasedStorageManager().createMemoizedFunction<Boolean, List<ImportPath>> {
@@ -75,6 +79,9 @@ abstract class TargetPlatform(val platformName: String) {
 
         override val multiTargetPlatform: MultiTargetPlatform
             get() = MultiTargetPlatform.Common
+
+        override val analyzerFacade: AnalyzerFacade<*>
+            get() = DefaultAnalyzerFacade
     }
 }
 

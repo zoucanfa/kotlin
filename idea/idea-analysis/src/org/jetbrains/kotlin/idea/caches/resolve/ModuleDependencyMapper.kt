@@ -32,7 +32,6 @@ import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.context.GlobalContextImpl
 import org.jetbrains.kotlin.context.withProject
-import org.jetbrains.kotlin.idea.project.AnalyzerFacadeProvider
 import org.jetbrains.kotlin.idea.project.IdeaEnvironment
 import org.jetbrains.kotlin.js.resolve.JsPlatform
 import org.jetbrains.kotlin.load.java.structure.JavaClass
@@ -77,7 +76,11 @@ fun createModuleResolverProvider(
 
         return AnalyzerFacade.setupResolverForProject(
                 debugName, globalContext.withProject(project), modulesToCreateResolversFor,
-                { module -> AnalyzerFacadeProvider.getAnalyzerFacade(module.platform ?: analysisSettings.platform) },
+                { module ->
+                    // This unchecked cast succeeds because JS backend doesn't have platform parameters (for now)
+                    @Suppress("UNCHECKED_CAST")
+                    (module.platform ?: analysisSettings.platform).analyzerFacade as AnalyzerFacade<JvmPlatformParameters>
+                },
                 modulesContent, jvmPlatformParameters,
                 LanguageSettingsProvider.getInstance(project),
                 IdeaEnvironment, builtIns,

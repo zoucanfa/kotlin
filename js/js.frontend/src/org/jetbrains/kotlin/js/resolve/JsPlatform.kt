@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.js.resolve
 
+import org.jetbrains.kotlin.analyzer.AnalyzerFacade
 import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.name.FqName
@@ -39,5 +40,9 @@ object JsPlatform : TargetPlatform("JS") {
 
     override val multiTargetPlatform = MultiTargetPlatform.Specific(platformName)
 
-    override val excludedImports: List<FqName> = listOf("Promise", "Date", "Console", "Math", "RegExp", "RegExpMatch", "Json", "json").map { FqName("kotlin.js.$it") }
+    override val excludedImports: List<FqName> =
+            listOf("Promise", "Date", "Console", "Math", "RegExp", "RegExpMatch", "Json", "json").map { FqName("kotlin.js.$it") }
+
+    override val analyzerFacade: AnalyzerFacade<*>
+        get() = JsAnalyzerFacade
 }
