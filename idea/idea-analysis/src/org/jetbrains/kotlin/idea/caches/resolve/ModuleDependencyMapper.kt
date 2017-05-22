@@ -83,8 +83,7 @@ fun createModuleResolverProvider(
                 IdeaEnvironment, builtIns,
                 delegateResolver, { _, c -> IDEPackagePartProvider(c.moduleContentScope) },
                 analysisSettings.sdk?.let { SdkInfo(project, it) },
-                modulePlatforms = { module -> module.platform?.multiTargetPlatform },
-                packageOracleFactory = project.service<IdePackageOracleFactory>()
+                project.service<IdePackageOracleFactory>()
         )
     }
 

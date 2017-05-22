@@ -176,13 +176,12 @@ abstract class AnalyzerFacade<in P : PlatformAnalysisParameters> {
                 delegateResolver: ResolverForProject<M> = EmptyResolverForProject(),
                 packagePartProviderFactory: (M, ModuleContent) -> PackagePartProvider = { _, _ -> PackagePartProvider.Empty },
                 firstDependency: M? = null,
-                modulePlatforms: (M) -> MultiTargetPlatform?,
                 packageOracleFactory: PackageOracleFactory = PackageOracleFactory.OptimisticFactory
         ): ResolverForProject<M> {
             val storageManager = projectContext.storageManager
 
             val resolverForProject = ResolverForProjectImpl(debugName, modules.keysToMap { module ->
-                ModuleDescriptorImpl(module.name, storageManager, builtIns, modulePlatforms(module), module.capabilities)
+                ModuleDescriptorImpl(module.name, storageManager, builtIns, module.platform?.multiTargetPlatform, module.capabilities)
             }, delegateResolver)
 
             for (module in modules) {
@@ -211,10 +210,11 @@ abstract class AnalyzerFacade<in P : PlatformAnalysisParameters> {
                             }
                         },
                         computeImplementingModules = {
-                            if (modulePlatforms(module) != MultiTargetPlatform.Common) emptySet()
-                            else modules
-                                    .filter { modulePlatforms(it) != MultiTargetPlatform.Common && module in it.dependencies() }
-                                    .mapTo(mutableSetOf(), resolverForProject::descriptorForModule)
+                            val platform = module.platform?.multiTargetPlatform
+                            if (platform != MultiTargetPlatform.Common) emptySet()
+                            else modules.filter { other ->
+                                other.platform?.multiTargetPlatform != MultiTargetPlatform.Common && module in other.dependencies()
+                            }.mapTo(mutableSetOf(), resolverForProject::descriptorForModule)
                         }
                 ))
             }
