@@ -122,7 +122,7 @@ class KotlinScriptConfigurationManager(
             rootsChangesRunnable.invoke()
         }
         else {
-            application.invokeLater(rootsChangesRunnable, ModalityState.defaultModalityState())
+            application.invokeLater(rootsChangesRunnable, ModalityState.NON_MODAL)
         }
     }
 
