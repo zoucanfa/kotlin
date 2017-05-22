@@ -18,7 +18,6 @@ package org.jetbrains.kotlin.gradle.internal
 
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.api.AndroidSourceSet
-import com.android.build.gradle.internal.variant.BaseVariantData
 import com.android.builder.model.SourceProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -257,7 +256,10 @@ class Kapt3KotlinGradleSubplugin : KotlinGradleSubplugin<KotlinCompile> {
         kaptTask.classesDir = classesOutputDir
 
         kotlinCompile.dependsOn(kaptTask)
-        (variantData as WrappedVariantData<*>).wireKaptTask(project, kaptTask, kotlinCompile, javaCompile)
+
+        if (variantData != null) {
+            (variantData as WrappedVariantData<*>).wireKaptTask(project, kaptTask, kotlinCompile, javaCompile)
+        }
 
         kotlinCompile.source(sourcesOutputDir, kotlinSourcesOutputDir)
 
@@ -282,9 +284,6 @@ class Kapt3KotlinGradleSubplugin : KotlinGradleSubplugin<KotlinCompile> {
             options.compilerArgs = newCompilerArgs as List<String>
         }
     }
-
-    private val BaseVariantData<*>.sourceProviders: List<SourceProvider>
-        get() = variantConfiguration.sortedSourceProviders
 
     override fun getCompilerPluginId() = "org.jetbrains.kotlin.kapt3"
     override fun getGroupName() = "org.jetbrains.kotlin"
