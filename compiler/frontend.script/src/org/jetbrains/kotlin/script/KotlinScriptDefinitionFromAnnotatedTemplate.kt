@@ -145,12 +145,10 @@ open class KotlinScriptDefinitionFromAnnotatedTemplate(
     })
 
 
-    fun <TF : Any, R> getDependenciesFor(previousDependencies: KotlinScriptExternalDependencies?, executor: (() -> KotlinScriptExternalDependencies?) -> R, scriptContents: ScriptContents): R {
-        return executor.invoke {
-            takeUnlessError(reportError = false) {
-                // TODO: use it as a Future
-                resolver?.resolve(scriptContents, environment, ::logScriptDefMessage, previousDependencies)?.get()
-            }
+    fun getDependenciesFor(previousDependencies: KotlinScriptExternalDependencies?, scriptContents: ScriptContents): KotlinScriptExternalDependencies? {
+        return takeUnlessError(reportError = false) {
+            // TODO: use it as a Future
+            resolver?.resolve(scriptContents, environment, ::logScriptDefMessage, previousDependencies)?.get()
         }
     }
 
