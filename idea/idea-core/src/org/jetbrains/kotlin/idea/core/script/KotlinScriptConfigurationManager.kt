@@ -48,10 +48,19 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 import kotlin.script.dependencies.KotlinScriptExternalDependencies
 
+
+class IdeScriptExternalImportsProvider(
+        private val scriptConfigurationManager: KotlinScriptConfigurationManager
+) : KotlinScriptExternalImportsProvider {
+    override fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies? {
+        return scriptConfigurationManager.getExternalImports(file)
+    }
+}
+
 class KotlinScriptConfigurationManager(
         private val project: Project,
         private val scriptDefinitionProvider: KotlinScriptDefinitionProvider
-): KotlinScriptExternalImportsProvider {
+) {
 
     private val cacheLock = ReentrantReadWriteLock()
 
@@ -74,14 +83,13 @@ class KotlinScriptConfigurationManager(
 
             override fun after(events: List<VFileEvent>) {
                 if (updateExternalImportsCache(events.mapNotNull {
-                        // The check is partly taken from the BuildManager.java
-                        it.file?.takeIf {
-                            // the isUnitTestMode check fixes ScriptConfigurationHighlighting & Navigation tests, since they are not trigger proper update mechanims
-                            // TODO: find out the reason, then consider to fix tests and remove this check
-                            (application.isUnitTestMode || projectFileIndex.isInContent(it)) && !ProjectUtil.isProjectOrWorkspaceFile(it)
-                        }
-                    }))
-                {
+                    // The check is partly taken from the BuildManager.java
+                    it.file?.takeIf {
+                        // the isUnitTestMode check fixes ScriptConfigurationHighlighting & Navigation tests, since they are not trigger proper update mechanims
+                        // TODO: find out the reason, then consider to fix tests and remove this check
+                        (application.isUnitTestMode || projectFileIndex.isInContent(it)) && !ProjectUtil.isProjectOrWorkspaceFile(it)
+                    }
+                })) {
                     invalidateLocalCaches()
                     notifyRootsChanged()
                 }
@@ -151,8 +159,9 @@ class KotlinScriptConfigurationManager(
     }
 
     private val cache = hashMapOf<String, KotlinScriptExternalDependencies?>()
+    private var lastStamp: TimeStamp = TimeStamps.next()
 
-    override fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies? = cacheLock.read {
+    fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies? = cacheLock.read {
         val path = getFilePath(file)
         cache[path]?.let { return it }
 
@@ -166,7 +175,7 @@ class KotlinScriptConfigurationManager(
 
     // optimized for initial caching, additional handling of possible duplicates to save a call to distinct
     // returns list of cached files
-    override fun <TF : Any> cacheExternalImports(files: Iterable<TF>): Iterable<TF> = cacheLock.write {
+    fun <TF : Any> cacheExternalImports(files: Iterable<TF>): Iterable<TF> = cacheLock.write {
         return files.mapNotNull { file ->
             scriptDefinitionProvider.findScriptDefinition(file)?.let {
                 cacheForFile(file, getFilePath(file), it)
@@ -203,20 +212,24 @@ class KotlinScriptConfigurationManager(
         return updateSync(file, scriptDef)
     }
 
-    fun <TF: Any> updateAsync(file: TF, scriptDefinition: KotlinScriptDefinitionFromAnnotatedTemplate): Boolean {
+    fun <TF : Any> updateAsync(file: TF, scriptDefinition: KotlinScriptDefinitionFromAnnotatedTemplate): Boolean {
         val path = getFilePath(file)
-        val oldDeps = cache[path]
+        val oldDependencies = cache[path]
         val scriptContents = scriptDefinition.makeScriptContents(file, project)
+        val updateStamp = TimeStamps.next()
         CompletableFuture.supplyAsync {
-            scriptDefinition.getDependenciesFor(oldDeps, scriptContents)
-        }.thenApply { newDeps ->
+            val newDependencies = scriptDefinition.getDependenciesFor(oldDependencies, scriptContents)
             cacheLock.write {
-                cacheNewDependencies(newDeps, oldDeps, path)
+                if (updateStamp >= lastStamp) {
+                    lastStamp = updateStamp
+                    if (cacheNewDependencies(newDependencies, oldDependencies, path)) {
+                        invalidateLocalCaches()
+                        notifyRootsChanged()
+                    }
+                }
             }
-        }.thenAccept { changed: Boolean ->
-            if (changed) notifyRootsChanged()
         }
-        return false
+        return false // not changed immediately
     }
 
     private fun <TF : Any> updateSync(file: TF, scriptDef: KotlinScriptDefinition): Boolean {
@@ -258,26 +271,6 @@ class KotlinScriptConfigurationManager(
         kotlinScriptDependenciesClassFinder.clearCache()
     }
 
-    override fun invalidateCaches() = canRemoveFromAPI()
-
-    // optimized for update, no special duplicates handling
-    // returns files with valid script definition (or deleted from cache - which in fact should have script def too)
-    // TODO: this is the badly designed contract, since it mixes the entities, but these files are needed on the calling site now. Find out other solution
-    @Deprecated("Remove from API")
-    override fun <TF : Any> updateExternalImportsCache(files: Iterable<TF>): Iterable<TF> = canRemoveFromAPI()
-
-    @Deprecated("Remove from API")
-    override fun getKnownCombinedClasspath() = canRemoveFromAPI()
-
-    @Deprecated("Remove from API")
-    override fun getKnownSourceRoots() = canRemoveFromAPI()
-
-    private fun canRemoveFromAPI(): Nothing = error("can remove from API")
-
-    @Deprecated("Remove from API")
-    override fun <TF : Any> getCombinedClasspathFor(files: Iterable<TF>) = error("Not called in IDE")
-
-
     companion object {
         @JvmStatic
         fun getInstance(project: Project): KotlinScriptConfigurationManager =
@@ -297,11 +290,12 @@ class KotlinScriptConfigurationManager(
             // TODO: report this somewhere, but do not throw: assert(res != null, { "Invalid classpath entry '$this': exists: ${exists()}, is directory: $isDirectory, is file: $isFile" })
             return res
         }
+
         internal val log = Logger.getInstance(KotlinScriptConfigurationManager::class.java)
 
         @TestOnly
         fun reloadScriptDefinitions(project: Project) {
-            with (getInstance(project)) {
+            with(getInstance(project)) {
                 reloadScriptDefinitions()
                 cacheLock.write(cache::clear)
                 invalidateLocalCaches()
@@ -341,9 +335,19 @@ private fun KotlinScriptExternalDependencies.match(other: KotlinScriptExternalDe
 
 
 private fun Iterable<File>.isSamePathListAs(other: Iterable<File>): Boolean =
-        with (Pair(iterator(), other.iterator())) {
+        with(Pair(iterator(), other.iterator())) {
             while (first.hasNext() && second.hasNext()) {
                 if (first.next().canonicalPath != second.next().canonicalPath) return false
             }
             !(first.hasNext() || second.hasNext())
         }
+
+data class TimeStamp(private val stamp: Long) {
+    operator fun compareTo(other: TimeStamp) = this.stamp.compareTo(other.stamp)
+}
+
+object TimeStamps {
+    private var current: Long = 0
+
+    fun next() = TimeStamp(current++)
+}

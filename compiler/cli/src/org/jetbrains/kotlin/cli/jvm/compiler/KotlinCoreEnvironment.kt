@@ -181,9 +181,10 @@ class KotlinCoreEnvironment private constructor(
             scriptDefinitionProvider.setScriptDefinitions(
                     configuration.getList(JVMConfigurationKeys.SCRIPT_DEFINITIONS))
 
-            KotlinScriptExternalImportsProvider.getInstance(project)?.run {
+            KotlinScriptExternalImportsProvider.getInstance(project)?.let { importsProvider ->
                 configuration.addJvmClasspathRoots(
-                        getCombinedClasspathFor(sourceFiles)
+                        sourceFiles.mapNotNull(importsProvider::getExternalImports)
+                                .flatMap { it.classpath }
                                 .distinctBy { it.absolutePath })
             }
         }
