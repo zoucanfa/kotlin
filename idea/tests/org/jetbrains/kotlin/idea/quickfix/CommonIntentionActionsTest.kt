@@ -20,6 +20,7 @@ import com.intellij.codeInsight.intention.JvmCommonIntentionActionsFactory
 import com.intellij.lang.Language
 import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiType
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
 import org.jetbrains.uast.*
@@ -116,13 +117,47 @@ class CommonIntentionActionsTest : LightPlatformCodeInsightFixtureTestCase() {
         """.trim().trimMargin(), true)
     }
 
+    fun testAddStringVarProperty() {
+        myFixture.configureByText("foo.kt", """
+        |class Foo<caret> {
+        |    fun bar() {}
+        |}
+        """.trim().trimMargin())
+
+        myFixture.launchAction(codeModifications.createAddBeanPropertyActions(
+                atCaret<UClass>(myFixture), "baz", PsiModifier.PUBLIC, PsiType.getTypeByName("java.lang.String", project, GlobalSearchScope.allScope(project)), true, true).first())
+        myFixture.checkResult("""
+        |class Foo {
+        |    var baz: String
+        |    fun bar() {}
+        |}
+        """.trim().trimMargin(), true)
+    }
+
+    fun testAddStringValProperty() {
+        myFixture.configureByText("foo.kt", """
+        |class Foo<caret> {
+        |    fun bar() {}
+        |}
+        """.trim().trimMargin())
+
+        myFixture.launchAction(codeModifications.createAddBeanPropertyActions(
+                atCaret<UClass>(myFixture), "baz", PsiModifier.PUBLIC, PsiType.getTypeByName("java.lang.String", project, GlobalSearchScope.allScope(project)), false, true).first())
+        myFixture.checkResult("""
+        |class Foo {
+        |    val baz: String
+        |    fun bar() {}
+        |}
+        """.trim().trimMargin(), true)
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun <T : UElement> atCaret(myFixture: CodeInsightTestFixture): T {
         return myFixture.elementAtCaret.toUElement() as T
     }
 
     private val codeModifications: JvmCommonIntentionActionsFactory
-        get() = JvmCommonIntentionActionsFactory.forLanguage(Language.findLanguageByID("kotlin")!!)
+        get() = JvmCommonIntentionActionsFactory.forLanguage(Language.findLanguageByID("kotlin")!!)!!
 
 }
 
