@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtil.compareVer
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptionsImpl
 import org.jetbrains.kotlin.gradle.internal.*
 import org.jetbrains.kotlin.gradle.internal.Kapt3KotlinGradleSubplugin.Companion.getKaptClasssesDir
+import org.jetbrains.kotlin.gradle.plugin.android.AndroidGradleWrapper
 import org.jetbrains.kotlin.gradle.tasks.*
 import org.jetbrains.kotlin.gradle.utils.ParsedGradleVersion
 import org.jetbrains.kotlin.incremental.configureMultiProjectIncrementalCompilation
@@ -123,6 +124,8 @@ internal class Kotlin2JvmSourceSetProcessor(
                         project, kotlinTask, javaTask as JavaCompile, null, sourceSet)
 
                 var kotlinAfterJavaTask: KotlinCompile? = null
+
+                checkKapt1Usage(project)
 
                 if (!Kapt3GradleSubplugin.isEnabled(project) && aptConfiguration.allDependencies.size > 1) {
                     javaTask.dependsOn(aptConfiguration.buildDependencies)
@@ -452,6 +455,9 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
                                tasksProvider: KotlinTasksProvider, subpluginEnvironment: SubpluginEnvironment) {
 
         checkVariantIsValid(variantData)
+
+        checkAndroidAnnotationProcessorDependencyUsage(project)
+        checkKapt1Usage(project)
 
         val variantDataName = getVariantName(variantData)
         logger.kotlinDebug("Process variant [$variantDataName]")
