@@ -41,5 +41,10 @@ internal fun KotlinType.fqNameSafe() = constructor.declarationDescriptor?.fqName
 
 internal fun KotlinType.isSubclassOf(className: FqName, strict: Boolean = false): Boolean =
         (!strict && fqNameSafe() == className) || constructor.supertypes.any {
-            className == it.fqNameSafe() || it.isSubclassOf(className, true)
+            it.fqNameSafe() == className || it.isSubclassOf(className, true)
+        }
+
+internal fun KotlinType.isSubclassOf(className: String, strict: Boolean = false): Boolean =
+        (!strict && fqNameSafe()?.asString() == className) || constructor.supertypes.any {
+            it.fqNameSafe()?.asString() == className || it.isSubclassOf(className, true)
         }
