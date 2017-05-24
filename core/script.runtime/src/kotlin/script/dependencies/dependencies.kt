@@ -34,6 +34,8 @@ interface KotlinScriptExternalDependencies : Comparable<KotlinScriptExternalDepe
                     .chainCompare { compareIterables(imports, other.imports) }
                     .chainCompare { compareIterables(sources, other.sources) }
                     .chainCompare { compareIterables(scripts, other.scripts) }
+
+    object NoDependencies : KotlinScriptExternalDependencies
 }
 
 // copied form Comparisons.kt to resolve temporary build issues with dependency on stdlib

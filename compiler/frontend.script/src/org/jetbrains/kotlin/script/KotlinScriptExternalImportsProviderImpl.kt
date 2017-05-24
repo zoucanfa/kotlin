@@ -16,7 +16,6 @@
 
 package org.jetbrains.kotlin.script
 
-import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import java.io.File
@@ -33,33 +32,27 @@ class KotlinScriptExternalImportsProviderImpl(
     private val cacheLock = ReentrantReadWriteLock()
     private val cache = hashMapOf<String, KotlinScriptExternalDependencies?>()
 
-    override fun <TF: Any> getExternalImports(file: TF): KotlinScriptExternalDependencies? = cacheLock.read {
+    override fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies = cacheLock.read {
         calculateExternalDependencies(file)
-    }
+    } ?: NoDependencies
 
-    private fun <TF: Any> calculateExternalDependencies(file: TF): KotlinScriptExternalDependencies? {
+    private fun <TF : Any> calculateExternalDependencies(file: TF): KotlinScriptExternalDependencies? {
         val path = getFilePath(file)
-        val cached = cache[path]
-        return if (cached != null) cached else {
-            val scriptDef = scriptDefinitionProvider.findScriptDefinition(file)
-            if (scriptDef != null) {
-                val deps = scriptDef.getDependenciesFor(file, project, null)
-                if (deps != null) {
-                    log.info("[kts] new cached deps for $path: ${deps.classpath.joinToString(File.pathSeparator)}")
-                }
-                cacheLock.write {
-                    cache.put(path, deps)
-                }
-                deps
-            }
-            else null
-        }
-    }
+        cache[path]?.let { return it }
 
-    companion object {
-        @JvmStatic
-        fun getInstance(project: Project): KotlinScriptExternalImportsProvider? =
-                ServiceManager.getService(project, KotlinScriptExternalImportsProvider::class.java)
-        internal val log = Logger.getInstance(KotlinScriptExternalImportsProvider::class.java)
+        val scriptDef = scriptDefinitionProvider.findScriptDefinition(file) ?: return null
+
+        val deps = scriptDef.getDependenciesFor(file, project, null)?.also {
+            log.info("[kts] new cached deps for $path: ${it.classpath.joinToString(File.pathSeparator)}")
+        }
+
+        cacheLock.write {
+            cache.put(path, deps)
+        }
+
+        return deps
     }
 }
+
+internal val log = Logger.getInstance(KotlinScriptExternalImportsProvider::class.java)
+private object NoDependencies : KotlinScriptExternalDependencies

@@ -21,12 +21,10 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.Extensions
-import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectUtil
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.roots.ex.ProjectRootManagerEx
-import com.intellij.openapi.startup.StartupManager
 import com.intellij.openapi.util.EmptyRunnable
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VirtualFile
@@ -34,8 +32,6 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiElementFinder
-import com.intellij.psi.search.FileTypeIndex
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.NonClasspathDirectoriesScope
 import com.intellij.util.io.URLUtil
 import org.jetbrains.annotations.TestOnly
@@ -52,7 +48,7 @@ import kotlin.script.dependencies.KotlinScriptExternalDependencies
 class IdeScriptExternalImportsProvider(
         private val scriptConfigurationManager: KotlinScriptConfigurationManager
 ) : KotlinScriptExternalImportsProvider {
-    override fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies? {
+    override fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies {
         return scriptConfigurationManager.getExternalImports(file)
     }
 }
@@ -66,16 +62,10 @@ class KotlinScriptConfigurationManager(
 
     init {
         reloadScriptDefinitions()
+        listenToVfsChanges()
+    }
 
-        StartupManager.getInstance(project).runWhenProjectIsInitialized {
-            DumbService.getInstance(project).smartInvokeLater {
-                if (populateCache()) {
-                    invalidateLocalCaches()
-                    notifyRootsChanged()
-                }
-            }
-        }
-
+    private fun listenToVfsChanges() {
         project.messageBus.connect().subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener.Adapter() {
 
             val projectFileIndex = ProjectRootManager.getInstance(project).fileIndex
@@ -133,9 +123,7 @@ class KotlinScriptConfigurationManager(
         }
     }
 
-    fun getScriptClasspath(file: VirtualFile): List<VirtualFile> = toVfsRoots(
-            getExternalImports(file)?.classpath ?: emptyList()
-    )
+    fun getScriptClasspath(file: VirtualFile): List<VirtualFile> = toVfsRoots(getExternalImports(file).classpath)
 
     fun getAllScriptsClasspath(): List<VirtualFile> = allScriptsClasspathCache.get()
 
@@ -150,50 +138,20 @@ class KotlinScriptConfigurationManager(
         scriptDefinitionProvider.setScriptDefinitions(def)
     }
 
-    private fun populateCache(): Boolean {
-        cacheLock.write(cache::clear)
-        return cacheExternalImports(
-                scriptDefinitionProvider.getAllKnownFileTypes()
-                        .flatMap { FileTypeIndex.getFiles(it, GlobalSearchScope.allScope(project)) }
-        ).any()
-    }
-
     private val cache = hashMapOf<String, KotlinScriptExternalDependencies?>()
     private var lastStamp: TimeStamp = TimeStamps.next()
 
-    fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies? = cacheLock.read {
+    fun <TF : Any> getExternalImports(file: TF): KotlinScriptExternalDependencies = cacheLock.read {
         val path = getFilePath(file)
-        cache[path]?.let { return it }
+        val cached = cache[path]
+        cached?.let { return it }
 
-        val scriptDef = scriptDefinitionProvider.findScriptDefinition(file) ?: return null
-        return scriptDef.getDependenciesFor(file, project, null).also {
-            cacheLock.write {
-                cache.put(path, it)
-            }
-        }
+        updateExternalImportsCache(listOf(file))
+
+        return cache[path] ?: NoDependencies
     }
 
-    // optimized for initial caching, additional handling of possible duplicates to save a call to distinct
-    // returns list of cached files
-    fun <TF : Any> cacheExternalImports(files: Iterable<TF>): Iterable<TF> = cacheLock.write {
-        return files.mapNotNull { file ->
-            scriptDefinitionProvider.findScriptDefinition(file)?.let {
-                cacheForFile(file, getFilePath(file), it)
-            }
-        }
-    }
-
-    // TODO: have strong reason to believe cacheForFile and updateForFile can be merged
-    private fun <TF : Any> cacheForFile(file: TF, path: String, scriptDef: KotlinScriptDefinition): TF? {
-        if (!isValidFile(file) || cache.containsKey(path)) return null
-
-        val deps = scriptDef.getDependenciesFor(file, project, null)
-        cache.put(path, deps)
-
-        return file.takeIf { deps != null }
-    }
-
-    private fun updateExternalImportsCache(files: Iterable<VirtualFile>) = cacheLock.write {
+    private fun <TF: Any> updateExternalImportsCache(files: Iterable<TF>) = cacheLock.write {
         files.mapNotNull { file ->
             scriptDefinitionProvider.findScriptDefinition(file)?.let {
                 updateForFile(file, it)
@@ -217,6 +175,7 @@ class KotlinScriptConfigurationManager(
         val oldDependencies = cache[path]
         val scriptContents = scriptDefinition.makeScriptContents(file, project)
         val updateStamp = TimeStamps.next()
+
         CompletableFuture.supplyAsync {
             val newDependencies = scriptDefinition.getDependenciesFor(oldDependencies, scriptContents)
             cacheLock.write {
@@ -256,7 +215,6 @@ class KotlinScriptConfigurationManager(
         }
     }
 
-    // TODO: review cache clearing logic, seems inconsistent
     private fun invalidateLocalCaches() {
         allScriptsClasspathCache.clear()
         allScriptsClasspathScope.clear()
@@ -270,6 +228,9 @@ class KotlinScriptConfigurationManager(
 
         kotlinScriptDependenciesClassFinder.clearCache()
     }
+
+
+    private object NoDependencies: KotlinScriptExternalDependencies
 
     companion object {
         @JvmStatic

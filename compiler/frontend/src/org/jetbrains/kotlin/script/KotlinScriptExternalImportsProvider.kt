@@ -22,13 +22,13 @@ import com.intellij.openapi.vfs.VirtualFile
 import kotlin.script.dependencies.KotlinScriptExternalDependencies
 
 interface KotlinScriptExternalImportsProvider {
-    fun <TF: Any> getExternalImports(file: TF): KotlinScriptExternalDependencies?
+    fun <TF: Any> getExternalImports(file: TF): KotlinScriptExternalDependencies
 
     companion object {
-        fun getInstance(project: Project): KotlinScriptExternalImportsProvider =
+        fun getInstance(project: Project): KotlinScriptExternalImportsProvider? =
                 ServiceManager.getService(project, KotlinScriptExternalImportsProvider::class.java)
     }
 }
 
 fun getScriptExternalDependencies(file: VirtualFile, project: Project): KotlinScriptExternalDependencies?  =
-        KotlinScriptExternalImportsProvider.getInstance(project).getExternalImports(file)
+        KotlinScriptExternalImportsProvider.getInstance(project)?.getExternalImports(file)
