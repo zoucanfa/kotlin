@@ -39,11 +39,13 @@ import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtModifierListOwner
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder
+import org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.Target.CONSTRUCTOR
 import org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.Target.FUNCTION
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UDeclaration
 import org.jetbrains.uast.UElement
+import org.jetbrains.uast.UParameter
 
 
 class KotlinCommonIntentionActionsFactory : JvmCommonIntentionActionsFactory() {
@@ -80,6 +82,25 @@ class KotlinCommonIntentionActionsFactory : JvmCommonIntentionActionsFactory() {
                 PsiModifier.PROTECTED to Visibilities.PROTECTED.displayName,
                 PsiModifier.PACKAGE_LOCAL to Visibilities.INTERNAL.displayName
         ).withDefault { Visibilities.DEFAULT_VISIBILITY.displayName }
+
+        fun typeString(str: PsiType): String {
+            var typeName: String? = when (str) {
+                PsiType.VOID -> ""
+                PsiType.INT -> "kotlin.Int"
+                PsiType.LONG -> "kotlin.Long"
+                PsiType.SHORT -> "kotlin.Short"
+                PsiType.BOOLEAN -> "kotlin.Boolean"
+                PsiType.BYTE -> "kotlin.Byte"
+                PsiType.CHAR -> "kotlin.Char"
+                PsiType.DOUBLE -> "kotlin.Double"
+                PsiType.FLOAT -> "kotlin.Float"
+                else -> null
+            }
+            if (typeName == null)
+                typeName = JavaToKotlinClassMap.INSTANCE.mapJavaToKotlin(FqName(str.canonicalText), DefaultBuiltIns.Instance)?.fqNameSafe?.asString()
+
+            return typeName ?: str.canonicalText
+        }
     }
 
     override fun createAddMethodAction(uClass: UClass, methodName: String, visibilityModifier: String, returnType: PsiType, vararg parameters: PsiType): IntentionAction? {
@@ -110,6 +131,34 @@ class KotlinCommonIntentionActionsFactory : JvmCommonIntentionActionsFactory() {
                 insertMembersAfter(null, ktClassOrObject, listOf(functionString), ktClassOrObject.declarations.lastOrNull())
             }
         }
+
+    }
+
+    override fun createAddConstructorActions(uClass: UClass, vararg parameters: UParameter): Array<IntentionAction> {
+
+        return arrayOf(object : LocalQuickFixAndIntentionActionOnPsiElement(uClass) {
+            override fun getFamilyName(): String = "Add method"
+
+            private val text = "Add constructor with ${parameters.size} parameters to '${uClass.name}'"
+
+            override fun getText(): String = text
+
+            override fun invoke(project: Project, file: PsiFile, editor: Editor?, startElement: PsiElement, endElement: PsiElement) {
+                val psiFactory = KtPsiFactory(uClass)
+                val constructorString = psiFactory.createSecondaryConstructor(CallableBuilder(CONSTRUCTOR).apply {
+                    modifier("")
+                    typeParams()
+                    name()
+                    for ((index, param) in parameters.withIndex()) {
+                        param(param.name ?: "arg${index + 1}", typeString(param.type))
+                    }
+                    noReturnType()
+                    blockBody("")
+                }.asString())
+                val ktClassOrObject = uClass.asKtElement<KtClassOrObject>()!!
+                insertMembersAfter(null, ktClassOrObject, listOf(constructorString), null)
+            }
+        })
 
     }
 
@@ -144,23 +193,5 @@ class KotlinCommonIntentionActionsFactory : JvmCommonIntentionActionsFactory() {
             return arrayOf(addPropertyFix())
     }
 
-
-    private fun typeString(str: PsiType): String {
-        var typeName: String? = when (str) {
-            PsiType.VOID -> ""
-            PsiType.INT -> "kotlin.Int"
-            PsiType.LONG -> "kotlin.Long"
-            PsiType.SHORT -> "kotlin.Short"
-            PsiType.BOOLEAN -> "kotlin.Boolean"
-            PsiType.BYTE -> "kotlin.Byte"
-            PsiType.CHAR -> "kotlin.Char"
-            PsiType.DOUBLE -> "kotlin.Double"
-            PsiType.FLOAT -> "kotlin.Float"
-            else -> null
-        }
-        if (typeName == null)
-            typeName = JavaToKotlinClassMap.INSTANCE.mapJavaToKotlin(FqName(str.canonicalText), DefaultBuiltIns.Instance)?.fqNameSafe?.asString()
-
-        return typeName ?: str.canonicalText
-    }
 }
+

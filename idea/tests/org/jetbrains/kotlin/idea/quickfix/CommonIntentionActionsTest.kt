@@ -19,15 +19,14 @@ package org.jetbrains.kotlin.idea.quickfix
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.codeInsight.intention.JvmCommonIntentionActionsFactory
 import com.intellij.lang.Language
+import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiType
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
-import org.jetbrains.uast.UClass
-import org.jetbrains.uast.UDeclaration
-import org.jetbrains.uast.UElement
-import org.jetbrains.uast.toUElement
+import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.uast.*
 import org.junit.Assert
 
 
@@ -123,6 +122,55 @@ class CommonIntentionActionsTest : LightPlatformCodeInsightFixtureTestCase() {
         |    }
         |}
         """.trim().trimMargin(), true)
+    }
+
+    fun testAddIntConstructor() {
+        myFixture.configureByText("foo.kt", """
+        |class Foo<caret> {
+        |}
+        """.trim().trimMargin())
+
+        myFixture.launchAction(codeModifications.createAddConstructorActions(
+                atCaret<UClass>(myFixture), *paramsMaker(PsiType.INT)).first())
+        myFixture.checkResult("""
+        |class Foo {
+        |    constructor(param0: Int) {
+        |
+        |    }
+        |}
+        """.trim().trimMargin(), true)
+    }
+
+    fun paramsMaker(vararg psyTypes: PsiType): Array<UParameter> {
+        val f = KtPsiFactory(myFixture.project)
+        val u = UastContext(myFixture.project)
+
+        return JavaPsiFacade.getElementFactory(myFixture.project)
+                .createParameterList(psyTypes.indices.map { "param$it" }.toTypedArray(),
+                                     psyTypes).let {
+            it.parameters
+                    .map { u.convertElement(it, null, UParameter::class.java) as UParameter }
+        }
+                .toTypedArray()
+
+//        val paramsString = psyTypes.mapIndexed { i, t -> "param$i: ${typeString(t)}" }.joinToString()
+//
+//        return (f.createClass("class A($paramsString)")
+//                .let { u.convertElement(it, null, UClass::class.java) } as UClass).uastDeclarations.first().let { it as UMethod }
+//                .uastParameters.toTypedArray()
+
+//        return (f.createFunction("fun foo($paramsString)")
+//                .originalElement as KtNamedFunction).let {
+//            u.convertElement(it, null, UMethod::class.java)!! as UMethod
+//        }.uastParameters.toTypedArray()
+        //.parameters.map {it.toUElement(UParameter::class.java)!!}.toTypedArray()
+
+//        return psyTypes.mapIndexed { index: Int, psiType: PsiType ->
+//            f.createParameter("param$index: ${typeString(psiType)}").let {
+//                u.convertElement(it, null, UParameter::class.java) as UParameter
+////                KotlinUParameter(UastKotlinPsiParameter.create(it, it.parent), null)
+//            }
+//        }.toTypedArray()
     }
 
     fun testAddStringVarProperty() {
