@@ -16,11 +16,14 @@
 
 package org.jetbrains.kotlin.extensions
 
+import com.intellij.openapi.util.Key
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.psi.KtModifierListOwner
 import org.jetbrains.kotlin.resolve.BindingContext
+
+val MODALITY_IS_ALTERED = Key<Boolean>("KOTLIN_MODALITY_IS_ALTERED")
 
 interface DeclarationAttributeAltererExtension {
     companion object : ProjectExtensionDescriptor<DeclarationAttributeAltererExtension>(

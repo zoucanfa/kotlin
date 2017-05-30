@@ -16,11 +16,14 @@
 
 package org.jetbrains.kotlin.allopen
 
+import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.UserDataHolder
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.extensions.AnnotationBasedExtension
 import org.jetbrains.kotlin.extensions.DeclarationAttributeAltererExtension
+import org.jetbrains.kotlin.extensions.MODALITY_IS_ALTERED
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtModifierListOwner
@@ -45,21 +48,29 @@ abstract class AbstractAllOpenDeclarationAttributeAltererExtension : Declaration
             bindingContext: BindingContext
     ): Modality? {
         if (currentModality != Modality.FINAL) {
+            modifierListOwner.removeUserData(MODALITY_IS_ALTERED)
             return null
         }
 
         if (modifierListOwner.hasModifier(KtTokens.PRIVATE_KEYWORD) && modifierListOwner is KtCallableDeclaration) {
+            modifierListOwner.removeUserData(MODALITY_IS_ALTERED)
             return null
         }
 
         val descriptor = declaration as? ClassDescriptor ?: containingDeclaration ?: return null
         if (descriptor.hasSpecialAnnotation(modifierListOwner)) {
+            modifierListOwner.putUserData(MODALITY_IS_ALTERED, true)
             return if (modifierListOwner.hasModifier(KtTokens.FINAL_KEYWORD))
                 Modality.FINAL // Explicit final
             else
                 Modality.OPEN
         }
 
+        modifierListOwner.removeUserData(MODALITY_IS_ALTERED)
         return null
     }
+}
+
+private fun <T : Any> UserDataHolder.removeUserData(key: Key<T>) {
+    putUserData(key, null)
 }
