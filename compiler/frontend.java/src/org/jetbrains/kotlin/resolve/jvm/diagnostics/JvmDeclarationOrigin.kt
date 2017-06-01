@@ -60,16 +60,16 @@ fun OtherOrigin(element: PsiElement?, descriptor: DeclarationDescriptor?): JvmDe
         else JvmDeclarationOrigin(OTHER, element, descriptor)
 
 fun OtherOrigin(element: KtPureElement?, descriptor: DeclarationDescriptor?): JvmDeclarationOrigin =
-        OtherOrigin(element?.psiOrParent as PsiElement, descriptor)
+        OtherOrigin(element?.psiOrParent as PsiElement?, descriptor)
 
-fun OtherOrigin(element: KtElement, descriptor: DeclarationDescriptor?): JvmDeclarationOrigin =
-        OtherOrigin(element as PsiElement, descriptor)
+fun OtherOrigin(element: KtElement?, descriptor: DeclarationDescriptor?): JvmDeclarationOrigin =
+        OtherOrigin(element as PsiElement?, descriptor)
 
-fun OtherOrigin(element: PsiElement): JvmDeclarationOrigin = OtherOrigin(element, null)
+fun OtherOrigin(element: PsiElement?): JvmDeclarationOrigin = OtherOrigin(element, null)
 
-fun OtherOrigin(element: KtPureElement): JvmDeclarationOrigin = OtherOrigin(element, null)
+fun OtherOrigin(element: KtPureElement?): JvmDeclarationOrigin = OtherOrigin(element, null)
 
-fun OtherOrigin(element: KtElement): JvmDeclarationOrigin = OtherOrigin(element, null)
+fun OtherOrigin(element: KtElement?): JvmDeclarationOrigin = OtherOrigin(element, null)
 
 fun OtherOrigin(descriptor: DeclarationDescriptor): JvmDeclarationOrigin = JvmDeclarationOrigin(OTHER, null, descriptor)
 
