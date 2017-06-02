@@ -1,5 +1,6 @@
 package org.jetbrains.kotlin.gradle
 
+import org.gradle.api.logging.LogLevel
 import org.jetbrains.kotlin.gradle.util.getFileByName
 import org.jetbrains.kotlin.gradle.util.modify
 import org.junit.Test
@@ -167,6 +168,16 @@ class Kotlin2JsGradlePluginIT : BaseGradleIT() {
                     "\ncompileKotlin2Js.kotlinOptions.outputFile = \"out/out.js\""
         }
         project.build("build") {
+            assertSuccessful()
+        }
+    }
+
+    @Test
+    fun testDce() {
+        val project = Project("kotlin2JsDceProject", "2.10", minLogLevel = LogLevel.INFO)
+
+        project.build("runRhino") {
+            println(output)
             assertSuccessful()
         }
     }
