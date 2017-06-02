@@ -19,24 +19,29 @@ package org.jetbrains.kotlin.idea.debugger.evaluate.classLoading
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.evaluation.EvaluationContext
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
-import com.intellij.debugger.impl.DebuggerUtilsEx
 import com.sun.jdi.*
+import javax.xml.bind.DatatypeConverter
+
 
 abstract class AbstractAndroidClassLoadingAdapter : ClassLoadingAdapter {
     protected fun dex(context: EvaluationContextImpl, classes: Collection<ClassToLoad>): ByteArray? {
         return AndroidDexer.getInstances(context.project).single().dex(classes)
     }
 
-    protected fun mirrorOfByteArray(bytes: ByteArray, context: EvaluationContextImpl, process: DebugProcessImpl): ArrayReference {
-        val arrayClass = process.findClass(context, "byte[]", context.classLoader) as ArrayType
-        val reference = process.newInstance(arrayClass, bytes.size)
-        DebuggerUtilsEx.keep(reference, context)
+    override fun mirrorOfByteArray(bytes: ByteArray, context: EvaluationContextImpl, process: DebugProcessImpl): ArrayReference {
+        val base64Class = process.findClass(context, "android.util.Base64", context.classLoader) as? ClassType
+        val decodeMethod = base64Class?.concreteMethodByName("decode", "(Ljava/lang/String;I)[B")
 
-        for (i in 0..bytes.lastIndex) {
-            reference.setValue(i, process.virtualMachineProxy.mirrorOf(bytes[i]))
+        if (base64Class == null || decodeMethod == null) {
+            return super.mirrorOfByteArray(bytes, context, process)
         }
 
-        return reference
+        val vm = process.virtualMachineProxy
+
+        val base64String = DatatypeConverter.printBase64Binary(bytes)
+        val strMirror = vm.mirrorOf(base64String)
+
+        return process.invokeMethod(context, base64Class, decodeMethod, listOf(strMirror, vm.mirrorOf(0))) as ArrayReference
     }
 
     protected fun wrapToByteBuffer(bytes: ArrayReference, context: EvaluationContext, process: DebugProcessImpl): ObjectReference {
