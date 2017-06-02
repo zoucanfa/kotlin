@@ -52,6 +52,8 @@ enum class LanguageFeature(
     ArrayLiteralsInAnnotations(KOTLIN_1_2),
     InlineDefaultFunctionalParameters(KOTLIN_1_2),
     SoundSmartCastsAfterTry(KOTLIN_1_2),
+    LateinitTopLevelProperties(KOTLIN_1_2),
+    LateinitLocalVariables(KOTLIN_1_2),
 
     // Experimental features
 
