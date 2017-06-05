@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView
+   xmlns:android="http://schemas.android.com/apk/res/android"
+   xmlns:app="http://schemas.android.com/apk/res-auto"
+   xmlns:tools="http://schemas.android.com/tools"
+   android:layout_width="match_parent"
+   android:layout_height="match_parent"
+   android:paddingLeft="16dp"
+   android:paddingRight="16dp"
+   android:scrollbarStyle="outsideOverlay"
+   android:clipToPadding="false"
+   android:overScrollMode="never"
+   android:background="@android:color/black"
+   >
+   <GridLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginBottom="10dp"
+      android:paddingTop="10dp"
+      android:paddingBottom="30dp"
+      android:columnCount="3"
+      android:useDefaultMargins="false"
+      android:alignmentMode="alignMargins"
+      android:focusable="true"
+      android:focusableInTouchMode="true"
+      android:animateLayoutChanges="true"
+      android:background="@android:color/white"
+      android:alpha="0.5"
+      >
+      <TextView
+         android:id="@+id/required"
+         android:layout_columnSpan="3"
+         android:text="Lorem Ipsum Dolor"
+         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
+         android:textAllCaps="true"
+         android:fontFamily="sans-serif-medium"
+         style="@style/EditProfileRow"
+         />
+
+      <TextView
+         android:id="@+id/nameLabel"
+         android:text="Name"
+         android:labelFor="@+id/firstName"
+         style="@style/EditProfileRowColumn"
+         />
+      <LinearLayout
+         android:layout_columnSpan="2"
+         >
+         <EditText
+            android:id="@+id/firstName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName|textNoSuggestions"
+            android:maxLines="1"
+            android:maxLength="26"
+            android:maxWidth="160dp"
+            android:ellipsize="middle"
+            android:paddingStart="0px"
+            android:paddingTop="0px"
+            android:hint="First"
+            android:imeOptions="actionDone"
+            android:text="Spartacusacusacusacu"
+            />
+         <EditText
+            android:id="@+id/lastInitials"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:inputType="textNoSuggestions|textCapCharacters|textPersonName"
+            android:maxLength="2"
+            android:maxLines="1"
+            android:paddingStart="0px"
+            android:paddingTop="0px"
+            android:hint="L.I."
+            android:textIsSelectable="false"
+            android:imeOptions="actionDone"
+            tools:text="QQ"
+            />
+      </LinearLayout>
+
+      <TextView
+         android:id="@+id/ageLabel"
+         android:text="Age"
+         style="@style/EditProfileRowColumn"
+         />
+      <TextView
+         android:id="@+id/age"
+         android:text="45"
+         />
+
+      <TextView
+         android:id="@+id/subtitleLabel"
+         android:text="Edumacation"
+         style="@style/EditProfileRowColumn"
+         />
+      <TextView
+         android:id="@+id/subtitle"
+         android:layout_columnSpan="2"
+         android:ellipsize="middle"
+         android:text="School of Hard Knocks"
+         />
+
+      <TextView
+         android:id="@+id/relStatusLabel"
+         android:text="blah blah"
+         android:fontFamily="sans-serif-condensed"
+         android:textSize="16dp"
+         style="@style/EditProfileRowColumn"
+         />
+      <Spinner
+         android:id="@+id/relStatusPicker"
+         android:layout_width="180dp"
+         android:layout_columnSpan="2"
+         />
+
+      <TextView
+         android:id="@+id/intentLabel"
+         android:text="ag aewg wae "
+         style="@style/EditProfileRowColumn"
+         />
+      <Spinner
+         android:id="@+id/intentPicker"
+         android:layout_width="180dp"
+         android:layout_columnSpan="2"
+         />
+
+      <TextView
+         android:id="@+id/sexualityLabel"
+         android:text="hgwer dsf sd"
+         style="@style/EditProfileRowColumn"
+         />
+      <Spinner
+         android:id="@+id/sexualityPicker"
+         />
+
+      <TextView
+         android:id="@+id/bioLabel"
+         android:layout_column="0"
+         android:layout_marginBottom="5dp"
+         android:text="About"
+         android:labelFor="@+id/bio"
+         />
+      <TextView
+         android:id="@+id/newlineLimitNotice"
+         android:layout_columnSpan="2"
+         android:layout_gravity="end"
+         android:visibility="gone"
+         android:text="gdssdag"
+         tools:visibility="visible"
+         />
+      <EditText
+         android:id="@+id/bio"
+         android:layout_columnSpan="3"
+         android:layout_gravity="fill_horizontal"
+         android:inputType="textMultiLine"
+         android:background="#e5e5e5"
+         android:padding="10dp"
+         android:maxLength="500"
+         android:lines="5"
+         android:text="agskj sadjlkhfajskdhf sadgkjhdg w. kajshasgd sdlk."
+         android:gravity="top"
+         tools:text="jkfgsdfasdffdssdfkh dsf"
+         />
+
+      <!-- OPTIONAL -->
+      <TextView
+         android:id="@+id/optional"
+         android:layout_marginTop="30dp"
+         android:layout_columnSpan="2"
+         android:layout_row="11"
+         android:text="Optional"
+         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
+         android:textAllCaps="true"
+         android:fontFamily="sans-serif-medium"
+         style="@style/EditProfileRow"
+         />
+      <ImageView
+         android:layout_marginTop="20dp"
+         />
+
+      <TextView
+         android:id="@+id/heightLabel"
+         android:text="Height"
+         style="@style/EditProfileRowColumn"
+         />
+      <TextView
+         android:id="@+id/heightPicker"
+         style="@android:style/Widget.DeviceDefault.Light.Spinner"
+         android:text="7 foot 11"
+         />
+
+      <TextView
+         android:id="@+id/offspringLabel"
+         android:text="sgiojge"
+         style="@style/EditProfileRowColumn"
+         />
+      <Spinner
+         android:id="@+id/offspringPicker"
+         />
+
+      <TextView
+         android:id="@+id/heightdLabel"
+         android:text="Height"
+         style="@style/EditProfileRowColumn"
+         />
+      <TextView
+         android:id="@+id/heightdPicker"
+         style="@android:style/Widget.DeviceDefault.Light.Spinner"
+         android:text="7 foot 11"
+         />
+
+
+      <TextView
+         android:id="@+id/heigehtLabel"
+         android:text="Height"
+         style="@style/EditProfileRowColumn"
+         />
+      <TextView
+         android:id="@+id/heeightPicker"
+         style="@android:style/Widget.DeviceDefault.Light.Spinner"
+         android:text="7 foot 11"
+         />
+
+
+      <TextView
+         android:id="@+id/heighwtLabel"
+         android:text="Height"
+         style="@style/EditProfileRowColumn"
+         />
+      <TextView
+         android:id="@+id/heightyPicker"
+         style="@android:style/Widget.DeviceDefault.Light.Spinner"
+         android:text="7 foot 11"
+         />
+
+      <!--
+
+               <TextView
+                  android:id="@+id/ethnicityLabel"
+                  android:text="@string/ethnicity"
+                  style="@style/EditProfileRowColumn"
+                  />
+               <Spinner
+                  android:id="@+id/ethnicityPicker"
+                  app:selectionEnum="@={userProfile.ethnicity}"
+                  />
+
+               <TextView
+                  android:id="@+id/secondEthnicityLabel"
+                  android:text="@string/second_ethnicity"
+                  style="@style/EditProfileRowColumn"
+                  android:visibility="@{userProfile.ethnicity != null ? View.VISIBLE : View.GONE}"
+                  />
+               <Spinner
+                  android:id="@+id/secondEthnicityPicker"
+                  app:selectionEnum="@={userProfile.secondEthnicity}"
+                  android:visibility="@{userProfile.ethnicity != null ? View.VISIBLE : View.GONE}"
+                  />
+               <ImageView
+                  style="@style/EditProfileHelp"
+                  android:onClick="@{(me) -> context.showHelpPopup(me, R.string.edit_2nd_ethnicity_help)}"
+                  android:visibility="@{userProfile.ethnicity != null ? View.VISIBLE : View.GONE}"
+                  />
+      -->
+
+      <!--
+               <TextView
+                  android:id="@+id/religionLabel"
+                  android:text="@string/religion"
+                  style="@style/EditProfileRowColumn"
+                  />
+               <Spinner
+                  android:id="@+id/religionPicker"
+                  app:selectionEnum="@={userProfile.religion}"
+                  />
+
+               <TextView
+                  android:id="@+id/religiousnessLabel"
+                  android:text="@string/how_religious"
+                  style="@style/EditProfileRowColumn"
+                  android:visibility="@{userProfile.religion != null ? View.VISIBLE : View.GONE}"
+                  />
+               <Spinner
+                  android:id="@+id/religiousnessPicker"
+                  app:selectionEnum="@={userProfile.religiousness}"
+                  android:visibility="@{userProfile.religion != null ? View.VISIBLE : View.GONE}"
+                  />
+
+               <TextView
+                  android:id="@+id/eduLabel"
+                  android:text="@string/education"
+                  style="@style/EditProfileRowColumn"
+                  />
+               <Spinner
+                  android:id="@+id/eduPicker"
+                  app:selectionEnum="@={userProfile.eduLevel}"
+                  />
+
+               <TextView
+                  android:id="@+id/smokingLabel"
+                  android:text="@string/smoking_use"
+                  style="@style/EditProfileRowColumn"
+                  />
+               <Spinner
+                  android:id="@+id/smokingPicker"
+                  app:selectionEnum="@={userProfile.smoking}"
+                  />
+
+               <TextView
+                  android:id="@+id/alcoholLabel"
+                  android:text="@string/alcohol_use"
+                  style="@style/EditProfileRowColumn"
+                  />
+               <Spinner
+                  android:id="@+id/alcoholPicker"
+                  app:selectionEnum="@={userProfile.alcohol}"
+                  />
+
+               <TextView
+                  android:id="@+id/drugsLabel"
+                  android:text="@string/drug_use"
+                  style="@style/EditProfileRowColumn"
+                  />
+               <Spinner
+                  android:id="@+id/drugsPicker"
+                  app:selectionEnum="@={userProfile.drugs}"
+                  />
+      -->
+
+   </GridLayout>
+</ScrollView>
