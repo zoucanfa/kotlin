@@ -8,13 +8,40 @@ import java.io.File
 
 
 class KotlinAndroidGradleIT : AbstractKotlinAndroidGradleTests(gradleVersion = "3.3", androidGradlePluginVersion = "2.3.0")
-class KotlinAndroid30GradleIT : AbstractKotlinAndroidGradleTests(gradleVersion = "4.0-rc-1", androidGradlePluginVersion = "3.0.0-alpha2")
 class KotlinAndroidWithJackGradleIT : AbstractKotlinAndroidWithJackGradleTests(gradleVersion = "3.3", androidGradlePluginVersion = "2.3.+")
+
+class KotlinAndroid30GradleIT : AbstractKotlinAndroidGradleTests(gradleVersion = "4.0-rc-1", androidGradlePluginVersion = "3.0.0-alpha2") {
+
+    @Test
+    fun testApplyWithFeaturePlugin() {
+        val project = Project("AndroidProject", gradleVersion)
+
+        project.setupWorkingDir()
+        File(project.projectDir, "Lib/build.gradle").modify { text ->
+            // Change the applied plufin to com.android.feature
+            text.replace("com.android.library", "com.android.feature").apply { assert(!equals(text)) }
+        }
+
+        // Check that Kotlin tasks were created for both lib and feature variants, which are:
+        val featureProjectVariants =
+                listOf("Debug", "Release").flatMap { buildType ->
+                    listOf("Flavor1", "Flavor2").flatMap { flavor ->
+                        listOf("", "Feature").map { isFeature -> "$flavor$buildType$isFeature" }
+                    }
+                }
+
+        project.build(":Lib:assemble") {
+            for (s in featureProjectVariants) {
+                assertContains(":compile${s}Kotlin")
+            }
+        }
+    }
+}
 
 const val ANDROID_HOME_PATH = "../../../dependencies/androidSDK"
 
 abstract class AbstractKotlinAndroidGradleTests(
-        private val gradleVersion: String,
+        protected val gradleVersion: String,
         private val androidGradlePluginVersion: String
 ) : BaseGradleIT() {
 
