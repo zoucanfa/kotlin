@@ -44,7 +44,7 @@ import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter
 
 class AndroidExpressionCodegenExtension : ExpressionCodegenExtension {
     companion object {
-        private val PROPERTY_NAME = "_\$_findViewCache"
+        val PROPERTY_NAME = "_\$_findViewCache"
         val CACHED_FIND_VIEW_BY_ID_METHOD_NAME = "_\$_findCachedViewById"
         val CLEAR_CACHE_METHOD_NAME = "_\$_clearFindViewByIdCache"
         val ON_DESTROY_METHOD_NAME = "onDestroyView"
@@ -198,7 +198,6 @@ class AndroidExpressionCodegenExtension : ExpressionCodegenExtension {
 
     private fun SyntheticPartsGenerateContext.generateCachedFindViewByIdFunction() {
         val containerType = state.typeMapper.mapClass(descriptor)
-        val containerClassName = containerType.internalName
 
         val viewType = Type.getObjectType("android/view/View")
 
@@ -207,32 +206,24 @@ class AndroidExpressionCodegenExtension : ExpressionCodegenExtension {
         methodVisitor.visitCode()
         val iv = InstructionAdapter(methodVisitor)
 
-        fun loadCache() {
-            iv.load(0, containerType)
-            iv.getfield(containerClassName, PROPERTY_NAME, "Ljava/util/HashMap;")
-        }
+        val cacheImpl = CacheMechanism.get(entityOptions, iv, containerType)
 
         fun loadId() = iv.load(1, Type.INT_TYPE)
 
         // Get cache property
-        loadCache()
+        cacheImpl.loadCache()
 
         val lCacheNonNull = Label()
         iv.ifnonnull(lCacheNonNull)
 
         // Init cache if null
-        iv.load(0, containerType)
-        iv.anew(Type.getType("Ljava/util/HashMap;"))
-        iv.dup()
-        iv.invokespecial("java/util/HashMap", "<init>", "()V", false)
-        iv.putfield(containerClassName, PROPERTY_NAME, "Ljava/util/HashMap;")
+        cacheImpl.initCache()
 
         // Get View from cache
         iv.visitLabel(lCacheNonNull)
-        loadCache()
+        cacheImpl.loadCache()
         loadId()
-        iv.invokestatic("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-        iv.invokevirtual("java/util/HashMap", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", false)
+        cacheImpl.getViewFromCache()
         iv.checkcast(viewType)
         iv.store(2, viewType)
 
@@ -254,7 +245,7 @@ class AndroidExpressionCodegenExtension : ExpressionCodegenExtension {
                 val targetClassName: String
                 if (entityType == AndroidEntityType.ENTITY) {
                     methodName = "getEntityView"
-                    targetClassName = containerClassName
+                    targetClassName = containerType.internalName
                 } else {
                     methodName = "getView"
                     targetClassName = entityType.internalClassName
@@ -279,12 +270,9 @@ class AndroidExpressionCodegenExtension : ExpressionCodegenExtension {
         iv.store(2, viewType)
 
         // Store resolved View in cache
-        loadCache()
+        cacheImpl.loadCache()
         loadId()
-        iv.invokestatic("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false)
-        iv.load(2, viewType)
-        iv.invokevirtual("java/util/HashMap", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false)
-        iv.pop()
+        cacheImpl.putViewToCache { iv.load(2, viewType) }
 
         iv.visitLabel(lViewNonNull)
         iv.load(2, viewType)
