@@ -19,5 +19,5 @@ package kotlinx.android.extensions
 import kotlinx.android.extensions.CacheImplementation.*
 
 public annotation class AndroidEntityOptions(
-        public val cache: CacheImplementation = HASH_MAP
+        public val cache: CacheImplementation = SPARSE_ARRAY
 )
