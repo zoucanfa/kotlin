@@ -115,6 +115,8 @@ open class Kapt3AndroidIT : Kapt3BaseIT() {
         project.build("compileReleaseSources", options = options) {
             assertSuccessful()
             assertKaptSuccessful()
+            assertFileExists("app/build/generated/source/kapt/release/com/example/databinding/BR.java")
+            assertFileExists("app/build/generated/source/kapt/release/com/example/databinding/databinding/ActivityTestBinding.java")
         }
     }
 }

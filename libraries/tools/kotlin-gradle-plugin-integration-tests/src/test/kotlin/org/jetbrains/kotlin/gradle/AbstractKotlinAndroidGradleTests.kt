@@ -18,22 +18,21 @@ class KotlinAndroid30GradleIT : AbstractKotlinAndroidGradleTests(gradleVersion =
 
         project.setupWorkingDir()
         File(project.projectDir, "Lib/build.gradle").modify { text ->
-            // Change the applied plufin to com.android.feature
+            // Change the applied plugin to com.android.feature
             text.replace("com.android.library", "com.android.feature").apply { assert(!equals(text)) }
         }
 
-        // Check that Kotlin tasks were created for both lib and feature variants, which are:
-        val featureProjectVariants =
+        // Check that Kotlin tasks were created for both lib and feature variants:
+        val kotlinTaskNames =
                 listOf("Debug", "Release").flatMap { buildType ->
                     listOf("Flavor1", "Flavor2").flatMap { flavor ->
-                        listOf("", "Feature").map { isFeature -> "$flavor$buildType$isFeature" }
+                        listOf("", "Feature").map { isFeature -> ":Lib:compile$flavor$buildType${isFeature}Kotlin" }
                     }
                 }
 
         project.build(":Lib:assemble") {
-            for (s in featureProjectVariants) {
-                assertContains(":compile${s}Kotlin")
-            }
+            assertSuccessful()
+            assertContains(*kotlinTaskNames.toTypedArray())
         }
     }
 }
