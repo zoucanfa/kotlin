@@ -19,12 +19,13 @@ package org.jetbrains.kotlin.idea.debugger.evaluate.classLoading
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.impl.DebuggerUtilsEx
-import com.intellij.psi.PsiFile
 import com.sun.jdi.ArrayReference
 import com.sun.jdi.ArrayType
-import com.sun.jdi.ClassLoaderReference
-import com.sun.jdi.ClassType
-import javax.xml.bind.DatatypeConverter
+import org.jetbrains.org.objectweb.asm.ClassReader
+import org.jetbrains.org.objectweb.asm.Label
+import org.jetbrains.org.objectweb.asm.tree.ClassNode
+import org.jetbrains.org.objectweb.asm.tree.JumpInsnNode
+import org.jetbrains.org.objectweb.asm.tree.LabelNode
 
 interface ClassLoadingAdapter {
     companion object {
@@ -32,19 +33,47 @@ interface ClassLoadingAdapter {
                 AndroidOClassLoadingAdapter(),
                 OrdinaryClassLoadingAdapter())
 
-        fun loadClasses(context: EvaluationContextImpl, classes: Collection<ClassToLoad>): ClassLoaderHandler {
+        fun loadClasses(context: EvaluationContextImpl, classes: Collection<ClassToLoad>): ClassLoaderHandler? {
+            val hasAdditionalClasses = classes.size > 1
+            val hasLoops = classes.isNotEmpty() && doesContainLoops(classes.first().bytes)
+
             for (adapter in ADAPTERS) {
-                if (adapter.isApplicable(context, classes)) {
+                if (adapter.isApplicable(
+                        context,
+                        hasAdditionalClasses = hasAdditionalClasses,
+                        hasLoops = hasLoops
+                )) {
                     return adapter.loadClasses(context, classes)
                 }
             }
 
-            // Should never happen because OrdinaryClassLoadingAdapter is always applicable
-            throw IllegalStateException("Class loading adapter not found for $context")
+            return null
+        }
+
+        private fun doesContainLoops(clazz: ByteArray): Boolean {
+            val classNode = ClassNode().apply { ClassReader(clazz).accept(this, ClassReader.EXPAND_FRAMES) }
+            val methodToRun = classNode.methods.single()
+
+            val labelsVisited = hashSetOf<Label>()
+            var currentInsn = methodToRun.instructions.first
+            while (currentInsn != null) {
+                if (currentInsn is LabelNode) {
+                    labelsVisited += currentInsn.label
+                }
+                else if (currentInsn is JumpInsnNode) {
+                    if (currentInsn.label.label in labelsVisited) {
+                        return true
+                    }
+                }
+
+                currentInsn = currentInsn.next
+            }
+
+            return false
         }
     }
 
-    fun isApplicable(context: EvaluationContextImpl, classes: Collection<ClassToLoad>): Boolean
+    fun isApplicable(context: EvaluationContextImpl, hasAdditionalClasses: Boolean, hasLoops: Boolean): Boolean
 
     fun loadClasses(context: EvaluationContextImpl, classes: Collection<ClassToLoad>): ClassLoaderHandler
 
