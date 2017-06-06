@@ -64,6 +64,3 @@ abstract class AbstractAndroidClassLoadingAdapter : ClassLoadingAdapter {
         }
     }
 }
-
-internal val ClassLoaderReference.isDalvikClassLoader: Boolean
-    get() = referenceType()?.name()?.startsWith("dalvik.system.") ?: false
