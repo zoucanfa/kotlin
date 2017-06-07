@@ -23,7 +23,7 @@ interface JavaToKotlinConverterServices {
     val superMethodsSearcher: SuperMethodsSearcher
     val resolverForConverter: ResolverForConverter
     val docCommentConverter: DocCommentConverter
-    val dataFlowUtil: DataFlowUtil
+    val dataFlowAnalyzer: DataFlowAnalyzer
 }
 
 object EmptyJavaToKotlinServices: JavaToKotlinConverterServices {
@@ -39,8 +39,8 @@ object EmptyJavaToKotlinServices: JavaToKotlinConverterServices {
     override val docCommentConverter: DocCommentConverter
         get() = EmptyDocCommentConverter
 
-    override val dataFlowUtil: DataFlowUtil
-        get() = DataFlowUtil.Default
+    override val dataFlowAnalyzer: DataFlowAnalyzer
+        get() = DataFlowAnalyzer.Default
 }
 
 interface SuperMethodsSearcher {
