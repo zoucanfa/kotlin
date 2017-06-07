@@ -27,13 +27,13 @@ import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.types.TypeUtils
 import java.util.*
 
-interface DataFlowAnalyzer {
+interface JavaDataFlowAnalyzerFacade {
 
     fun variableNullability(variable: PsiVariable, context: PsiElement): Nullability
 
     fun methodNullability(method: PsiMethod): Nullability
 
-    object Default : DataFlowAnalyzer {
+    object Default : JavaDataFlowAnalyzerFacade {
         override fun methodNullability(method: PsiMethod): Nullability = Nullability.Default
 
         override fun variableNullability(variable: PsiVariable, context: PsiElement): Nullability = Nullability.Default
@@ -250,14 +250,14 @@ class TypeConverter(val converter: Converter) {
     private val nullabilityFlavor = object : TypeFlavor<Nullability>(Nullability.Default) {
         fun forVariableReference(variable: PsiVariable, reference: PsiReferenceExpression): Nullability {
             assert(reference.resolve() == variable)
-            val dataFlowUtil = converter.services.dataFlowAnalyzer
+            val dataFlowUtil = converter.services.javaDataFlowAnalyzerFacade
 
             return dataFlowUtil.variableNullability(variable, reference).takeIf { it != default } ?:
                    variableNullability(variable)
         }
 
         override fun fromDataFlowForMethod(method: PsiMethod): Nullability =
-                converter.services.dataFlowAnalyzer.methodNullability(method)
+                converter.services.javaDataFlowAnalyzerFacade.methodNullability(method)
 
         override val forEnumConstant: Nullability
             get() = Nullability.NotNull

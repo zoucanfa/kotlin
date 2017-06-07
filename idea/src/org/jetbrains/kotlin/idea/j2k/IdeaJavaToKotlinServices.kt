@@ -37,15 +37,15 @@ object IdeaJavaToKotlinServices : JavaToKotlinConverterServices {
     override val docCommentConverter: DocCommentConverter
         get() = IdeaDocCommentConverter
 
-    override val dataFlowAnalyzer: DataFlowAnalyzer
-        get() = IdeaDataFlowAnalyzer
+    override val javaDataFlowAnalyzerFacade: JavaDataFlowAnalyzerFacade
+        get() = IdeaJavaDataFlowAnalyzerFacade
 }
 
 object IdeaSuperMethodSearcher : SuperMethodsSearcher {
     override fun findDeepestSuperMethods(method: PsiMethod) = method.findDeepestSuperMethods().asList()
 }
 
-private object IdeaDataFlowAnalyzer : DataFlowAnalyzer {
+private object IdeaJavaDataFlowAnalyzerFacade : JavaDataFlowAnalyzerFacade {
     override fun variableNullability(variable: PsiVariable, context: PsiElement): Nullability =
             DfaUtil.checkNullness(variable, context).toNullability()
 
