@@ -5,11 +5,12 @@
 
     <modelVersion>4.0.0</modelVersion>
     <properties>
-        <maven-plugin-anno.version>1.4.1</maven-plugin-anno.version>
         <maven.version>3.0.4</maven.version>
-        <android-extensions.src>${basedir}/../../../plugins/android-extensions/android-extensions-compiler/src</android-extensions.src>
-        <android-extensions.target-src>${basedir}/target/src</android-extensions.target-src>
-        <android-extensions.target-resource>${basedir}/target/resource</android-extensions.target-resource>
+        <sam.src>${basedir}/../../../plugins/sam-with-receiver/sam-with-receiver-cli/src</sam.src>
+        <sam.gradle.plugin.src>${basedir}/src/main/kotlin</sam.gradle.plugin.src>
+        <sam.gradle.plugin.resources>${basedir}/src/main/resources</sam.gradle.plugin.resources>
+        <sam.target-src>${basedir}/target/src/main/kotlin</sam.target-src>
+        <sam.target-resources>${basedir}/target/resource</sam.target-resources>
     </properties>
 
     <parent>
@@ -19,29 +20,49 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>kotlin-android-extensions</artifactId>
+    <artifactId>kotlin-sam-with-receiver</artifactId>
     <packaging>jar</packaging>
 
-    <description>Android compiler plugin for Kotlin</description>
+    <description>All-open plugin for Gradle</description>
+
+    <repositories>
+        <repository>
+            <id>jetbrains-utils</id>
+            <url>http://repository.jetbrains.com/utils</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-compiler-embeddable</artifactId>
+            <artifactId>kotlin-stdlib</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-android-extensions-runtime</artifactId>
+            <artifactId>kotlin-compiler-embeddable</artifactId>
             <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-gradle-plugin-api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>gradle-api</artifactId>
+            <version>1.6</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
     <build>
-        <sourceDirectory>${android-extensions.target-src}</sourceDirectory>
+        <sourceDirectory>${sam.target-src}</sourceDirectory>
         <resources>
             <resource>
-                <directory>${android-extensions.target-resource}</directory>
+                <directory>${sam.target-resources}</directory>
             </resource>
         </resources>
 
@@ -57,9 +78,10 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${android-extensions.target-src}</outputDirectory>
+                            <outputDirectory>${sam.target-src}</outputDirectory>
                             <resources>
-                                <resource><directory>${android-extensions.src}</directory></resource>
+                                <resource><directory>${sam.src}</directory></resource>
+                                <resource><directory>${sam.gradle.plugin.src}</directory></resource>
                             </resources>
                         </configuration>
                     </execution>
@@ -70,9 +92,10 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${android-extensions.target-resource}/META-INF</outputDirectory>
+                            <outputDirectory>${sam.target-resources}/META-INF</outputDirectory>
                             <resources>
-                                <resource><directory>${android-extensions.src}/META-INF</directory></resource>
+                                <resource><directory>${sam.src}/META-INF</directory></resource>
+                                <resource><directory>${sam.gradle.plugin.resources}/META-INF</directory></resource>
                             </resources>
                         </configuration>
                     </execution>
@@ -92,7 +115,7 @@
                 </executions>
                 <configuration>
                     <includes>
-                        <include>${android-extensions.target-src}/**</include>
+                        <include>${sam.target-src}/**</include>
                     </includes>
                     <replacements>
                         <replacement>
@@ -114,7 +137,7 @@
                         <goals> <goal>compile</goal> </goals>
                         <configuration>
                             <sourceDirs>
-                                <sourceDir>${android-extensions.target-src}</sourceDir>
+                                <sourceDir>${sam.target-src}</sourceDir>
                             </sourceDirs>
                         </configuration>
                     </execution>
@@ -122,11 +145,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>jetbrains-utils</id>
-            <url>http://repository.jetbrains.com/utils</url>
-        </repository>
-    </repositories>
 </project>
