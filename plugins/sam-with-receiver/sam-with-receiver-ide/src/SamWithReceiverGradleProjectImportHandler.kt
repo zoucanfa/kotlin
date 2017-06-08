@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+<<<<<<< HEAD
 package org.jetbrains.kotlin.samWithReceiver.ide
+=======
+package org.jetbrains.kotlin.allopen.ide
+>>>>>>> b235eaed517... SamWithReceiver: Add general-purpose plugin and Gradle/Maven integrations
 
 import org.jetbrains.kotlin.annotation.plugin.ide.AbstractGradleImportHandler
 import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverCommandLineProcessor
