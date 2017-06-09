@@ -58,9 +58,13 @@ abstract class TranslationResult protected constructor(val diagnostics: Diagnost
         fun getOutputFiles(outputFile: File, outputPrefixFile: File?, outputPostfixFile: File?): OutputFileCollection {
             val output = TextOutputImpl()
             val sourceMapBuilder =
-                    if (config.configuration.getBoolean(JSConfigurationKeys.SOURCE_MAP))
-                        SourceMap3Builder(outputFile, output, SourceMapBuilderConsumer())
-                    else null
+                    if (config.configuration.getBoolean(JSConfigurationKeys.SOURCE_MAP)) {
+                        val sourceRoots = config.sourceMapRoots.map { File(it) }
+                        SourceMap3Builder(outputFile, output, config.sourceMapPrefix, SourceMapBuilderConsumer(sourceRoots))
+                    }
+                    else {
+                        null
+                    }
 
             val code = getCode(output, sourceMapBuilder)
             val prefix = outputPrefixFile?.readText() ?: ""

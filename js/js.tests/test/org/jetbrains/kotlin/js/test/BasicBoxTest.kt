@@ -409,7 +409,7 @@ abstract class BasicBoxTest(
         generatedProgram.accept(AmbiguousAstSourcePropagation())
 
         val output = TextOutputImpl()
-        val sourceMapBuilder = SourceMap3Builder(outputFile, output, SourceMapBuilderConsumer())
+        val sourceMapBuilder = SourceMap3Builder(outputFile, output, "", SourceMapBuilderConsumer(mutableListOf(File("."))))
         generatedProgram.accept(JsSourceGenerationVisitor(output, sourceMapBuilder))
         val code = output.toString()
         val generatedSourceMap = sourceMapBuilder.build()

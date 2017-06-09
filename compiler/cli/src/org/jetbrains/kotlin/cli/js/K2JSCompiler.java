@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.cli.js;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.SmartList;
 import com.intellij.util.containers.ContainerUtil;
@@ -58,8 +59,7 @@ import org.jetbrains.kotlin.utils.PathUtil;
 import org.jetbrains.kotlin.utils.StringsKt;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.jetbrains.kotlin.cli.common.ExitCode.COMPILATION_ERROR;
 import static org.jetbrains.kotlin.cli.common.ExitCode.OK;
@@ -261,6 +261,23 @@ public class K2JSCompiler extends CLICompiler<K2JSCompilerArguments> {
 
         if (arguments.sourceMap) {
             configuration.put(JSConfigurationKeys.SOURCE_MAP, true);
+            if (arguments.sourceMapPrefix != null) {
+                configuration.put(JSConfigurationKeys.SOURCE_MAP_PREFIX, arguments.sourceMapPrefix);
+            }
+
+            String sourceMapSourceRoots = arguments.sourceMapSourceRoots != null ?
+                                          arguments.sourceMapSourceRoots :
+                                          calculateSourceMapSourceRoot(arguments);
+            List<String> sourceMapSourceRootList = StringUtil.split(sourceMapSourceRoots, File.pathSeparator);
+            configuration.put(JSConfigurationKeys.SOURCE_MAP_SOURCE_ROOTS, sourceMapSourceRootList);
+        }
+        else {
+            if (arguments.sourceMapPrefix != null) {
+                messageCollector.report(WARNING, "source-map-prefix argument has no effect without source map", null);
+            }
+            if (arguments.sourceMapSourceRoots != null) {
+                messageCollector.report(WARNING, "source-map-source-root argument has no effect without source map", null);
+            }
         }
         if (arguments.metaInfo) {
             configuration.put(JSConfigurationKeys.META_INFO, true);
@@ -298,6 +315,46 @@ public class K2JSCompiler extends CLICompiler<K2JSCompilerArguments> {
         }
         configuration.put(JSConfigurationKeys.MODULE_KIND, moduleKind);
     }
+
+    @NotNull
+    private static String calculateSourceMapSourceRoot(@NotNull K2JSCompilerArguments arguments) {
+        File commonPath = null;
+        List<File> pathToRoot = new ArrayList<>();
+        Map<File, Integer> pathToRootIndexes = new HashMap<>();
+
+        for (String path : arguments.freeArgs) {
+            File file = new File(path).getAbsoluteFile();
+            if (commonPath == null) {
+                commonPath = file;
+
+                file = file.getAbsoluteFile();
+                while (file != null) {
+                    pathToRoot.add(file);
+                    file = file.getParentFile();
+                }
+                Collections.reverse(pathToRoot);
+
+                for (int i = 0; i < pathToRoot.size(); ++i) {
+                    pathToRootIndexes.put(pathToRoot.get(i), i);
+                }
+            }
+            else {
+                while (file != null) {
+                    Integer existingIndex = pathToRootIndexes.get(file);
+                    if (existingIndex != null) {
+                        existingIndex = Math.min(existingIndex, pathToRoot.size() - 1);
+                        pathToRoot.subList(existingIndex + 1, pathToRoot.size()).clear();
+                        commonPath = pathToRoot.get(existingIndex);
+                        break;
+                    }
+                    file = file.getParentFile();
+                }
+            }
+        }
+
+        return commonPath != null ? commonPath.getPath() : ".";
+    }
+
 
     private static MainCallParameters createMainCallParameters(String main) {
         if (K2JsArgumentConstants.NO_CALL.equals(main)) {
