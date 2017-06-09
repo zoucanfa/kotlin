@@ -35,6 +35,7 @@ class AndroidEntityOptionsProxy(val entityType: AndroidEntityType, val cache: Ca
 
         private val DEFAULT_CACHE_IMPL = SPARSE_ARRAY
 
+        // resolve() or create()
         fun get(container: ClassDescriptor): AndroidEntityOptionsProxy {
             if (container.kind != ClassKind.CLASS) {
                 return AndroidEntityOptionsProxy(AndroidEntityType.UNKNOWN, NO_CACHE)
@@ -68,7 +69,8 @@ private fun <E: Enum<E>> AnnotationDescriptor.getEnumValue(name: String, default
 
     return try {
         factory(valueName)
-    } catch (e: Exception) {
+    } catch (e: IllegalArgumentException) {
+        // why, comment
         defaultValue
     }
 }

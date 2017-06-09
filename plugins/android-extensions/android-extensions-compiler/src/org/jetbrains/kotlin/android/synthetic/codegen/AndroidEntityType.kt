@@ -21,6 +21,8 @@ import org.jetbrains.kotlin.android.synthetic.AndroidConst
 import org.jetbrains.kotlin.descriptors.ClassifierDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 
+// maybe rename AndroidContainerType
+// rename doesSupportCache -> supportsCache
 enum class AndroidEntityType(
         className: String,
         val doesSupportCache: Boolean = false,
@@ -33,7 +35,8 @@ enum class AndroidEntityType(
     SUPPORT_FRAGMENT_ACTIVITY(AndroidConst.SUPPORT_FRAGMENT_ACTIVITY_FQNAME, doesSupportCache = true),
     SUPPORT_FRAGMENT(AndroidConst.SUPPORT_FRAGMENT_FQNAME, doesSupportCache = true, isFragment = true),
     VIEW(AndroidConst.VIEW_FQNAME, doesSupportCache = true, isCacheEnabledByDefault = false),
-    ENTITY(AndroidEntity::class.java.canonicalName, doesSupportCache = true),
+    ENTITY(AndroidEntity::class.java.canonicalName, doesSupportCache = true), // is enabled by default?
+    // USER_CONTAINER
     UNKNOWN("");
 
     val internalClassName: String = className.replace('.', '/')

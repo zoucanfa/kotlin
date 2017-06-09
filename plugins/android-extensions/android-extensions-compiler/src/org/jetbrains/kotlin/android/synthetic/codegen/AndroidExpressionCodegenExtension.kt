@@ -50,7 +50,7 @@ class AndroidExpressionCodegenExtension : ExpressionCodegenExtension {
         val ON_DESTROY_METHOD_NAME = "onDestroyView"
 
         fun shouldCacheResource(resource: PropertyDescriptor): Boolean {
-            return (resource as? AndroidSyntheticProperty)?.shouldBeCached ?: false
+            return (resource as? AndroidSyntheticProperty)?.shouldBeCached == true
         }
     }
 
@@ -240,15 +240,11 @@ class AndroidExpressionCodegenExtension : ExpressionCodegenExtension {
                 iv.invokevirtual(entityType.internalClassName, "findViewById", "(I)Landroid/view/View;", false)
             }
             AndroidEntityType.FRAGMENT, AndroidEntityType.SUPPORT_FRAGMENT, AndroidEntityType.ENTITY -> {
-                val methodName: String
-                val targetClassName: String
-                if (entityType == AndroidEntityType.ENTITY) {
-                    methodName = "getEntityView"
-                    targetClassName = containerType.internalName
-                } else {
-                    methodName = "getView"
-                    targetClassName = entityType.internalClassName
+                val (methodName, targetClassName) = when (entityType) {
+                    AndroidEntityType.ENTITY -> Pair("getEntityView", containerType.internalName)
+                    else -> Pair("getView", entityType.internalClassName)
                 }
+
                 iv.invokevirtual(targetClassName, methodName, "()Landroid/view/View;", false)
                 iv.dup()
                 val lgetViewNotNull = Label()

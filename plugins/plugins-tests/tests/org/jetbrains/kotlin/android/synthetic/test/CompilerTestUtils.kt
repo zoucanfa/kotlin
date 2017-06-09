@@ -56,6 +56,7 @@ fun KtUsefulTestCase.createTestEnvironment(configuration: CompilerConfiguration,
     return myEnvironment
 }
 
+// addAndroidExtensions...
 fun addAERuntimeLibrary(environment: KotlinCoreEnvironment) {
     environment.apply {
         val runtimeLibrary = File("out/production/android-extensions-runtime")

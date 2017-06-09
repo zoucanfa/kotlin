@@ -12,6 +12,7 @@ class MyActivity : Activity() {
 }
 
 // 1 public _\$_findCachedViewById
+// add comment
 // 1 INVOKEVIRTUAL android/app/Activity\.findViewById
 // 1 public _\$_clearFindViewByIdCache
 // 1 GETSTATIC test/R\$id\.login

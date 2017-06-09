@@ -144,6 +144,7 @@ private fun genProperty(
 
 private val SimpleType.shouldBeCached: Boolean
     get() {
+        // simplify
         val viewClassFqName = constructor.declarationDescriptor?.fqNameUnsafe?.asString() ?: return false
         return when (viewClassFqName) {
             AndroidConst.VIEWSTUB_FQNAME -> false

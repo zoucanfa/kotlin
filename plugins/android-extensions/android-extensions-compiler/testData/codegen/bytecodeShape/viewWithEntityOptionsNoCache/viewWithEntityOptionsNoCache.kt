@@ -6,6 +6,7 @@ import android.content.Context
 import kotlinx.android.synthetic.main.layout.view.*
 import kotlinx.android.extensions.*
 
+// add test with explicit HASH_MAP cache option
 @AndroidEntityOptions(cache = CacheImplementation.NO_CACHE)
 class MyView(context: Context) : View(context)
 
