@@ -26,7 +26,9 @@ import org.jetbrains.kotlin.codegen.AsmUtil.isPrimitive
 import org.jetbrains.kotlin.codegen.context.*
 import org.jetbrains.kotlin.codegen.coroutines.createMethodNodeForSuspendCoroutineOrReturn
 import org.jetbrains.kotlin.codegen.coroutines.isBuiltInSuspendCoroutineOrReturnInJvm
-import org.jetbrains.kotlin.codegen.inline.InlineCodegenUtil.*
+import org.jetbrains.kotlin.codegen.inline.InlineCodegenUtil.API
+import org.jetbrains.kotlin.codegen.inline.InlineCodegenUtil.addInlineMarker
+import org.jetbrains.kotlin.codegen.inline.InlineCodegenUtil.getConstant
 import org.jetbrains.kotlin.codegen.intrinsics.bytecode
 import org.jetbrains.kotlin.codegen.intrinsics.classId
 import org.jetbrains.kotlin.codegen.state.GenerationState

@@ -430,7 +430,7 @@ class AnonymousObjectTransformer(
                          throw AssertionError("Expecting RegeneratedLambdaFieldRemapper, but ${parentFieldRemapper.parent}")
             val ownerType = Type.getObjectType(parent.originalLambdaInternalName)
             val desc = CapturedParamDesc(ownerType, InlineCodegenUtil.THIS, ownerType)
-            val recapturedParamInfo = capturedParamBuilder.addCapturedParam(desc, InlineCodegenUtil.`THIS$0`/*outer lambda/object*/, false)
+            val recapturedParamInfo = capturedParamBuilder.addCapturedParam(desc, InlineCodegenUtil.THIS0/*outer lambda/object*/, false)
             val composed = StackValue.LOCAL_0
             recapturedParamInfo.remapValue = composed
             allRecapturedParameters.add(desc)
@@ -458,7 +458,7 @@ class AnonymousObjectTransformer(
     }
 
     private fun getNewFieldName(oldName: String, originalField: Boolean): String {
-        if (InlineCodegenUtil.`THIS$0` == oldName) {
+        if (InlineCodegenUtil.THIS0 == oldName) {
             if (!originalField) {
                 return oldName
             }

@@ -19,6 +19,8 @@ package org.jetbrains.kotlin.codegen.inline
 import org.jetbrains.kotlin.codegen.ClosureCodegen
 import org.jetbrains.kotlin.codegen.StackValue
 import org.jetbrains.kotlin.codegen.inline.InlineCodegenUtil.*
+import org.jetbrains.kotlin.codegen.inline.InlineCodegenUtil.isAnonymousClass
+import org.jetbrains.kotlin.codegen.inline.InlineCodegenUtil.isInvokeOnLambda
 import org.jetbrains.kotlin.codegen.intrinsics.IntrinsicMethods
 import org.jetbrains.kotlin.codegen.optimization.FixStackWithLabelNormalizationMethodTransformer
 import org.jetbrains.kotlin.codegen.optimization.common.InsnSequence
