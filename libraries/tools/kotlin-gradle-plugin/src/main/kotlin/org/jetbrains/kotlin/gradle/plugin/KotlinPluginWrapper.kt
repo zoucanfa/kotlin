@@ -19,14 +19,14 @@ package org.jetbrains.kotlin.gradle.plugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.internal.file.FileResolver
-import org.gradle.api.internal.plugins.DslObject
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
-import org.jetbrains.kotlin.gradle.dsl.ExperimentalExtension
-import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.createKotlinExtension
 import org.jetbrains.kotlin.gradle.internal.KotlinSourceSetProviderImpl
-import org.jetbrains.kotlin.gradle.tasks.*
+import org.jetbrains.kotlin.gradle.tasks.AndroidTasksProvider
+import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsTasksProvider
+import org.jetbrains.kotlin.gradle.tasks.KotlinCommonTasksProvider
+import org.jetbrains.kotlin.gradle.tasks.KotlinTasksProvider
 import java.io.FileNotFoundException
 import java.util.*
 import javax.inject.Inject
@@ -43,7 +43,7 @@ abstract class KotlinBasePluginWrapper(protected val fileResolver: FileResolver)
         project.createKotlinExtension()
 
         val plugin = getPlugin(kotlinGradleBuildServices)
-        plugin.apply(project)
+        project.plugins.add(plugin)
     }
 
     internal abstract fun getPlugin(kotlinGradleBuildServices: KotlinGradleBuildServices): Plugin<Project>
