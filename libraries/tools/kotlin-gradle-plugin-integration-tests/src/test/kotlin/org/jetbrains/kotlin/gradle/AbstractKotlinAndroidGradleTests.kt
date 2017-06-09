@@ -3,6 +3,7 @@ package org.jetbrains.kotlin.gradle
 import org.jetbrains.kotlin.gradle.util.getFileByName
 import org.jetbrains.kotlin.gradle.util.isLegacyAndroidGradleVersion
 import org.jetbrains.kotlin.gradle.util.modify
+import org.junit.Assert
 import org.junit.Test
 import java.io.File
 
@@ -217,6 +218,44 @@ fun getSomething() = 10
         project.build("assembleDebug") {
             assertSuccessful()
             assertNotContains("Changed dependencies of configuration .+ after it has been included in dependency resolution".toRegex())
+        }
+    }
+
+    @Test
+    fun testClasspathApi() {
+        val project = Project("AndroidProject", gradleVersion)
+
+        project.setupWorkingDir()
+        File(project.projectDir, "Android/build.gradle").modify {
+            it + """
+            task("printApiClasspath").doFirst {
+                plugins.findPlugin(org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPlugin)
+                        .getVariantToKotlinClasspathMap(project).values()
+                        .forEach {
+                    it.forEach { println("api classpath item:" + it) }
+                }
+                tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+                    it.classpath.forEach { println("task classpath item:" + it) }
+                }
+            }
+            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+                printApiClasspath.dependsOn it
+            }
+            """.trimIndent()
+        }
+
+        project.build(":Android:printApiClasspath") {
+            assertSuccessful()
+
+            val apiClasspathItemRegex = "api classpath item:(.*)".toRegex()
+            val apiClasspathItems = apiClasspathItemRegex.findAll(output).map { it.groupValues[1] }.toHashSet()
+            Assert.assertTrue(apiClasspathItems.isNotEmpty())
+
+            val compileTaskClasspathRegex = "task classpath item:(.*)".toRegex()
+            val compileClasspathItems = compileTaskClasspathRegex.findAll(output).map { it.groupValues[1] }.toHashSet()
+
+            Assert.assertEquals("The classpath API should give the same items as the compile tasks classpath",
+                    compileClasspathItems, apiClasspathItems)
         }
     }
 }
