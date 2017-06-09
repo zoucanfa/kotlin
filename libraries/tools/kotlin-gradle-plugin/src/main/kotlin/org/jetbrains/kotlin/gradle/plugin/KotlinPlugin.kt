@@ -5,11 +5,11 @@ import com.android.build.gradle.BasePlugin
 import com.android.build.gradle.api.AndroidSourceSet
 import com.android.builder.model.SourceProvider
 import groovy.lang.Closure
-import org.apache.tools.ant.util.ReflectUtil.newInstance
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.file.FileCollection
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.InvalidPluginException
@@ -334,30 +334,31 @@ internal open class KotlinAndroidPlugin(
 ) : Plugin<Project> {
 
     override fun apply(project: Project) {
-        val version = loadAndroidPluginVersion()
-        if (version != null) {
-            val minimalVersion = "1.1.0"
-            if (compareVersionNumbers(version, minimalVersion) < 0) {
-                throw IllegalStateException("Kotlin: Unsupported version of com.android.tools.build:gradle plugin: version $minimalVersion or higher should be used with kotlin-android plugin")
-            }
-        }
-
         val kotlinTools = KotlinConfigurationTools(
                 kotlinSourceSetProvider,
                 tasksProvider,
                 kotlinPluginVersion,
                 kotlinGradleBuildServices)
 
+        if (androidPluginVersion != null) {
+            val minimalVersion = "1.1.0"
+            if (compareVersionNumbers(androidPluginVersion, minimalVersion) < 0) {
+                throw IllegalStateException("Kotlin: Unsupported version of com.android.tools.build:gradle plugin: version $minimalVersion or higher should be used with kotlin-android plugin")
+            }
+        }
+
+        androidProjectHandler.handleProject(project, kotlinTools)
+    }
+
+    private val androidPluginVersion: String? by lazy { loadAndroidPluginVersion() }
+
+    private val androidProjectHandler by lazy<AbstractAndroidProjectHandler<*>> {
         val legacyVersionThreshold = "2.5.0"
-
-        val variantProcessor = if (compareVersionNumbers(version, legacyVersionThreshold) < 0)
-            LegacyAndroidAndroidProjectHandler(kotlinTools)
+        if (compareVersionNumbers(androidPluginVersion, legacyVersionThreshold) < 0)
+            LegacyAndroidAndroidProjectHandler()
         else
-            newInstance(
-                    Class.forName("org.jetbrains.kotlin.gradle.plugin.Android25ProjectHandler"),
-                    arrayOf(kotlinTools.javaClass), arrayOf(kotlinTools)) as AbstractAndroidProjectHandler<*>
-
-        variantProcessor.handleProject(project)
+            Class.forName("org.jetbrains.kotlin.gradle.plugin.Android25ProjectHandler")
+                    .newInstance() as AbstractAndroidProjectHandler<*>
     }
 }
 
@@ -366,26 +367,31 @@ class KotlinConfigurationTools internal constructor(val kotlinSourceSetProvider:
                                                     val kotlinPluginVersion: String,
                                                     val kotlinGradleBuildServices: KotlinGradleBuildServices)
 
+private val androidPluginIds = listOf("android", "com.android.application", "android-library", "com.android.library",
+        "com.android.test", "com.android.feature")
+
 /** Part of Android configuration, that works only with the old public API.
  * @see [LegacyAndroidAndroidProjectHandler] that is implemented with the old internal API and [AndroidGradle25VariantProcessor] that works
  *       with the new public API */
-abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationTools: KotlinConfigurationTools) {
-
-    protected val artifactDifferenceRegistryProvider get() =
-            kotlinConfigurationTools.kotlinGradleBuildServices.artifactDifferenceRegistryProvider
+abstract class AbstractAndroidProjectHandler<V : Any> {
 
     protected val logger = Logging.getLogger(this.javaClass)
 
-    protected abstract fun forEachVariant(project: Project, action: (V) -> Unit): Unit
-
     protected abstract fun getSourceProviders(variantData: V): Iterable<SourceProvider>
     protected abstract fun getAllJavaSources(variantData: V): Iterable<File>
-    protected abstract fun getVariantName(variant: V): String
     protected abstract fun getTestedVariantData(variantData: V): V?
     protected abstract fun getJavaTask(variantData: V): AbstractCompile?
     protected abstract fun addJavaSourceDirectoryToVariantModel(variantData: V, javaSourceDirectory: File): Unit
 
     protected open fun checkVariantIsValid(variant: V) = Unit
+
+    abstract fun getVariantName(variant: V): String
+    abstract fun forEachVariant(project: Project, action: (V) -> Unit): Unit
+
+    abstract fun getKotlinCompileClasspath(project: Project,
+                                           variantData: V,
+                                           androidPlugin: BasePlugin,
+                                           androidExt: BaseExtension): FileCollection?
 
     protected abstract fun wireKotlinTasks(project: Project,
                                            androidPlugin: BasePlugin,
@@ -399,11 +405,21 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
                                                    variantData: V,
                                                    javaTask: AbstractCompile,
                                                    kotlinTask: KotlinCompile,
-                                                   kotlinAfterJavaTask: KotlinCompile?)
+                                                   kotlinAfterJavaTask: KotlinCompile?,
+                                                   kotlinConfigurationTools: KotlinConfigurationTools)
 
     protected abstract fun wrapVariantDataForKapt(variantData: V): KaptVariantData<V>
 
-    fun handleProject(project: Project) {
+    internal fun findAndroidPlugin(project: Project): BasePlugin? =
+            androidPluginIds.asSequence()
+                    .mapNotNull { project.plugins.findPlugin(it) as? BasePlugin }
+                    .firstOrNull()
+
+
+    fun findAndroidExtension(project: Project): BaseExtension? =
+            project.extensions.findByName("android") as? BaseExtension
+
+    fun handleProject(project: Project, kotlinConfigurationTools: KotlinConfigurationTools) {
         val ext = project.extensions.getByName("android") as BaseExtension
         val aptConfigurations = hashMapOf<String, Configuration>()
 
@@ -424,11 +440,7 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
 
         project.afterEvaluate { project ->
             if (project != null) {
-                val androidPluginIds = listOf("android", "com.android.application", "android-library", "com.android.library",
-                        "com.android.test", "com.android.feature")
-                val plugin = androidPluginIds.asSequence()
-                                     .mapNotNull { project.plugins.findPlugin(it) as? BasePlugin }
-                                     .firstOrNull()
+                val plugin = findAndroidPlugin(project)
                              ?: throw InvalidPluginException("'kotlin-android' expects one of the Android Gradle " +
                                                              "plugins to be applied to the project:\n\t" +
                                                              androidPluginIds.joinToString("\n\t") { "* $it" })
@@ -437,7 +449,7 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
 
                 forEachVariant(project) {
                     processVariant(it, project, ext, plugin, aptConfigurations, kotlinOptions,
-                            kotlinConfigurationTools.kotlinTasksProvider, subpluginEnvironment)
+                            kotlinConfigurationTools, subpluginEnvironment)
                 }
             }
         }
@@ -449,7 +461,8 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
                                androidPlugin: BasePlugin,
                                aptConfigurations: Map<String, Configuration>,
                                rootKotlinOptions: KotlinJvmOptionsImpl,
-                               tasksProvider: KotlinTasksProvider, subpluginEnvironment: SubpluginEnvironment) {
+                               kotlinConfigurationTools: KotlinConfigurationTools,
+                               subpluginEnvironment: SubpluginEnvironment) {
 
         checkVariantIsValid(variantData)
 
@@ -465,7 +478,10 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
 
         val kotlinTaskName = "compile${variantDataName.capitalize()}Kotlin"
         // todo: Investigate possibility of creating and configuring kotlinTask before evaluation
-        val kotlinTask = tasksProvider.createKotlinJVMTask(project, kotlinTaskName, variantDataName)
+        val kotlinTask = kotlinConfigurationTools
+                .kotlinTasksProvider
+                .createKotlinJVMTask(project, kotlinTaskName, variantDataName)
+
         kotlinTask.parentKotlinOptionsImpl = rootKotlinOptions
 
         // store kotlin classes in separate directory. They will serve as class-path to java compiler
@@ -506,7 +522,8 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
                     aptFiles.toSet(), aptOutputDir, aptWorkingDir, variantData)
 
             kotlinAfterJavaTask = project.initKapt(kotlinTask, javaTask, kaptManager,
-                    variantDataName, rootKotlinOptions, subpluginEnvironment, tasksProvider)
+                    variantDataName, rootKotlinOptions, subpluginEnvironment,
+                    kotlinConfigurationTools.kotlinTasksProvider)
         }
 
         for (task in listOfNotNull(kotlinTask, kotlinAfterJavaTask)) {
@@ -516,7 +533,8 @@ abstract class AbstractAndroidProjectHandler<V>(private val kotlinConfigurationT
         wireKotlinTasks(project, androidPlugin, androidExt, variantData, javaTask,
                 kotlinTask, kotlinAfterJavaTask)
 
-        configureMultiProjectIc(project, variantData, javaTask, kotlinTask, kotlinAfterJavaTask)
+        configureMultiProjectIc(project, variantData, javaTask, kotlinTask,
+                kotlinAfterJavaTask, kotlinConfigurationTools)
 
         val appliedPlugins = subpluginEnvironment.addSubpluginOptions(
                 project, kotlinTask, javaTask, wrapVariantDataForKapt(variantData), null)

@@ -8,6 +8,7 @@ import com.android.build.gradle.internal.variant.TestVariantData
 import com.android.builder.model.SourceProvider
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
+import org.gradle.api.file.FileCollection
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.jetbrains.kotlin.gradle.internal.KaptTask
 import org.jetbrains.kotlin.gradle.internal.KaptVariantData
@@ -18,8 +19,8 @@ import org.jetbrains.kotlin.incremental.configureMultiProjectIncrementalCompilat
 import org.jetbrains.kotlin.incremental.multiproject.ArtifactDifferenceRegistryProviderAndroidWrapper
 import java.io.File
 
-internal class LegacyAndroidAndroidProjectHandler(kotlinConfigurationTools: KotlinConfigurationTools)
-    : AbstractAndroidProjectHandler<BaseVariantData<out BaseVariantOutputData>>(kotlinConfigurationTools) {
+internal class LegacyAndroidAndroidProjectHandler
+    : AbstractAndroidProjectHandler<BaseVariantData<out BaseVariantOutputData>>() {
 
     override fun getSourceProviders(variantData: BaseVariantData<out BaseVariantOutputData>): Iterable<SourceProvider> =
             variantData.sourceProviders
@@ -35,6 +36,17 @@ internal class LegacyAndroidAndroidProjectHandler(kotlinConfigurationTools: Kotl
         variantManager.variantDataList.forEach(action)
     }
 
+    override fun getKotlinCompileClasspath(project: Project,
+                                           variantData: BaseVariantData<out BaseVariantOutputData>,
+                                           androidPlugin: BasePlugin,
+                                           androidExt: BaseExtension): FileCollection {
+        val runtimeJars = project.files(AndroidGradleWrapper.getRuntimeJars(androidPlugin, androidExt))
+        val javaTask = getJavaTask(variantData)
+        return if (javaTask != null)
+            javaTask.classpath + runtimeJars else
+            runtimeJars
+    }
+
     override fun wireKotlinTasks(project: Project,
                                  androidPlugin: BasePlugin,
                                  androidExt: BaseExtension,
@@ -45,9 +57,7 @@ internal class LegacyAndroidAndroidProjectHandler(kotlinConfigurationTools: Kotl
     ) {
         kotlinTask.dependsOn(*javaTask.dependsOn.toTypedArray())
 
-        kotlinTask.mapClasspath {
-            javaTask.classpath + project.files(AndroidGradleWrapper.getRuntimeJars(androidPlugin, androidExt))
-        }
+        kotlinTask.mapClasspath { getKotlinCompileClasspath(project, variantData, androidPlugin, androidExt) }
 
         getTestedVariantData(variantData)?.let { testedVariantData ->
             // Android Gradle plugin bypasses the Gradle finalizedBy for its tasks in some cases, and
@@ -76,11 +86,16 @@ internal class LegacyAndroidAndroidProjectHandler(kotlinConfigurationTools: Kotl
                                                       javaSourceDirectory: File) =
             variantData.addJavaSourceFoldersToModel(javaSourceDirectory)
 
-    override fun configureMultiProjectIc(project: Project, variantData: BaseVariantData<out BaseVariantOutputData>, javaTask: AbstractCompile, kotlinTask: KotlinCompile, kotlinAfterJavaTask: KotlinCompile?) {
+    override fun configureMultiProjectIc(project: Project,
+                                         variantData: BaseVariantData<out BaseVariantOutputData>,
+                                         javaTask: AbstractCompile,
+                                         kotlinTask: KotlinCompile,
+                                         kotlinAfterJavaTask: KotlinCompile?,
+                                         kotlinConfigurationTools: KotlinConfigurationTools) {
         if ((kotlinAfterJavaTask ?: kotlinTask).incremental) {
             val artifactFile = project.tryGetSingleArtifact(variantData)
             val artifactDifferenceRegistryProvider = ArtifactDifferenceRegistryProviderAndroidWrapper(
-                    artifactDifferenceRegistryProvider,
+                    kotlinConfigurationTools.kotlinGradleBuildServices.artifactDifferenceRegistryProvider,
                     { AndroidGradleWrapper.getJarToAarMapping(variantData) }
             )
             configureMultiProjectIncrementalCompilation(project, kotlinTask, javaTask, kotlinAfterJavaTask,

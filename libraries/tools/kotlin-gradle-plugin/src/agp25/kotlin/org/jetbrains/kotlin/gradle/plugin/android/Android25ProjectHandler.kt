@@ -16,11 +16,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
 
 @Suppress("unused")
-class Android25ProjectHandler(kotlinConfigurationTools: KotlinConfigurationTools)
-    : AbstractAndroidProjectHandler<BaseVariant>(kotlinConfigurationTools) {
+class Android25ProjectHandler() : AbstractAndroidProjectHandler<BaseVariant>() {
 
     override fun forEachVariant(project: Project, action: (BaseVariant) -> Unit) {
-        val androidExtension = project.extensions.getByName("android")
+        val androidExtension = findAndroidExtension(project)
         when (androidExtension) {
             is AppExtension -> androidExtension.applicationVariants.all(action)
             is LibraryExtension -> {
@@ -36,6 +35,21 @@ class Android25ProjectHandler(kotlinConfigurationTools: KotlinConfigurationTools
             androidExtension.unitTestVariants.all(action)
         }
     }
+
+    override fun getKotlinCompileClasspath(project: Project,
+                                           variantData: BaseVariant,
+                                           androidPlugin: BasePlugin,
+                                           androidExt: BaseExtension
+    ): FileCollection? {
+        val classpathKey = variantToPreJavaClasspathKey[variantData] ?: return null
+        return variantData.getCompileClasspath(classpathKey) +
+               project.files(AndroidGradleWrapper.getRuntimeJars(androidPlugin, androidExt))
+    }
+
+    /** Since we can only get the classpath for a variant using the key obtained from its
+     * [BaseVariant.registerPreJavacGeneratedBytecode], we should store the keys to be able to get the classpath when
+     * queried with [getKotlinCompileClasspath]. */
+    private val variantToPreJavaClasspathKey = mutableMapOf<BaseVariant, Any>()
 
     override fun wireKotlinTasks(project: Project,
                                  androidPlugin: BasePlugin,
@@ -57,13 +71,12 @@ class Android25ProjectHandler(kotlinConfigurationTools: KotlinConfigurationTools
         }
         val preJavaKotlinOutput = project.files(*preJavaKotlinOutputFiles.toTypedArray()).builtBy(kotlinTask)
 
-        val preJavaClasspathKey = variantData.registerPreJavacGeneratedBytecode(preJavaKotlinOutput)
         kotlinTask.dependsOn(variantData.getSourceFolders(SourceKind.JAVA))
 
-        kotlinTask.mapClasspath {
-            val kotlinClasspath = variantData.getCompileClasspath(preJavaClasspathKey)
-            kotlinClasspath + project.files(AndroidGradleWrapper.getRuntimeJars(androidPlugin, androidExt))
-        }
+        val preJavaClasspathKey = variantData.registerPreJavacGeneratedBytecode(preJavaKotlinOutput)
+        variantToPreJavaClasspathKey[variantData] = preJavaClasspathKey
+
+        kotlinTask.mapClasspath { getKotlinCompileClasspath(project, variantData, androidPlugin, androidExt)!! }
 
         // Use kapt1 annotations file for up-to-date check since annotation processing is done with javac
         kotlinTask.kaptOptions.annotationsFile?.let { javaTask.inputs.file(it) }
@@ -111,7 +124,8 @@ class Android25ProjectHandler(kotlinConfigurationTools: KotlinConfigurationTools
                                          variantData: BaseVariant,
                                          javaTask: AbstractCompile,
                                          kotlinTask: KotlinCompile,
-                                         kotlinAfterJavaTask: KotlinCompile?) {
+                                         kotlinAfterJavaTask: KotlinCompile?,
+                                         kotlinConfigurationTools: KotlinConfigurationTools) {
         //todo: No easy solution because of the absence of the output information in library modules
         // Though it is affordable not to implement this for the first previews, because the impact is tolerable
         // to some degree -- the dependent projects will rebuild non-incrementally when a library project changes
