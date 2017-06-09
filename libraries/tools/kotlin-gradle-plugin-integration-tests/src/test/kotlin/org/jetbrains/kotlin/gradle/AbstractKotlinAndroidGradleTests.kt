@@ -36,6 +36,22 @@ class KotlinAndroid30GradleIT : AbstractKotlinAndroidGradleTests(gradleVersion =
             assertContains(*kotlinTaskNames.toTypedArray())
         }
     }
+
+    // Stronger requirement: the classpath should be available after project evaluation
+    override val classpathApiTestScript: String
+        get() = """
+            task("printApiClasspath")
+            afterEvaluate {
+                plugins.findPlugin(org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPlugin)
+                        .getVariantToKotlinClasspathMap(project).values()
+                        .forEach {
+                    it.forEach { println("api classpath item:" + it) }
+                }
+                tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+                    it.classpath.forEach { println("task classpath item:" + it) }
+                }
+            }
+        """.trimIndent()
 }
 
 const val ANDROID_HOME_PATH = "../../../dependencies/androidSDK"
@@ -221,38 +237,38 @@ fun getSomething() = 10
         }
     }
 
+    protected open val classpathApiTestScript = """
+        task("printApiClasspath").doFirst {
+            plugins.findPlugin(org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPlugin)
+                    .getVariantToKotlinClasspathMap(project).values()
+                    .forEach {
+                it.forEach { println("api classpath item:" + it) }
+            }
+            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+                it.classpath.forEach { println("task classpath item:" + it) }
+            }
+        }
+        printApiClasspath.dependsOn(tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile))
+    """.trimIndent()
+
     @Test
     fun testClasspathApi() {
         val project = Project("AndroidProject", gradleVersion)
 
         project.setupWorkingDir()
         File(project.projectDir, "Android/build.gradle").modify {
-            it + """
-            task("printApiClasspath").doFirst {
-                plugins.findPlugin(org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPlugin)
-                        .getVariantToKotlinClasspathMap(project).values()
-                        .forEach {
-                    it.forEach { println("api classpath item:" + it) }
-                }
-                tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-                    it.classpath.forEach { println("task classpath item:" + it) }
-                }
-            }
-            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-                printApiClasspath.dependsOn it
-            }
-            """.trimIndent()
+            it + classpathApiTestScript
         }
 
         project.build(":Android:printApiClasspath") {
             assertSuccessful()
 
             val apiClasspathItemRegex = "api classpath item:(.*)".toRegex()
-            val apiClasspathItems = apiClasspathItemRegex.findAll(output).map { it.groupValues[1] }.toHashSet()
+            val apiClasspathItems = apiClasspathItemRegex.findAll(output).map { it.groupValues[1] }.toSet()
             Assert.assertTrue(apiClasspathItems.isNotEmpty())
 
             val compileTaskClasspathRegex = "task classpath item:(.*)".toRegex()
-            val compileClasspathItems = compileTaskClasspathRegex.findAll(output).map { it.groupValues[1] }.toHashSet()
+            val compileClasspathItems = compileTaskClasspathRegex.findAll(output).map { it.groupValues[1] }.toSet()
 
             Assert.assertEquals("The classpath API should give the same items as the compile tasks classpath",
                     compileClasspathItems, apiClasspathItems)
