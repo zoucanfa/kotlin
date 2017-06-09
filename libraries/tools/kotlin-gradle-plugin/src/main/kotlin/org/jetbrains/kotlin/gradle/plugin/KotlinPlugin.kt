@@ -350,6 +350,22 @@ internal open class KotlinAndroidPlugin(
         androidProjectHandler.handleProject(project, kotlinTools)
     }
 
+    fun getVariantToKotlinClasspathMap(project: Project): Map<String, FileCollection?>? {
+        val androidPlugin = androidProjectHandler.findAndroidPlugin(project) ?: return null
+        val androidExt = androidProjectHandler.findAndroidExtension(project) ?: return null
+
+        // Workaround for star-projected type of androidProjectHandler -- cannot pass its variants into its own function
+        fun <V : Any> AbstractAndroidProjectHandler<V>.collectClasspathsToMap() =
+                mutableMapOf<String, FileCollection?>().apply {
+                    forEachVariant(project) { variant ->
+                        getKotlinCompileClasspath(project, variant, androidPlugin, androidExt)
+                                ?.let { put(getVariantName(variant), it) }
+                    }
+                }
+
+        return androidProjectHandler.collectClasspathsToMap()
+    }
+
     private val androidPluginVersion: String? by lazy { loadAndroidPluginVersion() }
 
     private val androidProjectHandler by lazy<AbstractAndroidProjectHandler<*>> {
