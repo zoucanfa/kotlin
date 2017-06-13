@@ -101,10 +101,11 @@ class AndroidSubplugin : KotlinGradleSubplugin<KotlinCompile> {
 
         addVariant("main", commonResDirectories.toList())
 
-        val currentVariantData = if (variantData is TestVariantData) {
-            variantData.testedVariantData as? BaseVariantData<*>
+        val unwrappedData = (variantData as? KaptVariantData<*>)?.variantData ?: variantData
+        val currentVariantData = if (unwrappedData is TestVariantData) {
+            unwrappedData.testedVariantData as? BaseVariantData<*>
         } else {
-            variantData as? BaseVariantData<*>
+            unwrappedData as? BaseVariantData<*>
         }
 
         if (currentVariantData != null) {
