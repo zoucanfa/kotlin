@@ -404,6 +404,30 @@ class CompileServiceImpl(
                 }
             }
 
+    private fun execJsIncrementalCompiler(
+        args: K2JSCompilerArguments,
+        incrementalCompilationOptions: IncrementalCompilationOptions,
+        servicesFacade: IncrementalCompilerServicesFacade,
+        compilationResults: CompilationResults,
+        compilerMessageCollector: MessageCollector
+    ): ExitCode {
+        val reporter = RemoteICReporter(servicesFacade, compilationResults, incrementalCompilationOptions)
+
+        val changedFiles = if (incrementalCompilationOptions.areFileChangesKnown) {
+            ChangedFiles.Known(incrementalCompilationOptions.modifiedFiles!!, incrementalCompilationOptions.deletedFiles!!)
+        }
+        else {
+            ChangedFiles.Unknown()
+        }
+
+        val workingDir = incrementalCompilationOptions.workingDir
+        val versions = commonCacheVersions(workingDir) +
+                       customCacheVersion(incrementalCompilationOptions.customCacheVersion, incrementalCompilationOptions.customCacheVersionFileName, workingDir, forceEnable = true)
+
+        return IncrementalJsCompilerRunner(workingDir, versions, reporter)
+                .compile(listOf(), args, compilerMessageCollector, { changedFiles })
+    }
+
     private fun execIncrementalCompiler(
             k2jvmArgs: K2JVMCompilerArguments,
             incrementalCompilationOptions: IncrementalCompilationOptions,
