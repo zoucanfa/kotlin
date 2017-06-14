@@ -182,37 +182,58 @@ class KotlinScriptConfigurationManager(
         return updateSync(file, scriptDef)
     }
 
-    fun <TF : Any> updateAsync(file: TF, scriptDefinition: KotlinScriptDefinitionFromAnnotatedTemplate): Boolean {
+    private fun <TF : Any> updateAsync(file: TF, scriptDefinition: KotlinScriptDefinitionFromAnnotatedTemplate): Boolean {
         val path = getFilePath(file)
         val oldDataAndRequest = cache[path]
 
-        val modificationStamp = fileModificationStamp(file)
-        if (modificationStamp?.equals(oldDataAndRequest?.modificationStamp) ?: false) {
+        if (!shouldSendNewRequest(file, oldDataAndRequest)) {
             return false
         }
 
-        val scriptContents = scriptDefinition.makeScriptContents(file, project)
-        val oldFuture = oldDataAndRequest?.requestInProgress?.future
-        oldFuture?.cancel(true)
+        oldDataAndRequest?.requestInProgress?.future?.cancel(true)
 
+        val (currentTimeStamp, newFuture) = sendRequest(path, scriptDefinition, file, oldDataAndRequest)
+
+        cache[path] = DataAndRequest(
+                oldDataAndRequest?.dependencies,
+                fileModificationStamp(file),
+                TimeStampedRequest(newFuture, currentTimeStamp)
+        )
+        return false // not changed immediately
+    }
+
+    private fun <TF : Any> sendRequest(
+            path: String,
+            scriptDefinition: KotlinScriptDefinitionFromAnnotatedTemplate,
+            file: TF,
+            oldDataAndRequest: DataAndRequest?
+    ): Pair<TimeStamp, CompletableFuture<Unit>> {
         val currentTimeStamp = TimeStamps.next()
-        println("Requesting data for $path")
+        val scriptContents = scriptDefinition.makeScriptContents(file, project)
         val newFuture = supplyAsync(Supplier {
             val newDependencies = scriptDefinition.getDependenciesFor(oldDataAndRequest?.dependencies, scriptContents)
             cacheLock.write {
                 val lastTimeStamp = cache[path]?.requestInProgress?.timeStamp
                 if (lastTimeStamp == currentTimeStamp) {
-                    println("Updating cache for $path")
                     if (cacheSync(newDependencies, oldDataAndRequest?.dependencies, path, fileModificationStamp(file))) {
-                        println("Dependencies updated for $path")
                         invalidateLocalCaches()
                         notifyRootsChanged()
                     }
                 }
             }
         }, threadPool)
-        cache[path] = DataAndRequest(oldDataAndRequest?.dependencies, modificationStamp, TimeStampedRequest(newFuture, currentTimeStamp))
-        return false // not changed immediately
+        return Pair(currentTimeStamp, newFuture)
+    }
+
+    private fun <TF : Any> shouldSendNewRequest(file: TF, oldDataAndRequest: DataAndRequest?): Boolean {
+        val currentStamp = fileModificationStamp(file)
+        val previousStamp = oldDataAndRequest?.modificationStamp
+
+        if (currentStamp == null || currentStamp != previousStamp) {
+            return true
+        }
+
+        return oldDataAndRequest.requestInProgress == null
     }
 
     private fun <TF : Any> fileModificationStamp(file: TF) = (file as? VirtualFile)?.modificationStamp
@@ -319,7 +340,8 @@ private class ClearableLazyValue<out T : Any>(private val lock: ReentrantReadWri
 }
 
 private fun KotlinScriptExternalDependencies.match(other: KotlinScriptExternalDependencies)
-        = classpath.isSamePathListAs(other.classpath) && sources.isSamePathListAs(other.sources)
+        = classpath.isSamePathListAs(other.classpath) &&
+          sources.toSet().isSamePathListAs(other.sources.toSet()) // TODO: gradle returns stdlib and reflect sources in unstable order for some reason
 
 
 private fun Iterable<File>.isSamePathListAs(other: Iterable<File>): Boolean =
