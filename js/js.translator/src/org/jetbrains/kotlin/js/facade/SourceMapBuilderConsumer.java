@@ -17,27 +17,23 @@
 package org.jetbrains.kotlin.js.facade;
 
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.PairConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.js.backend.ast.JsLocation;
+import org.jetbrains.kotlin.js.sourceMap.SourceFilePathResolver;
 import org.jetbrains.kotlin.js.sourceMap.SourceMapBuilder;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
 
 public class SourceMapBuilderConsumer implements PairConsumer<SourceMapBuilder, Object> {
     @NotNull
-    private final Set<File> sourceRoots;
+    private final SourceFilePathResolver pathResolver;
 
-    public SourceMapBuilderConsumer(@NotNull List<File> sourceRoots) {
-        this.sourceRoots = new HashSet<>();
-        for (File sourceRoot : sourceRoots) {
-            this.sourceRoots.add(sourceRoot.getAbsoluteFile());
-        }
+    public SourceMapBuilderConsumer(@NotNull SourceFilePathResolver pathResolver) {
+        this.pathResolver = pathResolver;
     }
 
     @Override
@@ -53,7 +49,7 @@ public class SourceMapBuilderConsumer implements PairConsumer<SourceMapBuilder, 
 
             File file = new File(psiFile.getViewProvider().getVirtualFile().getPath());
             try {
-                builder.addMapping(getPathRelativeToSourceRoots(file), line, column);
+                builder.addMapping(pathResolver.getPathRelativeToSourceRoots(file), line, column);
             }
             catch (IOException e) {
                 throw new RuntimeException("IO error occurred generating source maps", e);
@@ -63,24 +59,5 @@ public class SourceMapBuilderConsumer implements PairConsumer<SourceMapBuilder, 
             JsLocation location = (JsLocation) sourceInfo;
             builder.addMapping(location.getFile(), location.getStartLine(), location.getStartChar());
         }
-    }
-
-    @NotNull
-    private String getPathRelativeToSourceRoots(@NotNull File file) throws IOException {
-        List<String> parts = new ArrayList<>();
-        File currentFile = file.getCanonicalFile();
-
-        while (currentFile != null) {
-            if (sourceRoots.contains(currentFile)) {
-                if (parts.isEmpty()) {
-                    break;
-                }
-                Collections.reverse(parts);
-                return StringUtil.join(parts, File.separator);
-            }
-            parts.add(currentFile.getName());
-            currentFile = currentFile.getParentFile();
-        }
-        return file.getName();
     }
 }
