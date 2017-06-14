@@ -42,7 +42,7 @@ public class K2JSCompilerArguments extends CommonCompilerArguments {
     public boolean sourceMap;
 
     @GradleOption(DefaultValues.StringNullDefault.class)
-    @Argument(value = "-source-map-prefix", description = "Prefix to add to paths in source map")
+    @Argument(value = "-source-map-prefix", description = "Prefix for paths in a source map")
     public String sourceMapPrefix;
 
     @GradleOption(DefaultValues.StringNullDefault.class)

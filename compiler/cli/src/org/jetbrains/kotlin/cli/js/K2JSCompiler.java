@@ -21,6 +21,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.util.ExceptionUtil;
 import com.intellij.util.SmartList;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.HashMap;
@@ -35,6 +36,7 @@ import org.jetbrains.kotlin.cli.common.ExitCode;
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments;
 import org.jetbrains.kotlin.cli.common.arguments.K2JsArgumentConstants;
 import org.jetbrains.kotlin.cli.common.messages.AnalyzerWithCompilerReport;
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity;
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector;
 import org.jetbrains.kotlin.cli.common.output.outputUtils.OutputUtilsKt;
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles;
@@ -59,6 +61,7 @@ import org.jetbrains.kotlin.utils.PathUtil;
 import org.jetbrains.kotlin.utils.StringsKt;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import static org.jetbrains.kotlin.cli.common.ExitCode.COMPILATION_ERROR;
@@ -267,7 +270,7 @@ public class K2JSCompiler extends CLICompiler<K2JSCompilerArguments> {
 
             String sourceMapSourceRoots = arguments.sourceMapSourceRoots != null ?
                                           arguments.sourceMapSourceRoots :
-                                          calculateSourceMapSourceRoot(arguments);
+                                          calculateSourceMapSourceRoot(messageCollector, arguments);
             List<String> sourceMapSourceRootList = StringUtil.split(sourceMapSourceRoots, File.pathSeparator);
             configuration.put(JSConfigurationKeys.SOURCE_MAP_SOURCE_ROOTS, sourceMapSourceRootList);
         }
@@ -317,39 +320,51 @@ public class K2JSCompiler extends CLICompiler<K2JSCompilerArguments> {
     }
 
     @NotNull
-    private static String calculateSourceMapSourceRoot(@NotNull K2JSCompilerArguments arguments) {
+    private static String calculateSourceMapSourceRoot(
+            @NotNull MessageCollector messageCollector,
+            @NotNull K2JSCompilerArguments arguments
+    ) {
         File commonPath = null;
         List<File> pathToRoot = new ArrayList<>();
         Map<File, Integer> pathToRootIndexes = new HashMap<>();
 
-        for (String path : arguments.freeArgs) {
-            File file = new File(path).getAbsoluteFile();
-            if (commonPath == null) {
-                commonPath = file;
+        try {
+            for (String path : arguments.freeArgs) {
+                File file = new File(path).getCanonicalFile();
+                if (commonPath == null) {
+                    commonPath = file;
 
-                file = file.getAbsoluteFile();
-                while (file != null) {
-                    pathToRoot.add(file);
-                    file = file.getParentFile();
-                }
-                Collections.reverse(pathToRoot);
+                    while (file != null) {
+                        pathToRoot.add(file);
+                        file = file.getParentFile();
+                    }
+                    Collections.reverse(pathToRoot);
 
-                for (int i = 0; i < pathToRoot.size(); ++i) {
-                    pathToRootIndexes.put(pathToRoot.get(i), i);
+                    for (int i = 0; i < pathToRoot.size(); ++i) {
+                        pathToRootIndexes.put(pathToRoot.get(i), i);
+                    }
                 }
-            }
-            else {
-                while (file != null) {
-                    Integer existingIndex = pathToRootIndexes.get(file);
-                    if (existingIndex != null) {
-                        existingIndex = Math.min(existingIndex, pathToRoot.size() - 1);
-                        pathToRoot.subList(existingIndex + 1, pathToRoot.size()).clear();
-                        commonPath = pathToRoot.get(existingIndex);
+                else {
+                    while (file != null) {
+                        Integer existingIndex = pathToRootIndexes.get(file);
+                        if (existingIndex != null) {
+                            existingIndex = Math.min(existingIndex, pathToRoot.size() - 1);
+                            pathToRoot.subList(existingIndex + 1, pathToRoot.size()).clear();
+                            commonPath = file;
+                            break;
+                        }
+                        file = file.getParentFile();
+                    }
+                    if (file == null) {
                         break;
                     }
-                    file = file.getParentFile();
                 }
             }
+        }
+        catch (IOException e) {
+            String text = ExceptionUtil.getThrowableText(e);
+            messageCollector.report(CompilerMessageSeverity.ERROR, "IO error occurred calculating source root:\n" + text, null);
+            return ".";
         }
 
         return commonPath != null ? commonPath.getPath() : ".";

@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.js.backend.ast.JsLocation;
 import org.jetbrains.kotlin.js.sourceMap.SourceMapBuilder;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class SourceMapBuilderConsumer implements PairConsumer<SourceMapBuilder, Object> {
@@ -51,7 +52,12 @@ public class SourceMapBuilderConsumer implements PairConsumer<SourceMapBuilder, 
             int column = offset - document.getLineStartOffset(line);
 
             File file = new File(psiFile.getViewProvider().getVirtualFile().getPath());
-            builder.addMapping(getPathRelativeToSourceRoots(file), line, column);
+            try {
+                builder.addMapping(getPathRelativeToSourceRoots(file), line, column);
+            }
+            catch (IOException e) {
+                throw new RuntimeException("IO error occurred generating source maps", e);
+            }
         }
         else if (sourceInfo instanceof JsLocation) {
             JsLocation location = (JsLocation) sourceInfo;
@@ -60,9 +66,9 @@ public class SourceMapBuilderConsumer implements PairConsumer<SourceMapBuilder, 
     }
 
     @NotNull
-    private String getPathRelativeToSourceRoots(@NotNull File file) {
+    private String getPathRelativeToSourceRoots(@NotNull File file) throws IOException {
         List<String> parts = new ArrayList<>();
-        File currentFile = file.getAbsoluteFile();
+        File currentFile = file.getCanonicalFile();
 
         while (currentFile != null) {
             if (sourceRoots.contains(currentFile)) {
