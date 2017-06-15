@@ -19,21 +19,30 @@
 package kotlin.script.dependencies
 
 import java.io.File
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
+
+typealias Environment = Map<String, Any?>?
+typealias ErrorReporter = (ScriptDependenciesResolver.ReportSeverity, String, ScriptContents.Position?) -> Unit
 
 interface ScriptDependenciesResolver {
-
     enum class ReportSeverity { ERROR, WARNING, INFO, DEBUG }
-
-    fun resolve(script: ScriptContents,
-                environment: Map<String, Any?>?,
-                report: (ReportSeverity, String, ScriptContents.Position?) -> Unit,
-                previousDependencies: KotlinScriptExternalDependencies?
-    ): Future<KotlinScriptExternalDependencies?> = PseudoFuture(null)
 }
 
-class BasicScriptDependenciesResolver : ScriptDependenciesResolver
+interface StaticScriptDependenciesResolver : ScriptDependenciesResolver {
+    fun resolve(environment: Environment, onError: ErrorReporter): ScriptDependencies = ScriptDependencies.Empty
+}
+
+interface SyncDependenciesResolver : ScriptDependenciesResolver {
+    fun resolve(contents: ScriptContents, environment: Environment, onError: ErrorReporter): ScriptDependencies = ScriptDependencies.Empty
+}
+
+interface AsyncScriptDependenciesResolver : ScriptDependenciesResolver {
+    fun resolve(
+            contents: ScriptContents, environment: Environment, onError: ErrorReporter, onDependenciesComputed: (ScriptDependencies) -> Unit
+    ): Unit = onDependenciesComputed(ScriptDependencies.Empty)
+}
+
+class EmptyDependenciesResolver : StaticScriptDependenciesResolver
+
 interface ScriptContents {
 
     data class Position(val line: Int, val col: Int)
@@ -41,14 +50,4 @@ interface ScriptContents {
     val file: File?
     val annotations: Iterable<Annotation>
     val text: CharSequence?
-}
-
-fun KotlinScriptExternalDependencies?.asFuture(): PseudoFuture<KotlinScriptExternalDependencies?> = PseudoFuture(this)
-
-class PseudoFuture<T>(private val value: T): Future<T> {
-    override fun get(): T = value
-    override fun get(p0: Long, p1: TimeUnit): T  = value
-    override fun cancel(p0: Boolean): Boolean = false
-    override fun isDone(): Boolean = true
-    override fun isCancelled(): Boolean = false
 }
