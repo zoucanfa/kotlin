@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.incremental.isKotlinFile
 import java.io.File
 import java.util.*
 
-internal sealed class SourceRoots(val kotlinSourceFiles: List<File>) {
+internal sealed class SourceRoots(val kotlinSourceFiles: List<File>, val sourceDirectories: List<File>) {
     private companion object {
         fun dumpPaths(files: Iterable<File>): String =
                 "[${files.map { it.canonicalPath }.sorted().joinToString(prefix = "\n\t", separator = ",\n\t")}]"
@@ -20,13 +20,17 @@ internal sealed class SourceRoots(val kotlinSourceFiles: List<File>) {
         logger.kotlinDebug { "$taskName source roots: ${dumpPaths(kotlinSourceFiles)}" }
     }
 
-    class ForJvm(kotlinSourceFiles: List<File>, val javaSourceRoots: Set<File>) : SourceRoots(kotlinSourceFiles) {
+    class ForJvm(
+            kotlinSourceFiles: List<File>,
+            sourceDirectories: List<File>,
+            val javaSourceRoots: Set<File>
+    ) : SourceRoots(kotlinSourceFiles, sourceDirectories) {
         companion object {
             fun create(taskSource: FileTree, sourceRoots: FilteringSourceRootsContainer): ForJvm {
                 val kotlinSourceFiles = (taskSource as Iterable<File>).filter(File::isKotlinFile)
                 val javaSourceRoots = findRootsForSources(
                         sourceRoots.sourceRoots, taskSource.filter(File::isJavaFile))
-                return ForJvm(kotlinSourceFiles, javaSourceRoots)
+                return ForJvm(kotlinSourceFiles, sourceRoots.sourceRoots, javaSourceRoots)
             }
 
             private fun findRootsForSources(allSourceRoots: Iterable<File>, sources: Iterable<File>): Set<File> {
@@ -51,9 +55,13 @@ internal sealed class SourceRoots(val kotlinSourceFiles: List<File>) {
         }
     }
 
-    class KotlinOnly(kotlinSourceFiles: List<File>) : SourceRoots(kotlinSourceFiles) {
+    class KotlinOnly(
+            kotlinSourceFiles: List<File>,
+            sourceDirectories: List<File>
+    ) : SourceRoots(kotlinSourceFiles, sourceDirectories) {
         companion object {
-            fun create(taskSource: FileTree) = KotlinOnly((taskSource as Iterable<File>).filter(File::isKotlinFile))
+            fun create(taskSource: FileTree, sourceDirectories: List<File>) =
+                    KotlinOnly((taskSource as Iterable<File>).filter(File::isKotlinFile), sourceDirectories)
         }
     }
 }
