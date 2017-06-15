@@ -18,10 +18,13 @@ package org.jetbrains.kotlin.serialization.js
 
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.protobuf.CodedInputStream
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.DescriptorUtils
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
+import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.serialization.AnnotationSerializer
@@ -118,7 +121,15 @@ object KotlinJavascriptSerializationUtil {
         val serializerExtension = KotlinJavascriptSerializerExtension(fileRegistry)
         val serializer = DescriptorSerializer.createTopLevel(serializerExtension)
 
-        val classDescriptors = DescriptorSerializer.sort(scope).filterIsInstance<ClassDescriptor>()
+        val classDescriptors = DescriptorSerializer.sort(scope)
+                .filterIsInstance<ClassDescriptor>()
+                .filter { cls ->
+                    // Skip metadata for builtins. This is required to avoid duplication of metadata for several built-in classes
+                    // when compiling stdlib-js
+                    val builtinsModule = module.builtIns.builtInsModule
+                    val builtin = builtinsModule.findClassAcrossModuleDependencies(ClassId.topLevel(cls.fqNameSafe))
+                    builtin == null || builtin.module != builtinsModule
+                }
 
         fun serializeClasses(descriptors: Collection<DeclarationDescriptor>) {
             fun serializeClass(classDescriptor: ClassDescriptor) {

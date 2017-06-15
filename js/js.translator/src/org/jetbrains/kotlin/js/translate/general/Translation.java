@@ -75,8 +75,6 @@ import static org.jetbrains.kotlin.js.translate.utils.mutator.LastExpressionMuta
  * Goal is to simplify interaction between translators.
  */
 public final class Translation {
-    private static final String ENUM_SIGNATURE = "kotlin$Enum";
-
     private Translation() {
     }
 
@@ -322,9 +320,7 @@ public final class Translation {
         List<JsStatement> statements = rootBlock.getStatements();
 
         statements.add(0, new JsStringLiteral("use strict").makeStmt());
-        if (!isBuiltinModule(fragments)) {
-            defineModule(program, statements, config.getModuleId());
-        }
+        defineModule(program, statements, config.getModuleId());
 
         // Invoke function passing modules as arguments
         // This should help minifier tool to recognize references to these modules as local variables and make them shorter.
@@ -342,17 +338,6 @@ public final class Translation {
 
         return new AstGenerationResult(program, internalModuleName, fragments, fragmentMap, newFragments,
                                        fileMemberScopes, importedModuleList);
-    }
-
-    private static boolean isBuiltinModule(@NotNull List<JsProgramFragment> fragments) {
-        for (JsProgramFragment fragment : fragments) {
-            for (JsNameBinding nameBinding : fragment.getNameBindings()) {
-                if (nameBinding.getKey().equals(ENUM_SIGNATURE) && !fragment.getImports().containsKey(ENUM_SIGNATURE)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private static void translateFile(

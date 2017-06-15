@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.js.translate.context.Namer
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.operation.OperatorTable
 import org.jetbrains.kotlin.js.translate.utils.JsAstUtils.*
+import org.jetbrains.kotlin.js.translate.utils.JsDescriptorUtils
 import org.jetbrains.kotlin.js.translate.utils.PsiUtils.getOperationToken
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.types.KotlinType
@@ -73,7 +74,7 @@ object LongCompareToBOIF : BinaryOperationIntrinsicFactory {
     override fun getSupportTokens() = OperatorConventions.COMPARISON_OPERATIONS
 
     override fun getIntrinsic(descriptor: FunctionDescriptor, leftType: KotlinType?, rightType: KotlinType?): BinaryOperationIntrinsic? {
-        if (KotlinBuiltIns.isBuiltIn(descriptor)) {
+        if (JsDescriptorUtils.isBuiltinOrStdlibCopy(descriptor)) {
             return when {
                 FLOATING_POINT_COMPARE_TO_LONG_PATTERN.test(descriptor) -> FLOATING_POINT_COMPARE_TO_LONG
                 LONG_COMPARE_TO_FLOATING_POINT_PATTERN.test(descriptor) -> LONG_COMPARE_TO_FLOATING_POINT

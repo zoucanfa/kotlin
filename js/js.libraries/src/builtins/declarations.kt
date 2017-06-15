@@ -17,4 +17,5 @@
 package kotlin.js.internal
 
 @JsName("Error")
-public external open class JsError(message: String?)
+@PublishedApi
+internal external open class JsError(message: String?)

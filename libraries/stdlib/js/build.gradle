@@ -25,18 +25,11 @@ def kotlinTestJsTestOutputFile = "${project(':kotlin-test:kotlin-test-js').build
 
 
 sourceSets {
-    builtins {
-        kotlin {
-            srcDir builtinsSrcDir2
-            srcDir "${jsSrcDir}/builtins"
-        }
-    }
-
     main {
         kotlin {
+            srcDir builtinsSrcDir2
             srcDir builtinsSrcDir
             srcDir jsSrcDir
-            exclude "builtins"
             srcDir commonSrcDir
         }
     }
@@ -105,16 +98,8 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile) {
     }
 }
 
-compileBuiltinsKotlin2Js {
-    dependsOn prepareComparableSource
-    kotlinOptions {
-        metaInfo = false
-        outputFile = "${buildDir}/classes/builtins/kotlin.js"
-    }
-}
-
 compileKotlin2Js {
-    dependsOn preprocessSourcesMain, prepareBuiltinsSources
+    dependsOn preprocessSourcesMain, prepareBuiltinsSources, prepareComparableSource
     kotlinOptions {
         outputFile = "${buildDir}/classes/main/kotlin.js"
     }
@@ -135,8 +120,7 @@ dependencies {
 }
 
 task compileJs {
-    dependsOn compileBuiltinsKotlin2Js, compileKotlin2Js
-    inputs.files(compileBuiltinsKotlin2Js.outputs.files)
+    dependsOn compileKotlin2Js
     inputs.files(compileKotlin2Js.outputs.files)
     inputs.dir(jsSrcDir)
     outputs.file(jsOutputFile)
@@ -162,7 +146,6 @@ task compileJs {
                     exclude(name: 'externs.js')
                 }
                 fileset(dir: "${buildDir}/classes") {
-                    include(name: 'builtins/kotlin.js')
                     include(name: 'main/kotlin.js')
                 }
             }
@@ -217,9 +200,6 @@ task mergedJar(type: Jar, dependsOn: classes) {
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
     includeEmptyDirs false
-    from (sourceSets.builtins.allSource) {
-        into 'kotlin'
-    }
     from (sourceSets.main.allSource) {
         into 'kotlin'
         exclude '**/*.java'

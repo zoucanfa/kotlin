@@ -17,7 +17,7 @@
 package kotlin.js.internal
 
 @JsName("DoubleCompanionObject")
-private object DoubleCompanionObject {
+internal object DoubleCompanionObject {
     @JsName("MIN_VALUE")
     val MIN_VALUE: Double = js("Number.MIN_VALUE")
 
@@ -35,7 +35,7 @@ private object DoubleCompanionObject {
 }
 
 @JsName("FloatCompanionObject")
-private object FloatCompanionObject {
+internal object FloatCompanionObject {
     @JsName("MIN_VALUE")
     val MIN_VALUE: Float = js("Number.MIN_VALUE")
 
@@ -53,7 +53,7 @@ private object FloatCompanionObject {
 }
 
 @JsName("IntCompanionObject")
-private object IntCompanionObject {
+internal object IntCompanionObject {
     @JsName("MIN_VALUE")
     val MIN_VALUE: Int = -2147483647 - 1
 
@@ -62,7 +62,7 @@ private object IntCompanionObject {
 }
 
 @JsName("LongCompanionObject")
-private object LongCompanionObject {
+internal object LongCompanionObject {
     @JsName("MIN_VALUE")
     val MIN_VALUE: Long = js("Kotlin.Long.MIN_VALUE")
 
@@ -71,7 +71,7 @@ private object LongCompanionObject {
 }
 
 @JsName("ShortCompanionObject")
-private object ShortCompanionObject {
+internal object ShortCompanionObject {
     @JsName("MIN_VALUE")
     val MIN_VALUE: Short = -32768
 
@@ -80,7 +80,7 @@ private object ShortCompanionObject {
 }
 
 @JsName("ByteCompanionObject")
-private object ByteCompanionObject {
+internal object ByteCompanionObject {
     @JsName("MIN_VALUE")
     val MIN_VALUE: Byte = -128
 
@@ -89,7 +89,7 @@ private object ByteCompanionObject {
 }
 
 @JsName("CharCompanionObject")
-private object CharCompanionObject {
+internal object CharCompanionObject {
     @JsName("MIN_HIGH_SURROGATE")
     public const val MIN_HIGH_SURROGATE: Char = '\uD800'
 
@@ -109,5 +109,6 @@ private object CharCompanionObject {
     public const val MAX_SURROGATE: Char = MAX_LOW_SURROGATE
 }
 
-private object StringCompanionObject {}
+@JsName("StringCompanionObject")
+internal object StringCompanionObject {}
 

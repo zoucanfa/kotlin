@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns;
 import org.jetbrains.kotlin.descriptors.*;
 import org.jetbrains.kotlin.js.translate.context.Namer;
+import org.jetbrains.kotlin.name.ClassId;
 import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.resolve.calls.tasks.DynamicCallsKt;
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt;
@@ -191,5 +192,20 @@ public final class JsDescriptorUtils {
     public static boolean isExceptionClass(@NotNull ClassDescriptor descriptor) {
         ModuleDescriptor module = DescriptorUtils.getContainingModule(descriptor);
         return TypeUtilsKt.isSubtypeOf(descriptor.getDefaultType(), module.getBuiltIns().getThrowable().getDefaultType());
+    }
+
+    public static boolean isBuiltinOrStdlibCopy(@NotNull FunctionDescriptor descriptor) {
+        if (KotlinBuiltIns.isBuiltIn(descriptor)) return true;
+
+        DeclarationDescriptor container = descriptor.getContainingDeclaration();
+        if (!(container instanceof ClassDescriptor)) return false;
+
+        ClassId classId = ClassId.topLevel(DescriptorUtilsKt.getFqNameSafe(container));
+        ModuleDescriptor module = DescriptorUtils.getContainingModule(container);
+        ModuleDescriptor builtinModule = module.getBuiltIns().getBuiltInsModule();
+        ClassDescriptor builtin = FindClassInModuleKt.findClassAcrossModuleDependencies(builtinModule, classId);
+        if (builtin != null && DescriptorUtils.getContainingModule(builtin) == builtinModule) return true;
+
+        return false;
     }
 }

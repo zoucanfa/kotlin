@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.js.translate.expression
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyAccessorDescriptor
+import org.jetbrains.kotlin.descriptors.effectiveVisibility
 import org.jetbrains.kotlin.js.backend.ast.JsExpression
 import org.jetbrains.kotlin.js.backend.ast.JsFunction
 import org.jetbrains.kotlin.js.backend.ast.JsParameter
@@ -37,7 +38,6 @@ import org.jetbrains.kotlin.js.translate.utils.requiresStateMachineTransformatio
 import org.jetbrains.kotlin.psi.KtDeclarationWithBody
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.hasDefaultValue
-import org.jetbrains.kotlin.resolve.descriptorUtil.isEffectivelyPublicApi
 
 fun TranslationContext.translateAndAliasParameters(
         descriptor: FunctionDescriptor,
@@ -102,7 +102,7 @@ fun TranslationContext.translateFunction(declaration: KtDeclarationWithBody, fun
 }
 
 fun TranslationContext.wrapWithInlineMetadata(function: JsFunction, descriptor: FunctionDescriptor, config: JsConfig): JsExpression {
-    return if (shouldBeInlined(descriptor, this) && descriptor.isEffectivelyPublicApi) {
+    return if (shouldBeInlined(descriptor, this) && shouldExposeInlineFunction(descriptor)) {
         val metadata = InlineMetadata.compose(function, descriptor, config)
         metadata.functionWithMetadata
     }
@@ -110,3 +110,6 @@ fun TranslationContext.wrapWithInlineMetadata(function: JsFunction, descriptor: 
         function
     }
 }
+
+fun shouldExposeInlineFunction(function: FunctionDescriptor) =
+        function.effectiveVisibility(checkPublishedApi = true).publicApi

@@ -16,7 +16,6 @@
 
 package org.jetbrains.kotlin.js.translate.intrinsic.operation
 
-import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.js.backend.ast.JsBinaryOperation
 import org.jetbrains.kotlin.js.backend.ast.JsExpression
@@ -25,6 +24,7 @@ import org.jetbrains.kotlin.js.patterns.PatternBuilder.pattern
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.operation.OperatorTable
 import org.jetbrains.kotlin.js.translate.utils.JsAstUtils
+import org.jetbrains.kotlin.js.translate.utils.JsDescriptorUtils
 import org.jetbrains.kotlin.js.translate.utils.PsiUtils.getOperationToken
 import org.jetbrains.kotlin.lexer.KtSingleValueToken
 import org.jetbrains.kotlin.psi.KtBinaryExpression
@@ -71,7 +71,7 @@ object CompareToBOIF : BinaryOperationIntrinsicFactory {
     override fun getIntrinsic(descriptor: FunctionDescriptor, leftType: KotlinType?, rightType: KotlinType?): BinaryOperationIntrinsic? {
         if (descriptor.isDynamic()) return CompareToIntrinsic
 
-        if (!KotlinBuiltIns.isBuiltIn(descriptor)) return null
+        if (!JsDescriptorUtils.isBuiltinOrStdlibCopy(descriptor)) return null
 
         return when {
             COMPARE_TO_CHAR.test(descriptor) ->
