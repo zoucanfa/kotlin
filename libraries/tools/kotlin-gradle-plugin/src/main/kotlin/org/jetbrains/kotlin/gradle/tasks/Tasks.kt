@@ -18,6 +18,7 @@ package org.jetbrains.kotlin.gradle.tasks
 
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.logging.Logger
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.SourceTask
@@ -74,8 +75,6 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>() : AbstractCo
 
     private val kotlinExt: KotlinProjectExtension
             get() = project.extensions.findByType(KotlinProjectExtension::class.java)!!
-
-    internal open val sourceRootsContainer = FilteringSourceRootsContainer()
 
     // indicates that task should compile kotlin incrementally if possible
     // it's not possible when IncrementalTaskInputs#isIncremental returns false (i.e first build)
@@ -165,18 +164,6 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>() : AbstractCo
             args.verbose = true
         }
     }
-
-    // override setSource to track source directory sets and files (for generated android folders)
-    override fun setSource(sources: Any?) {
-        sourceRootsContainer.set(sources)
-        super.setSource(sources)
-    }
-
-    // override source to track source directory sets and files (for generated android folders)
-    override fun source(vararg sources: Any?): SourceTask? {
-        sourceRootsContainer.add(*sources)
-        return super.source(*sources)
-    }
 }
 
 open class KotlinCompile : AbstractKotlinCompile<K2JVMCompilerArguments>(), KotlinJvmCompile {
@@ -184,6 +171,7 @@ open class KotlinCompile : AbstractKotlinCompile<K2JVMCompilerArguments>(), Kotl
     private val kotlinOptionsImpl = KotlinJvmOptionsImpl()
     override val kotlinOptions: KotlinJvmOptions
             get() = kotlinOptionsImpl
+    internal open val sourceRootsContainer = FilteringSourceRootsContainer()
 
     internal val taskBuildDirectory: File
         get() = File(File(project.buildDir, KOTLIN_BUILD_DIR_NAME), name).apply { mkdirs() }
@@ -323,6 +311,17 @@ open class KotlinCompile : AbstractKotlinCompile<K2JVMCompilerArguments>(), Kotl
                 }
             }
 
+    // override setSource to track source directory sets and files (for generated android folders)
+    override fun setSource(sources: Any?) {
+        sourceRootsContainer.set(sources)
+        super.setSource(sources)
+    }
+
+    // override source to track source directory sets and files (for generated android folders)
+    override fun source(vararg sources: Any?): SourceTask? {
+        sourceRootsContainer.add(*sources)
+        return super.source(*sources)
+    }
 }
 
 open class Kotlin2JsCompile() : AbstractKotlinCompile<K2JSCompilerArguments>(), KotlinJsCompile {
@@ -336,6 +335,8 @@ open class Kotlin2JsCompile() : AbstractKotlinCompile<K2JSCompilerArguments>(), 
     @Suppress("unused")
     val outputFile: String
         get() = kotlinOptions.outputFile ?: defaultOutputFile.canonicalPath
+
+    internal var sourceSet: SourceDirectorySet? = null
 
 
     override fun findKotlinCompilerJar(project: Project): File? =
@@ -354,7 +355,7 @@ open class Kotlin2JsCompile() : AbstractKotlinCompile<K2JSCompilerArguments>(), 
         kotlinOptionsImpl.updateArguments(args)
     }
 
-    override fun getSourceRoots() = SourceRoots.KotlinOnly.create(getSource(), sourceRootsContainer.sourceRoots)
+    override fun getSourceRoots() = SourceRoots.KotlinOnly.create(getSource())
 
     override fun callCompiler(args: K2JSCompilerArguments, sourceRoots: SourceRoots, changedFiles: ChangedFiles) {
         sourceRoots as SourceRoots.KotlinOnly
@@ -381,7 +382,7 @@ open class Kotlin2JsCompile() : AbstractKotlinCompile<K2JSCompilerArguments>(), 
 
         args.friendModules = friendDependency
 
-        args.sourceMapSourceRoots = sourceRoots.sourceDirectories.joinToString(File.pathSeparator) { it.absolutePath }
+        args.sourceMapSourceRoots = sourceSet?.srcDirs?.joinToString(File.pathSeparator) { it.absolutePath } ?: ""
 
         logger.kotlinDebug("compiling with args ${ArgumentUtils.convertArgumentsToStringList(args)}")
 
