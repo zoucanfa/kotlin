@@ -1,0 +1,103 @@
+public final class Test : java/lang/Object {
+    private final java.util.List names
+
+    public void <init>(java.util.List p0)
+
+    public final int describeContents()
+
+    public final java.util.List getNames()
+
+    public final void writeToParcel(android.os.Parcel p0, int p1) {
+        LABEL (L0)
+          ALOAD (1)
+          LDC (parcel)
+          INVOKESTATIC (kotlin/jvm/internal/Intrinsics, checkParameterIsNotNull, (Ljava/lang/Object;Ljava/lang/String;)V)
+          ALOAD (1)
+          ALOAD (0)
+          GETFIELD (names, Ljava/util/List;)
+          DUP
+          IFNULL (L1)
+          ALOAD (1)
+          LDC (1)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          SWAP
+          DUP_X1
+          INVOKEINTERFACE (java/util/List, size, ()I)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          INVOKEINTERFACE (java/util/List, iterator, ()Ljava/util/Iterator;)
+        LABEL (L2)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, hasNext, ()Z)
+          IFEQ (L3)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, next, ()Ljava/lang/Object;)
+          ALOAD (1)
+          SWAP
+          DUP
+          IFNULL (L4)
+          ALOAD (1)
+          LDC (1)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          SWAP
+          DUP_X1
+          INVOKEINTERFACE (java/util/List, size, ()I)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          INVOKEINTERFACE (java/util/List, iterator, ()Ljava/util/Iterator;)
+        LABEL (L5)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, hasNext, ()Z)
+          IFEQ (L6)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, next, ()Ljava/lang/Object;)
+          ALOAD (1)
+          SWAP
+          DUP
+          IFNULL (L7)
+          ALOAD (1)
+          LDC (1)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          SWAP
+          DUP_X1
+          INVOKEINTERFACE (java/util/List, size, ()I)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          INVOKEINTERFACE (java/util/List, iterator, ()Ljava/util/Iterator;)
+        LABEL (L8)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, hasNext, ()Z)
+          IFEQ (L9)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, next, ()Ljava/lang/Object;)
+          ALOAD (1)
+          SWAP
+          INVOKEVIRTUAL (android/os/Parcel, writeString, (Ljava/lang/String;)V)
+          GOTO (L8)
+        LABEL (L9)
+          POP
+          GOTO (L10)
+        LABEL (L7)
+          POP
+          LDC (0)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+        LABEL (L10)
+          GOTO (L5)
+        LABEL (L6)
+          POP
+          GOTO (L11)
+        LABEL (L4)
+          POP
+          LDC (0)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+        LABEL (L11)
+          GOTO (L2)
+        LABEL (L3)
+          POP
+          GOTO (L12)
+        LABEL (L1)
+          POP
+          LDC (0)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+        LABEL (L12)
+          RETURN
+        LABEL (L13)
+    }
+}

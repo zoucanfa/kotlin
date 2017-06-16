@@ -1,0 +1,49 @@
+public final class Test : java/lang/Object {
+    private final java.util.List names
+
+    public void <init>(java.util.List p0)
+
+    public final int describeContents()
+
+    public final java.util.List getNames()
+
+    public final void writeToParcel(android.os.Parcel p0, int p1) {
+        LABEL (L0)
+          ALOAD (1)
+          LDC (parcel)
+          INVOKESTATIC (kotlin/jvm/internal/Intrinsics, checkParameterIsNotNull, (Ljava/lang/Object;Ljava/lang/String;)V)
+          ALOAD (1)
+          ALOAD (0)
+          GETFIELD (names, Ljava/util/List;)
+          DUP
+          IFNULL (L1)
+          ALOAD (1)
+          LDC (1)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          SWAP
+          DUP_X1
+          INVOKEINTERFACE (java/util/List, size, ()I)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+          INVOKEINTERFACE (java/util/List, iterator, ()Ljava/util/Iterator;)
+        LABEL (L2)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, hasNext, ()Z)
+          IFEQ (L3)
+          DUP
+          INVOKEINTERFACE (java/util/Iterator, next, ()Ljava/lang/Object;)
+          ALOAD (1)
+          SWAP
+          INVOKEVIRTUAL (android/os/Parcel, writeString, (Ljava/lang/String;)V)
+          GOTO (L2)
+        LABEL (L3)
+          POP
+          GOTO (L4)
+        LABEL (L1)
+          POP
+          LDC (0)
+          INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
+        LABEL (L4)
+          RETURN
+        LABEL (L5)
+    }
+}

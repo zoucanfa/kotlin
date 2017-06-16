@@ -18,6 +18,7 @@ package org.jetbrains.kotlin.android.synthetic
 
 import com.intellij.mock.MockProject
 import com.intellij.openapi.extensions.Extensions
+import org.jetbrains.kotlin.android.parcel.ParcelCodegenExtension
 import org.jetbrains.kotlin.android.synthetic.codegen.AndroidExpressionCodegenExtension
 import org.jetbrains.kotlin.android.synthetic.codegen.AndroidOnDestroyClassBuilderInterceptorExtension
 import org.jetbrains.kotlin.android.synthetic.diagnostic.AndroidExtensionPropertiesCallChecker
@@ -73,6 +74,8 @@ class AndroidCommandLineProcessor : CommandLineProcessor {
 
 class AndroidComponentRegistrar : ComponentRegistrar {
     override fun registerProjectComponents(project: MockProject, configuration: CompilerConfiguration) {
+        registerParcelExtensions(project)
+
         val applicationPackage = configuration.get(AndroidConfigurationKeys.PACKAGE)
         val variants = configuration.get(AndroidConfigurationKeys.VARIANT)?.mapNotNull { parseVariant(it) } ?: emptyList()
 
@@ -86,6 +89,10 @@ class AndroidComponentRegistrar : ComponentRegistrar {
             ClassBuilderInterceptorExtension.registerExtension(project, AndroidOnDestroyClassBuilderInterceptorExtension())
             PackageFragmentProviderExtension.registerExtension(project, CliAndroidPackageFragmentProviderExtension())
         }
+    }
+
+    private fun registerParcelExtensions(project: MockProject) {
+        ExpressionCodegenExtension.registerExtension(project, ParcelCodegenExtension())
     }
 
     private fun parseVariant(s: String): AndroidVariant? {

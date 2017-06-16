@@ -385,6 +385,13 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
     }
 
     @Override
+    protected void generateAssociatedClasses() {
+        for (ExpressionCodegenExtension extension : ExpressionCodegenExtension.Companion.getInstances(state.getProject())) {
+            extension.generateAssociatedClasses(this);
+        }
+    }
+
+    @Override
     protected void generateConstructors() {
         try {
             lookupConstructorExpressionsInClosureIfPresent();

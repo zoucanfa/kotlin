@@ -67,6 +67,7 @@
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
         <expressionCodegenExtension implementation="org.jetbrains.kotlin.android.synthetic.codegen.AndroidExpressionCodegenExtension"/>
+        <expressionCodegenExtension implementation="org.jetbrains.kotlin.android.parcel.ParcelCodegenExtension"/>
         <defaultErrorMessages implementation="org.jetbrains.kotlin.android.synthetic.diagnostic.DefaultErrorMessagesAndroid"/>
         <storageComponentContainerContributor implementation="org.jetbrains.kotlin.android.synthetic.AndroidExtensionPropertiesComponentContainerContributor"/>
         <classBuilderFactoryInterceptorExtension implementation="org.jetbrains.kotlin.android.synthetic.codegen.AndroidOnDestroyClassBuilderInterceptorExtension"/>
