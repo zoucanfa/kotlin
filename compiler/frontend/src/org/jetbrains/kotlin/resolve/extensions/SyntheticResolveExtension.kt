@@ -43,10 +43,10 @@ interface SyntheticResolveExtension {
                 override fun addSyntheticSupertypes(thisDescriptor: ClassDescriptor, supertypes: MutableList<KotlinType>) =
                     instances.forEach { it.addSyntheticSupertypes(thisDescriptor, supertypes) }
 
-                override fun generateSyntheticMethods(thisDescriptor: ClassDescriptor, name: Name,
+                override fun generateSyntheticMethods(clazz: ClassDescriptor, name: Name,
                                                       fromSupertypes: List<SimpleFunctionDescriptor>,
                                                       result: MutableCollection<SimpleFunctionDescriptor>) =
-                    instances.forEach { it.generateSyntheticMethods(thisDescriptor, name, fromSupertypes, result) }
+                    instances.forEach { it.generateSyntheticMethods(clazz, name, fromSupertypes, result) }
 
                 override fun generateSyntheticProperties(thisDescriptor: ClassDescriptor, name: Name,
                                                          fromSupertypes: ArrayList<PropertyDescriptor>,
@@ -60,7 +60,7 @@ interface SyntheticResolveExtension {
 
     fun addSyntheticSupertypes(thisDescriptor: ClassDescriptor, supertypes: MutableList<KotlinType>) {}
 
-    fun generateSyntheticMethods(thisDescriptor: ClassDescriptor,
+    fun generateSyntheticMethods(clazz: ClassDescriptor,
                                  name: Name,
                                  fromSupertypes: List<SimpleFunctionDescriptor>,
                                  result: MutableCollection<SimpleFunctionDescriptor>) {}

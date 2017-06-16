@@ -276,7 +276,7 @@ class KotlinCoreEnvironment private constructor(
         }
     }
 
-    internal fun updateClasspath(contentRoots: List<ContentRoot>): List<File>? {
+    fun updateClasspath(contentRoots: List<ContentRoot>): List<File>? {
         val newRoots = classpathRootsResolver.convertClasspathRoots(contentRoots)
 
         for (packagePartProvider in packagePartProviders) {
