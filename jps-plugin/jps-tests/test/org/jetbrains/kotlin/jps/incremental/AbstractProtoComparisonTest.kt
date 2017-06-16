@@ -66,7 +66,7 @@ abstract class AbstractProtoComparisonTest<PROTO_DATA> : TestWithWorkingDir() {
                 changes.add("MEMBERS\n    ${diff.changedMembersNames.sorted()}")
             }
             if (changes.isEmpty()) {
-                changes.add("NONE")
+                return@forEach
             }
 
             p.println("CHANGES in $classId: ${changes.joinToString()}")
