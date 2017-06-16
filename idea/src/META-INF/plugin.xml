@@ -47,6 +47,9 @@
     <component>
       <implementation-class>org.jetbrains.kotlin.idea.caches.KotlinPackageContentModificationListener</implementation-class>
     </component>
+    <component>
+      <implementation-class>org.jetbrains.kotlin.idea.run.scratch.KtScratchCompilationSupport</implementation-class>
+    </component>
   </project-components>
 
   <application-components>
@@ -592,9 +595,11 @@
     <configurationType implementation="org.jetbrains.kotlin.idea.run.JetRunConfigurationType"/>
     <configurationType implementation="org.jetbrains.kotlin.idea.run.script.standalone.KotlinStandaloneScriptRunConfigurationType"/>
     <configurationType implementation="org.jetbrains.kotlin.idea.k2jsrun.K2JSRunConfigurationType"/>
+    <configurationType implementation="org.jetbrains.kotlin.idea.run.scratch.KtScratchConfigurationType"/>
     <programRunner implementation="org.jetbrains.kotlin.idea.k2jsrun.K2JSBrowserProgramRunner"/>
     <runConfigurationProducer implementation="org.jetbrains.kotlin.idea.run.KotlinRunConfigurationProducer"/>
     <runConfigurationProducer implementation="org.jetbrains.kotlin.idea.run.script.standalone.KotlinStandaloneScriptRunConfigurationProducer"/>
+    <runConfigurationProducer implementation="org.jetbrains.kotlin.idea.run.scratch.KtScratchConfigurationProducer"/>
 
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="org.jetbrains.kotlin.idea.highlighter.markers.KotlinLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="org.jetbrains.kotlin.idea.highlighter.KotlinRecursiveCallLineMarkerProvider"/>

@@ -20,6 +20,7 @@ import com.intellij.compiler.options.CompileStepBeforeRun
 import com.intellij.execution.scratch.JavaScratchCompilationSupport.getScratchOutputDirectory
 import com.intellij.execution.scratch.JavaScratchCompilationSupport.getScratchTempDirectory
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.compiler.*
 import com.intellij.openapi.components.ProjectComponent
 import com.intellij.openapi.module.Module
@@ -28,14 +29,13 @@ import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.JavaSdkType
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.utils.PathUtil
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -102,13 +102,13 @@ class KtScratchCompilationSupport(project: Project, compileManager: CompilerMana
         }
         else {
             ProjectRootManager.getInstance(project).orderEntries()
-        } as Computable<OrderEnumerator>
+        }
 
         ApplicationManager.getApplication().runReadAction {
-            for (s in orderEnumerator.compute().compileOnly().recursively().exportedOnly().withoutSdk().pathsList.pathList) {
+            for (s in orderEnumerator.compileOnly().recursively().exportedOnly().withoutSdk().pathsList.pathList) {
                 cp.add(File(s))
             }
-            for (s in orderEnumerator.compute().compileOnly().sdkOnly().pathsList.pathList) {
+            for (s in orderEnumerator.compileOnly().sdkOnly().pathsList.pathList) {
                 platformCp.add(File(s))
             }
         }
@@ -116,6 +116,7 @@ class KtScratchCompilationSupport(project: Project, compileManager: CompilerMana
     }
 
     private fun compileFiles(targetSdk: Sdk, project: Project?, platformCp: Collection<File>, cp: Collection<File>, files: Set<File>, outputDir: File) {
+        val pathsForIdeaPlugin = PathUtil.getKotlinPathsForIdeaPlugin()
         val options = ArrayList<String>()
         options.add("-g") // always compile with debug info
         val sdkVersion = JavaSdk.getInstance().getVersion(targetSdk)
@@ -163,32 +164,16 @@ class KtScratchCompilationSupport(project: Project, compileManager: CompilerMana
     }
 
     private fun inventSourceFileName(scratchUrl: String, project: Project, scratchFile: File): String? {
-        val srcFileName = ApplicationManager.getApplication().runReadAction(Computable<String> {
+        val srcFileName = runReadAction {
             val vFile = VirtualFileManager.getInstance().findFileByUrl(scratchUrl)
             if (vFile != null) {
                 val psiFile = PsiManager.getInstance(project).findFile(vFile)
-                if (psiFile is PsiJavaFile) {
-                    var name: String? = null
-                    // take the name of the first found public top-level class, otherwise the name of any available top-level class
-                    for (aClass in psiFile.classes) {
-                        if (name == null) {
-                            name = aClass.name
-                            if (isPublic(aClass)) {
-                                break
-                            }
-                        }
-                        else if (isPublic(aClass)) {
-                            name = aClass.name
-                            break
-                        }
-                    }
-                    if (name != null) {
-                        return@Computable name
-                    }
+                if (psiFile is KtFile) {
+                    return@runReadAction "ktScratch1"
                 }
             }
             FileUtil.getNameWithoutExtension(scratchFile)
-        })
+        }
         return srcFileName
     }
 

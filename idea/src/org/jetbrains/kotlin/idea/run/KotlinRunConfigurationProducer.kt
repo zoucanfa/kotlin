@@ -73,9 +73,11 @@ class KotlinRunConfigurationProducer : RunConfigurationProducer<JetRunConfigurat
     }
 
     companion object {
-        fun getEntryPointContainer(locationElement: PsiElement): KtDeclarationContainer? {
+        @JvmOverloads
+        fun getEntryPointContainer(locationElement: PsiElement, checkIsInProject: Boolean = true): KtDeclarationContainer? {
             val psiFile = locationElement.containingFile
-            if (!(psiFile is KtFile && ProjectRootsUtil.isInProjectOrLibSource(psiFile))) return null
+            val isInProject = !checkIsInProject || ProjectRootsUtil.isInProjectOrLibSource(psiFile)
+            if (!(psiFile is KtFile && isInProject)) return null
 
             val resolutionFacade = psiFile.getResolutionFacade()
             val mainFunctionDetector = MainFunctionDetector { resolutionFacade.resolveToDescriptor(it) as FunctionDescriptor }
