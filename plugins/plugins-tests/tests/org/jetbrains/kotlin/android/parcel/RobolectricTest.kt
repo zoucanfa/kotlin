@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.android.parcel
 
 import android.os.Parcel
+import android.os.Parcelable
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner

@@ -143,17 +143,14 @@ public abstract class MemberCodegen<T extends KtPureElement/* TODO: & KtDeclarat
         }
 
         done();
-
-        generateAssociatedClasses();
     }
 
     protected abstract void generateDeclaration();
 
     protected abstract void generateBody();
 
-    protected void generateSyntheticParts() {}
-
-    protected void generateAssociatedClasses() {}
+    protected void generateSyntheticParts() {
+    }
 
     protected abstract void generateKotlinMetadataAnnotation();
 

@@ -73,7 +73,9 @@ abstract class AbstractAsmLikeInstructionListingTest : CodegenTestCase() {
 
             fields.joinTo(this, LINE_SEPARATOR.repeat(2)) { renderField(it).withMargin() }
 
-            appendln().appendln()
+            if (fields.isNotEmpty()) {
+                appendln().appendln()
+            }
 
             methods.joinTo(this, LINE_SEPARATOR.repeat(2)) {
                 val printBytecode = printBytecodeForTheseMethods.isEmpty() || printBytecodeForTheseMethods.contains(it.name)

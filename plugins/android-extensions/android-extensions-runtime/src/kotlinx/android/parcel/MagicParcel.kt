@@ -24,41 +24,23 @@ import android.util.Size
 @Retention(AnnotationRetention.BINARY)
 annotation class MagicParcel
 
-class Test(val a: String, val b: Int) : Parcelable, Parcelable.Creator<Test> {
+data class MyParcelable(var data: Int): Parcelable {
 
-    fun test(size: Int): Array<Test?> {
-        return arrayOfNulls<Test>(size)
+    override fun describeContents() = 1
+
+    override fun writeToParcel(dest: Parcel, flags: Int) {
+        dest.writeInt(data)
     }
 
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        val list = this.a
-        parcel.writeInt(list.length)
-        for (item in list) {
-            parcel.writeValue(item)
+    companion object {
+        @JvmField
+        val CREATOR = object : Parcelable.Creator<MyParcelable> {
+            override fun createFromParcel(source: Parcel): MyParcelable {
+                val data = source.readInt()
+                return MyParcelable(data)
+            }
+
+            override fun newArray(size: Int) = arrayOfNulls<MyParcelable>(size)
         }
-    }
-
-    override fun newArray(p0: Int): Array<Test> {
-        val a = 100
-        val b = if (a == 1) true else false
-
-
-        TODO("not implemented")
-    }
-
-    fun abc(b: Boolean) {
-        if (b) {
-            println("A")
-        } else {
-            println("B")
-        }
-    }
-
-    override fun createFromParcel(parcel: Parcel): Test {
-        return Test(parcel.readString(), parcel.readInt())
-    }
-
-    override fun describeContents(): Int {
-        return 0
     }
 }

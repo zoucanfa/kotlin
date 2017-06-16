@@ -1,4 +1,30 @@
-public final class User : java/lang/Object {
+public static class User$CREATOR : java/lang/Object, android/os/Parcelable$Creator {
+    public final User createFromParcel(android.os.Parcel p0) {
+        LABEL (L0)
+          ALOAD (1)
+          LDC (in)
+          INVOKESTATIC (kotlin/jvm/internal/Intrinsics, checkParameterIsNotNull, (Ljava/lang/Object;Ljava/lang/String;)V)
+          NEW
+          DUP
+          ALOAD (1)
+          INVOKEVIRTUAL (android/os/Parcel, readString, ()Ljava/lang/String;)
+          ALOAD (1)
+          INVOKEVIRTUAL (android/os/Parcel, readString, ()Ljava/lang/String;)
+          ALOAD (1)
+          INVOKEVIRTUAL (android/os/Parcel, readInt, ()I)
+          ALOAD (1)
+          INVOKEVIRTUAL (android/os/Parcel, readInt, ()I)
+          INVOKESPECIAL (User, <init>, (Ljava/lang/String;Ljava/lang/String;IZ)V)
+          ARETURN
+        LABEL (L1)
+    }
+
+    public final User[] newArray(int p0)
+}
+
+public final class User : java/lang/Object, android/os/Parcelable {
+    android.os.Parcelable$Creator CREATOR
+
     private final int age
 
     private final java.lang.String firstName
@@ -6,6 +32,14 @@ public final class User : java/lang/Object {
     private final boolean isProUser
 
     private final java.lang.String lastName
+
+    static void <clinit>() {
+          NEW
+          DUP
+          INVOKESPECIAL (User$CREATOR, <init>, ()V)
+          PUTSTATIC (CREATOR, LUser$CREATOR;)
+          RETURN
+    }
 
     public void <init>(java.lang.String p0, java.lang.String p1, int p2, boolean p3)
 
@@ -39,14 +73,8 @@ public final class User : java/lang/Object {
           ALOAD (1)
           ALOAD (0)
           GETFIELD (isProUser, Z)
-          IFEQ (L1)
-          ICONST_1
-          GOTO (L2)
-        LABEL (L1)
-          ICONST_0
-        LABEL (L2)
           INVOKEVIRTUAL (android/os/Parcel, writeInt, (I)V)
           RETURN
-        LABEL (L3)
+        LABEL (L1)
     }
 }
