@@ -143,7 +143,7 @@ import org.jetbrains.kotlin.j2k.AbstractJavaToKotlinConverterMultiFileTest
 import org.jetbrains.kotlin.j2k.AbstractJavaToKotlinConverterSingleFileTest
 import org.jetbrains.kotlin.jps.build.*
 import org.jetbrains.kotlin.jps.build.android.AbstractAndroidJpsTestCase
-import org.jetbrains.kotlin.jps.incremental.AbstractProtoComparisonTest
+import org.jetbrains.kotlin.jps.incremental.AbstractJvmProtoComparisonTest
 import org.jetbrains.kotlin.js.test.AbstractDceTest
 import org.jetbrains.kotlin.js.test.AbstractJsLineNumberTest
 import org.jetbrains.kotlin.js.test.semantics.*
@@ -1182,13 +1182,13 @@ fun main(args: Array<String>) {
     }
 
     testGroup("jps-plugin/jps-tests/test", "jps-plugin/testData") {
-        testClass<AbstractProtoComparisonTest> {
             model("comparison/classSignatureChange", extension = null, excludeParentDirs = true)
             model("comparison/classPrivateOnlyChange", extension = null, excludeParentDirs = true)
             model("comparison/classMembersOnlyChanged", extension = null, excludeParentDirs = true)
             model("comparison/packageMembers", extension = null, excludeParentDirs = true)
             model("comparison/unchanged", extension = null, excludeParentDirs = true)
         }
+        testClass<AbstractJvmProtoComparisonTest> {
             model("comparison/jvmOnly", extension = null, excludeParentDirs = true)
     }
 
