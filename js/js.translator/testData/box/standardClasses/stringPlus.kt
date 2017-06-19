@@ -33,6 +33,14 @@ fun box(): String {
     x += bar()
     if (x != "nullbar") return "fail8: $r"
 
+    x = nullString()
+    r = x + nullString()
+    if (r != "nullnull") return "fail9: $r"
+
+    x = nullString()
+    x += nullString()
+    if (x != "nullnull") return "fail10: $x"
+
     return "OK"
 }
 

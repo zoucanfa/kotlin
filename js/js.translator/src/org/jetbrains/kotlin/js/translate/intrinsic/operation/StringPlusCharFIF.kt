@@ -28,18 +28,21 @@ import org.jetbrains.kotlin.js.translate.intrinsic.functions.factories.FunctionI
 import org.jetbrains.kotlin.js.translate.intrinsic.functions.factories.TopLevelFIF
 import org.jetbrains.kotlin.js.translate.utils.JsAstUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameUnsafe
+import org.jetbrains.kotlin.types.TypeUtils
 
 object StringPlusCharFIF : FunctionIntrinsicFactory {
-    private object StringPlusAnyIntrinsic : FunctionIntrinsic() {
+    private class StringPlusAnyIntrinsic(private val leftTypeNullable: Boolean) : FunctionIntrinsic() {
         override fun apply(callInfo: CallInfo, arguments: List<JsExpression>, context: TranslationContext): JsExpression {
             val receiver = callInfo.dispatchReceiver ?: callInfo.extensionReceiver!!
             val rightType = context.bindingContext().getType(callInfo.resolvedCall.call.valueArguments[0].getArgumentExpression()!!)
                             ?: callInfo.resolvedCall.resultingDescriptor.valueParameters[0].type
+            val rightTypeNullable = TypeUtils.isNullableType(rightType)
+            val hasNonNullArg = !leftTypeNullable || !rightTypeNullable
             val rightExpr = when {
                 KotlinBuiltIns.isChar(rightType) -> {
                     JsAstUtils.charToString(arguments[0])
                 }
-                KotlinBuiltIns.isStringOrNullableString(rightType) -> {
+                KotlinBuiltIns.isStringOrNullableString(rightType) && hasNonNullArg -> {
                     arguments[0]
                 }
                 else -> {
@@ -57,6 +60,11 @@ object StringPlusCharFIF : FunctionIntrinsicFactory {
 
         val leftType = (descriptor.dispatchReceiverParameter ?: descriptor.extensionReceiverParameter ?: return null).type
 
-        return if (KotlinBuiltIns.isStringOrNullableString(leftType)) StringPlusAnyIntrinsic else null
+        return if (KotlinBuiltIns.isStringOrNullableString(leftType)) {
+            StringPlusAnyIntrinsic(TypeUtils.isNullableType(leftType))
+        }
+        else {
+            null
+        }
     }
 }
