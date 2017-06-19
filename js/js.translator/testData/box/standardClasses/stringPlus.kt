@@ -13,13 +13,25 @@ fun box(): String {
     r = x + null
     if (r != "foonull") return "fail3: $r"
 
+    x = foo()
+    r = x + nullString()
+    if (r != "foonull") return "fail4: $r"
+
     r = foo()
     r += bar()
-    if (r != "foobar") return "fail4: $r"
+    if (r != "foobar") return "fail5: $r"
 
     x = null
     r = x + null
-    if (r != "nullnull") return "fail5: $r"
+    if (r != "nullnull") return "fail6: $r"
+
+    x = foo()
+    x += nullString()
+    if (x != "foonull") return "fail7: $r"
+
+    x = nullString()
+    x += bar()
+    if (x != "nullbar") return "fail8: $r"
 
     return "OK"
 }
@@ -27,3 +39,5 @@ fun box(): String {
 fun foo() = "foo"
 
 fun bar() = "bar"
+
+fun nullString(): String? = null
