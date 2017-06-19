@@ -16,38 +16,111 @@
 
 package org.jetbrains.kotlin.idea.run.scratch
 
-import com.intellij.execution.JavaExecutionUtil
+import com.intellij.execution.*
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.ConfigurationFromContext
 import com.intellij.execution.application.AbstractApplicationConfigurationProducer
+import com.intellij.execution.application.ApplicationConfiguration
 import com.intellij.execution.application.ApplicationConfigurationType
 import com.intellij.execution.configuration.ConfigurationFactoryEx
 import com.intellij.execution.configurations.RunConfiguration
+import com.intellij.execution.configurations.RunProfileState
+import com.intellij.execution.configurations.RuntimeConfigurationError
+import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.scratch.JavaScratchConfigurable
-import com.intellij.execution.scratch.JavaScratchConfiguration
+import com.intellij.execution.util.JavaParametersUtil
+import com.intellij.execution.util.ProgramParametersUtil
 import com.intellij.icons.AllIcons
 import com.intellij.ide.scratch.ScratchFileType
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
 import com.intellij.openapi.util.Ref
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileWithId
+import com.intellij.openapi.vfs.newvfs.ManagingFS
 import com.intellij.psi.PsiElement
 import com.intellij.ui.LayeredIcon
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.run.KotlinRunConfigurationProducer
 import org.jetbrains.kotlin.idea.run.KotlinRunConfigurationProducer.Companion.getEntryPointContainer
 
+// TODO_R: review and document duplication
 class KtScratchConfiguration(
         name: String?, project: Project?
-) : JavaScratchConfiguration(name, project, KtScratchConfigurationFactory) {
-    // TODO_R: ?
-    override fun checkConfiguration() = super.checkConfiguration()
+) : ApplicationConfiguration(name, project, KtScratchConfigurationFactory) {
+    var SCRATCH_FILE_ID: Int = 0
+
+    override fun checkConfiguration() {
+        JavaParametersUtil.checkAlternativeJRE(this)
+        val className = MAIN_CLASS_NAME
+        if (className.isNullOrEmpty()) {
+            throw RuntimeConfigurationError(ExecutionBundle.message("no.main.class.specified.error.text"))
+        }
+        if (SCRATCH_FILE_ID <= 0) {
+            throw RuntimeConfigurationError("No scratch file associated with configuration")
+        }
+        if (scratchVirtualFile == null) {
+            throw RuntimeConfigurationError("Associated scratch file not found")
+        }
+        ProgramParametersUtil.checkWorkingDirectoryExist(this, project, configurationModule.module)
+        JavaRunConfigurationExtensionManager.checkConfigurationIsValid(this)
+    }
+
+    @Throws(ExecutionException::class)
+    override fun getState(executor: Executor, env: ExecutionEnvironment): RunProfileState? {
+//        val state = object : ApplicationConfiguration.JavaApplicationCommandLineState<JavaScratchConfiguration>(this, env) {
+//            @Throws(ExecutionException::class)
+//            override fun setupJavaParameters(params: JavaParameters) {
+//                super.setupJavaParameters(params)
+//                val scrachesOutput = JavaScratchCompilationSupport.getScratchOutputDirectory(project)
+//                if (scrachesOutput != null) {
+//                    params.classPath.addFirst(FileUtil.toCanonicalPath(scrachesOutput.absolutePath).replace('/', File.separatorChar))
+//                }
+//            }
+//
+//            @Throws(ExecutionException::class)
+//            override fun startProcess(): OSProcessHandler {
+//                val handler = super.startProcess()
+//                if (runnerSettings is DebuggingRunnerData) {
+//                    val vFile = configuration.scratchVirtualFile
+//                    if (vFile != null) {
+//                        DebuggerManager.getInstance(project).addDebugProcessListener(handler, object : DebugProcessListener {
+//                            override fun processAttached(process: DebugProcess?) {
+//                                if (vFile.isValid) {
+//                                    process!!.appendPositionManager(JavaScratchPositionManager(process as DebugProcessImpl?, vFile))
+//                                }
+//                                process!!.removeDebugProcessListener(this)
+//                            }
+//                        })
+//                    }
+//                }
+//                return handler
+//            }
+//        }
+//        state.consoleBuilder = TextConsoleBuilderFactory.getInstance().createBuilder(project, configurationModule.searchScope)
+//        return state
+        return null
+    }
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> {
-        // TODO_R:
         return JavaScratchConfigurable(project)
     }
+
+    override fun isCompileBeforeLaunchAddedByDefault(): Boolean {
+        return true
+    }
+
+    val scratchFileUrl get() = scratchVirtualFile?.url
+
+    val scratchVirtualFile: VirtualFile?
+        get() {
+            val id = SCRATCH_FILE_ID
+            if (id <= 0) {
+                return null
+            }
+            return ManagingFS.getInstance().findFileById(id)
+        }
 }
 
 object KtScratchConfigurationType : ApplicationConfigurationType() {

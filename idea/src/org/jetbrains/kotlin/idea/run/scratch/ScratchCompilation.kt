@@ -25,7 +25,6 @@ import com.intellij.openapi.compiler.*
 import com.intellij.openapi.components.ProjectComponent
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.JavaSdkType
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ModuleRootManager
@@ -34,16 +33,34 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiManager
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.daemon.client.BasicCompilerServicesWithResultsFacadeServer
+import org.jetbrains.kotlin.daemon.client.DaemonReportMessage
+import org.jetbrains.kotlin.daemon.client.DaemonReportingTargets
+import org.jetbrains.kotlin.daemon.client.KotlinCompilerClient
+import org.jetbrains.kotlin.daemon.common.*
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.utils.PathUtil
 import java.io.File
 import java.io.IOException
 import java.util.*
+import javax.script.ScriptException
 
 class KtScratchCompilationSupport(project: Project, compileManager: CompilerManager) : ProjectComponent, CompileTask {
 
+
     init {
         compileManager.addAfterTask(this)
+    }
+
+    private val daemon by lazy {
+        val compilerId = CompilerId.makeCompilerId(PathUtil.getKotlinPathsForIdeaPlugin().compilerPath)
+        val daemonOptions = configureDaemonOptions()
+
+        val daemonReportMessages = arrayListOf<DaemonReportMessage>()
+
+        KotlinCompilerClient.connectToCompileService(compilerId, DaemonJVMOptions(), daemonOptions, DaemonReportingTargets(null, daemonReportMessages), true, true)
+        ?: throw ScriptException("Unable to connect to repl server:" + daemonReportMessages.joinToString("\n  ", prefix = "\n  ") { "${it.category.name} ${it.message}" })
     }
 
     override fun execute(context: CompileContext): Boolean {
@@ -64,22 +81,22 @@ class KtScratchCompilationSupport(project: Project, compileManager: CompilerMana
         FileUtil.delete(outputDir) // perform cleanup
 
         try {
-            val scratchFile = File(VirtualFileManager.extractPath(scratchUrl))
-            var srcFile = scratchFile
-            if (!StringUtil.endsWith(srcFile.name, ".java")) {
-
-                val srcDir = getScratchTempDirectory(project) ?:
-                             return true // should not happen for normal projects
-                FileUtil.delete(srcDir) // perform cleanup
-
-                val srcFileName = inventSourceFileName(scratchUrl, project, scratchFile)
-                srcFile = File(srcDir, srcFileName + ".java")
-                FileUtil.copy(scratchFile, srcFile)
-            }
+//            val scratchFile = File(VirtualFileManager.extractPath(scratchUrl))
+//            var srcFile = scratchFile
+//            if (!StringUtil.endsWith(srcFile.name, ".java")) {
+//
+//                val srcDir = getScratchTempDirectory(project) ?:
+//                             return true // should not happen for normal projects
+//                FileUtil.delete(srcDir) // perform cleanup
+//
+//                val srcFileName = inventSourceFileName(scratchUrl, project, scratchFile)
+//                srcFile = File(srcDir, srcFileName + ".java")
+//                FileUtil.copy(scratchFile, srcFile)
+//            }
 
             val (cp, platformCp) = computeClasspath(module, project)
 
-            compileFiles(targetSdk, project, platformCp, cp, setOf(srcFile), outputDir)
+            compileFiles(targetSdk, project, platformCp, cp, setOf(), outputDir)
         }
         catch (e: CompilationException) {
             for (m in e.messages) {
@@ -115,29 +132,57 @@ class KtScratchCompilationSupport(project: Project, compileManager: CompilerMana
         return Pair(cp, platformCp)
     }
 
-    private fun compileFiles(targetSdk: Sdk, project: Project?, platformCp: Collection<File>, cp: Collection<File>, files: Set<File>, outputDir: File) {
-        val pathsForIdeaPlugin = PathUtil.getKotlinPathsForIdeaPlugin()
-        val options = ArrayList<String>()
-        options.add("-g") // always compile with debug info
-        val sdkVersion = JavaSdk.getInstance().getVersion(targetSdk)
-        if (sdkVersion != null) {
-            val langLevel = "1." + Integer.valueOf(3 + sdkVersion.maxLanguageLevel.ordinal)!!
-            options.add("-source")
-            options.add(langLevel)
-            options.add("-target")
-            options.add(langLevel)
-        }
-        options.add("-proc:none") // disable annotation processing
+    private fun compileFiles(
+            targetSdk: Sdk,
+            project: Project?,
+            platformCp: Collection<File>,
+            cp: Collection<File>,
+            files: Set<File>,
+            outputDir: File
+    ) {
 
-        val result = CompilerManager.getInstance(project).compileJavaCode(
-                options, platformCp, cp, emptyList<File>(), emptyList<File>(), files, outputDir
+        val sessionId = daemon.leaseCompileSession(null).get()
+        val compilerServices = BasicCompilerServicesWithResultsFacadeServer(MessageCollector.NONE)
+
+        daemon.compile(
+                sessionId,
+                emptyArray(),
+                CompilationOptions(
+                        CompilerMode.NON_INCREMENTAL_COMPILER,
+                        CompileService.TargetPlatform.JVM,
+                        arrayOf(ReportCategory.COMPILER_MESSAGE.code),
+                        ReportSeverity.WARNING.code,
+                        arrayOf()
+                ),
+                compilerServices,
+                compilationResults = null
         )
-        for (classObject in result) {
-            val bytes = classObject.content
-            if (bytes != null) {
-                FileUtil.writeToFile(File(classObject.path), bytes)
-            }
-        }
+
+        daemon.releaseCompileSession(sessionId)
+
+
+//        val pathsForIdeaPlugin = PathUtil.getKotlinPathsForIdeaPlugin()
+//        val options = ArrayList<String>()
+//        options.add("-g") // always compile with debug info
+//        val sdkVersion = JavaSdk.getInstance().getVersion(targetSdk)
+//        if (sdkVersion != null) {
+//            val langLevel = "1." + Integer.valueOf(3 + sdkVersion.maxLanguageLevel.ordinal)!!
+//            options.add("-source")
+//            options.add(langLevel)
+//            options.add("-target")
+//            options.add(langLevel)
+//        }
+//        options.add("-proc:none") // disable annotation processing
+//
+//        val result = CompilerManager.getInstance(project).compileJavaCode(
+//                options, platformCp, cp, emptyList<File>(), emptyList<File>(), files, outputDir
+//        )
+//        for (classObject in result) {
+//            val bytes = classObject.content
+//            if (bytes != null) {
+//                FileUtil.writeToFile(File(classObject.path), bytes)
+//            }
+//        }
     }
 
     private fun findSdk(module: Module?, context: CompileContext, scratchUrl: String): Sdk? {
