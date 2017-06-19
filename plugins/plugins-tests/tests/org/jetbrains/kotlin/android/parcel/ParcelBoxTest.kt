@@ -16,8 +16,6 @@
 
 package org.jetbrains.kotlin.android.parcel
 
-import android.os.Parcel
-import android.os.Parcelable
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -25,22 +23,11 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
-class RobolectricTest {
-    @Test
-    fun simple() = withParcel { parcel ->
-        parcel.writeInt(4)
-        val bytes = parcel.marshall()
-        parcel.unmarshall(bytes, 0, bytes.size)
-        val x = parcel.readInt()
-        assert(x == 4)
-    }
-
-    private fun withParcel(block: (Parcel) -> Unit) {
-        val parcel = Parcel.obtain()
-        try {
-            block(parcel)
-        } finally {
-            parcel.recycle()
-        }
-    }
+class ParcelBoxTest : AbstractParcelBoxTest() {
+    @Test fun simple() = doTest("simple")
+    @Test fun primitiveTypes() = doTest("primitiveTypes")
+    @Test fun boxedTypes() = doTest("boxedTypes")
+    @Test fun nullableTypesSimple() = doTest("nullableTypesSimple")
+    @Test fun nullableTypes() = doTest("nullableTypes")
+    @Test fun listSimple() = doTest("listSimple")
 }

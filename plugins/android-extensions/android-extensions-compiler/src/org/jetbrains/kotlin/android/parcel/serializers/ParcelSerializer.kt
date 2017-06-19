@@ -16,40 +16,55 @@
 
 package org.jetbrains.kotlin.android.parcel.serializers
 
+import com.intellij.util.containers.ConcurrentList
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
-import org.jetbrains.kotlin.builtins.KotlinBuiltIns.isPrimitiveType
-import org.jetbrains.kotlin.builtins.KotlinBuiltIns.isString
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns.*
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.org.objectweb.asm.Type
 import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter
+import java.util.*
 
 interface ParcelSerializer {
     fun writeValue(v: InstructionAdapter)
     fun readValue(v: InstructionAdapter)
 
     companion object {
-        fun get(type: KotlinType, asmType: Type, typeMapper: KotlinTypeMapper): ParcelSerializer = when {
-            isPrimitiveType(type) -> PrimitiveTypeParcelSerializer(asmType)
-            isString(type) -> NullCompliantObjectParcelSerializer(
+        fun get(type: KotlinType, asmType: Type, typeMapper: KotlinTypeMapper, forceBoxed: Boolean = false): ParcelSerializer = when {
+            isPrimitiveTypeOrNullablePrimitiveType(type) -> {
+                if (forceBoxed || type.isMarkedNullable)
+                    wrapToNullAwareIfNeeded(type, BoxedPrimitiveTypeParcelSerializer.getInstance(asmType))
+                else
+                    PrimitiveTypeParcelSerializer.getInstance(asmType)
+            }
+            isStringOrNullableString(type) -> NullCompliantObjectParcelSerializer(
                     Method("writeString", "(Ljava/lang/String;)V"),
                     Method("readString", "()Ljava/lang/String;"))
-            asmType.className == List::class.java.canonicalName || asmType.className == Set::class.java.canonicalName -> {
+            asmType.className == List::class.java.canonicalName
+                    || asmType.className == ArrayList::class.java.canonicalName
+                    || asmType.className == LinkedList::class.java.canonicalName
+                    || asmType.className == ConcurrentList::class.java.canonicalName
+                    || asmType.className == Set::class.java.canonicalName
+                    || asmType.className == HashSet::class.java.canonicalName
+                    || asmType.className == LinkedHashSet::class.java.canonicalName
+                    || asmType.className == TreeSet::class.java.canonicalName
+            -> {
                 val elementType = type.arguments.single().type
-                val elementSerializer = get(elementType, typeMapper.mapType(elementType), typeMapper)
+                val elementSerializer = get(elementType, typeMapper.mapType(elementType), typeMapper, forceBoxed = true)
                 CollectionParcelSerializer(asmType, elementSerializer)
             }
+            type.isBoxedPrimitive() -> wrapToNullAwareIfNeeded(type, BoxedPrimitiveTypeParcelSerializer.getInstance(asmType))
             type.isBlob() -> NullCompliantObjectParcelSerializer(
                     Method("writeBlob", "([B)V"),
                     Method("readBlob", "()[B"))
-            type.isSize() -> getObjectSerializer(type,
+            type.isSize() -> wrapToNullAwareIfNeeded(type, NullCompliantObjectParcelSerializer(
                     Method("writeSize", "(Landroid/util/Size;)V"),
-                    Method("readSize", "()Landroid/util/Size;"))
-            type.isSizeF() -> getObjectSerializer(type,
+                    Method("readSize", "()Landroid/util/Size;")))
+            type.isSizeF() -> wrapToNullAwareIfNeeded(type, NullCompliantObjectParcelSerializer(
                     Method("writeSize", "(Landroid/util/SizeF;)V"),
-                    Method("writeSize", "()Landroid/util/SizeF;"))
+                    Method("writeSize", "()Landroid/util/SizeF;")))
             else -> {
                 // TODO Support custom collections here
 
@@ -64,14 +79,26 @@ interface ParcelSerializer {
             }
         }
 
-        private fun getObjectSerializer(type: KotlinType, writeMethod: Method, readMethod: Method) = when {
-            type.isMarkedNullable -> NullAwareObjectParcelSerializer(writeMethod, readMethod)
-            else -> NullCompliantObjectParcelSerializer(writeMethod, readMethod)
+        private fun wrapToNullAwareIfNeeded(type: KotlinType, serializer: ParcelSerializer) = when {
+            type.isMarkedNullable -> NullAwareParcelSerializerWrapper(serializer)
+            else -> serializer
         }
 
         private fun KotlinType.isSize() = matchesFqNameWithSupertypes("android.util.Size")
         private fun KotlinType.isSizeF() = matchesFqNameWithSupertypes("android.util.SizeF")
         private fun KotlinType.isSerializable() = matchesFqNameWithSupertypes("java.io.Serializable")
+
+        private fun KotlinType.isBoxedPrimitive(): Boolean = when {
+            matchesFqName(java.lang.Boolean::class.java.canonicalName) ||
+            matchesFqName(java.lang.Character::class.java.canonicalName) ||
+            matchesFqName(java.lang.Byte::class.java.canonicalName) ||
+            matchesFqName(java.lang.Short::class.java.canonicalName) ||
+            matchesFqName(java.lang.Integer::class.java.canonicalName) ||
+            matchesFqName(java.lang.Float::class.java.canonicalName) ||
+            matchesFqName(java.lang.Long::class.java.canonicalName) ||
+            matchesFqName(java.lang.Double::class.java.canonicalName) -> true
+            else -> false
+        }
 
         private fun KotlinType.matchesFqNameWithSupertypes(fqName: String): Boolean {
             if (this.matchesFqName(fqName)) {

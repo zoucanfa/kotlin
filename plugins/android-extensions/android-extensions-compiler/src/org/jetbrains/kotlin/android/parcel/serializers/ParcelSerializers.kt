@@ -33,6 +33,12 @@ internal object GenericParcelSerializer : ParcelSerializer {
 }
 
 internal class CollectionParcelSerializer(val asmType: Type, val elementSerializer: ParcelSerializer) : ParcelSerializer {
+    private val listType: Type = Type.getObjectType(when (asmType.internalName) {
+        "java/util/List" -> "java/util/ArrayList"
+        "java/util/Set" -> "java/util/LinkedHashSet"
+        else -> asmType.internalName
+    })
+
     override fun writeValue(v: InstructionAdapter) = writeValueNullAware(v) {
         val labelIteratorLoop = Label()
         val labelReturn = Label()
@@ -69,17 +75,49 @@ internal class CollectionParcelSerializer(val asmType: Type, val elementSerializ
     }
 
     override fun readValue(v: InstructionAdapter) = readValueNullAware(v) {
-        TODO("not implemented")
+        val nextLoopIteration = Label()
+        val loopIsOverLabel = Label()
+
+        // Read list size
+        v.load(1, PARCEL_TYPE)
+        v.invokevirtual(PARCEL_TYPE.internalName, "readInt", "()I", false)
+
+        v.anew(listType)
+        v.dup()
+
+        v.dupX2()
+        v.invokespecial(listType.internalName, "<init>", "(I)V", false) // -> size, list
+
+        v.visitLabel(nextLoopIteration)
+        v.dupX1() // -> size, list, size
+        v.ifeq(loopIsOverLabel) // -> size, list
+
+        v.dup() // -> size, list, list
+
+        v.load(1, PARCEL_TYPE)
+        elementSerializer.readValue(v) // -> size, list, list, element
+
+        v.invokevirtual(listType.internalName, "add", "(Ljava/lang/Object;)Z", false)
+        v.pop() // -> size, list
+
+        v.swap()
+        v.aconst(-1)
+        v.add(Type.INT_TYPE) // -> list, (size - 1)
+
+        v.swap()
+        v.goTo(nextLoopIteration)
+
+        v.visitLabel(loopIsOverLabel)
     }
 }
 
-internal class NullAwareObjectParcelSerializer(val writeMethod: Method, val readMethod: Method) : ParcelSerializer {
+internal class NullAwareParcelSerializerWrapper(val delegate: ParcelSerializer) : ParcelSerializer {
     override fun writeValue(v: InstructionAdapter) = writeValueNullAware(v) {
-        v.invokevirtual(PARCEL_TYPE.internalName, writeMethod.name, writeMethod.signature, false)
+        delegate.writeValue(v)
     }
 
     override fun readValue(v: InstructionAdapter) = readValueNullAware(v) {
-        v.invokevirtual(PARCEL_TYPE.internalName, readMethod.name, readMethod.signature, false)
+        delegate.readValue(v)
     }
 }
 
@@ -94,31 +132,80 @@ internal class NullCompliantObjectParcelSerializer(val writeMethod: Method, val 
     }
 }
 
-internal class PrimitiveTypeParcelSerializer(val type: Type) : ParcelSerializer {
-    private companion object {
-        val WRITE_METHOD_NAMES = mapOf(
-                Type.BOOLEAN to Method("writeInt", "(I)V"),
-                Type.CHAR to Method("writeInt", "(I)V"),
-                Type.BYTE to Method("writeByte", "(B)V"),
-                Type.SHORT to Method("writeInt", "(I)V"),
-                Type.INT to Method("writeInt", "(I)V"),
-                Type.FLOAT to Method("writeFloat", "(F)V"),
-                Type.LONG to Method("writeLong", "(J)V"),
-                Type.DOUBLE to Method("writeDouble", "(D)V"))
+internal class BoxedPrimitiveTypeParcelSerializer private constructor(val boxedType: Type) : ParcelSerializer {
+    companion object {
+        private val BOXED_TYPE_MAPPINGS = mapOf(
+                "java/lang/Boolean" to Type.BOOLEAN_TYPE,
+                "java/lang/Character" to Type.CHAR_TYPE,
+                "java/lang/Byte" to Type.BYTE_TYPE,
+                "java/lang/Short" to Type.SHORT_TYPE,
+                "java/lang/Integer" to Type.INT_TYPE,
+                "java/lang/Float" to Type.FLOAT_TYPE,
+                "java/lang/Long" to Type.LONG_TYPE,
+                "java/lang/Double" to Type.DOUBLE_TYPE)
 
-        val READ_METHOD_NAMES = mapOf(
-                Type.BOOLEAN to Method("readInt", "()I"),
-                Type.CHAR to Method("readInt", "()I"),
-                Type.BYTE to Method("readByte", "()B"),
-                Type.SHORT to Method("readInt", "()I"),
-                Type.INT to Method("readInt", "()I"),
-                Type.FLOAT to Method("readFloat", "()F"),
-                Type.LONG to Method("readLong", "()J"),
-                Type.DOUBLE to Method("readDouble", "()D"))
+        private val BOXED_VALUE_METHOD_NAMES = mapOf(
+                "java/lang/Boolean" to "booleanValue",
+                "java/lang/Character" to "charValue",
+                "java/lang/Byte" to "byteValue",
+                "java/lang/Short" to "shortValue",
+                "java/lang/Integer" to "intValue",
+                "java/lang/Float" to "floatValue",
+                "java/lang/Long" to "longValue",
+                "java/lang/Double" to "doubleValue")
+
+        private val INSTANCES = BOXED_TYPE_MAPPINGS.keys.map {
+            val type = Type.getObjectType(it)
+            type to BoxedPrimitiveTypeParcelSerializer(type)
+        }.toMap()
+
+        fun getInstance(type: Type) = INSTANCES[type] ?: error("Unsupported type $type")
     }
 
-    private val writeMethod = WRITE_METHOD_NAMES[type.sort] ?: error("Unsupported type ${type.descriptor}")
-    private val readMethod = READ_METHOD_NAMES[type.sort] ?: error("Unsupported type ${type.descriptor}")
+    val unboxedType = BOXED_TYPE_MAPPINGS[boxedType.internalName]!!
+    val unboxedSerializer = PrimitiveTypeParcelSerializer.getInstance(unboxedType)
+    val typeValueMethodName = BOXED_VALUE_METHOD_NAMES[boxedType.internalName]!!
+
+    override fun writeValue(v: InstructionAdapter) {
+        v.invokevirtual(boxedType.internalName, typeValueMethodName, "()${unboxedType.descriptor}", false)
+        unboxedSerializer.writeValue(v)
+    }
+
+    override fun readValue(v: InstructionAdapter) {
+        unboxedSerializer.readValue(v)
+        v.invokestatic(boxedType.internalName, "valueOf", "(${unboxedType.descriptor})${boxedType.descriptor}", false)
+    }
+}
+
+internal class PrimitiveTypeParcelSerializer private constructor(val type: Type) : ParcelSerializer {
+    companion object {
+        private val WRITE_METHOD_NAMES = mapOf(
+                Type.BOOLEAN_TYPE to Method("writeInt", "(I)V"),
+                Type.CHAR_TYPE to Method("writeInt", "(I)V"),
+                Type.BYTE_TYPE to Method("writeByte", "(B)V"),
+                Type.SHORT_TYPE to Method("writeInt", "(I)V"),
+                Type.INT_TYPE to Method("writeInt", "(I)V"),
+                Type.FLOAT_TYPE to Method("writeFloat", "(F)V"),
+                Type.LONG_TYPE to Method("writeLong", "(J)V"),
+                Type.DOUBLE_TYPE to Method("writeDouble", "(D)V"))
+
+        private val READ_METHOD_NAMES = mapOf(
+                Type.BOOLEAN_TYPE to Method("readInt", "()I"),
+                Type.CHAR_TYPE to Method("readInt", "()I"),
+                Type.BYTE_TYPE to Method("readByte", "()B"),
+                Type.SHORT_TYPE to Method("readInt", "()I"),
+                Type.INT_TYPE to Method("readInt", "()I"),
+                Type.FLOAT_TYPE to Method("readFloat", "()F"),
+                Type.LONG_TYPE to Method("readLong", "()J"),
+                Type.DOUBLE_TYPE to Method("readDouble", "()D"))
+
+        private val INSTANCES = READ_METHOD_NAMES.keys.map { it to PrimitiveTypeParcelSerializer(it) }.toMap()
+
+        fun getInstance(type: Type) = INSTANCES[type] ?: error("Unsupported type ${type.descriptor}")
+    }
+
+    private val writeMethod = WRITE_METHOD_NAMES[type]!!
+    private val readMethod = READ_METHOD_NAMES[type]!!
 
     override fun writeValue(v: InstructionAdapter) {
         v.invokevirtual(PARCEL_TYPE.internalName, writeMethod.name, writeMethod.signature, false)

@@ -61,7 +61,7 @@
             <!--build.locator.request="buildType:bt410,status:SUCCESS,branch:idea/${ideaVersion}-${idea.kotlin.branch}"/>-->
     <!--</target>-->
 
-    <target name="jb_update" depends="get-ivy-library,fetch-third-party,fetch-annotations" description="Update dependencies for JB local network">
+    <target name="jb_update" depends="fetch-third-party,fetch-annotations" description="Update dependencies for JB local network">
         <execute_update_with_idea_maven_artifacts
             base.url="http://jetbrains-com-mirror.labs.intellij.net/intellij-repository/snapshots/com/jetbrains/intellij/idea"
             idea.maven.version="${ideaVersion}"/>
@@ -186,7 +186,7 @@
         </jar>
     </target>
 
-    <target name="fetch-third-party" depends="make-dependency-dirs, make-native-platform-uberjar">
+    <target name="fetch-third-party" depends="get-ivy-library, make-dependency-dirs, make-native-platform-uberjar">
         <antcall target="override-version"/>
 
         <!-- ProGuard -->

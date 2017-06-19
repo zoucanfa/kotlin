@@ -21,21 +21,26 @@ import org.jetbrains.kotlin.android.synthetic.test.addAndroidExtensionsRuntimeLi
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.config.JvmClasspathRoot
 import org.jetbrains.kotlin.codegen.CodegenTestCase
-import org.jetbrains.kotlin.codegen.extensions.ExpressionCodegenExtension
 import org.jetbrains.kotlin.codegen.getClassFiles
 import org.jetbrains.org.objectweb.asm.ClassReader
 import org.jetbrains.org.objectweb.asm.tree.ClassNode
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.ByteBuffer
 import java.security.ProtectionDomain
 
 abstract class AbstractParcelBoxTest : CodegenTestCase() {
+    protected companion object {
+        val BASE_DIR = "plugins/android-extensions/android-extensions-compiler/testData/parcel/box"
+        val LIBRARY_KT = File(File(BASE_DIR).parentFile, "boxLib.kt")
+    }
+
+    override fun doTest(filePath: String) {
+        super.doTest(File(BASE_DIR, filePath + ".kt").absolutePath)
+    }
+
     override fun doMultiFileTest(wholeFile: File, files: List<TestFile>, javaFilesDir: File?) {
-        compile(files, javaFilesDir)
+        compile(files + TestFile(LIBRARY_KT.name, LIBRARY_KT.readText()), javaFilesDir)
 
         val classLoader = object : URLClassLoader(arrayOf(), this::class.java.classLoader) {
             init {

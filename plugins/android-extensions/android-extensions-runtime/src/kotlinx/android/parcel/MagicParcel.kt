@@ -30,7 +30,21 @@ data class MyParcelable(var data: Int): Parcelable {
 
     override fun writeToParcel(dest: Parcel, flags: Int) {
         dest.writeInt(data)
+
+        val list = ArrayList<String>(5)
+//        lis.add("A")
+//        a.add("B")
+//        a.add("C")
+
+        val b = System.out.println(java.lang.Character.valueOf('a') as Any)
+
+        val a = 5
+        for (i in 0..a - 1) {
+            list.add("A")
+        }
     }
+
+
 
     companion object {
         @JvmField
