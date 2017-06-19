@@ -336,9 +336,6 @@ open class Kotlin2JsCompile() : AbstractKotlinCompile<K2JSCompilerArguments>(), 
     val outputFile: String
         get() = kotlinOptions.outputFile ?: defaultOutputFile.canonicalPath
 
-    internal var sourceSet: SourceDirectorySet? = null
-
-
     override fun findKotlinCompilerJar(project: Project): File? =
             findKotlinJsCompilerJar(project)
 
@@ -382,7 +379,11 @@ open class Kotlin2JsCompile() : AbstractKotlinCompile<K2JSCompilerArguments>(), 
 
         args.friendModules = friendDependency
 
-        args.sourceMapSourceRoots = sourceSet?.srcDirs?.joinToString(File.pathSeparator) { it.absolutePath } ?: ""
+        args.sourceMapSourceRoots = source.orEmpty()
+                .asSequence()
+                .filterIsInstance<SourceDirectorySet>()
+                .flatMap { it.srcDirs.asSequence() }
+                .joinToString(File.pathSeparator) { it.absolutePath }
 
         logger.kotlinDebug("compiling with args ${ArgumentUtils.convertArgumentsToStringList(args)}")
 

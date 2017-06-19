@@ -194,7 +194,6 @@ internal class Kotlin2JsSourceSetProcessor(
     override fun doTargetSpecificProcessing() {
         project.tasks.findByName(sourceSet.classesTaskName).dependsOn(kotlinTask)
         kotlinTask.source(kotlinSourceSet.kotlin)
-        kotlinTask.sourceSet = kotlinSourceSet.kotlin
         createCleanSourceMapTask()
 
         // outputFile can be set later during the configuration phase, get it only after the phase:
