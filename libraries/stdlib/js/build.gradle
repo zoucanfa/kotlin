@@ -129,11 +129,13 @@ compileTestKotlin2Js {
     }
 }
 
-configurations {
-    closureCompiler
-}
-dependencies {
-    closureCompiler "com.google.javascript:closure-compiler:v20170521"
+task compileMerger(type: KotlinCompile) {
+    source {
+        file("${baseDir}/src/FileMerger.kt")
+    }
+    destinationDir {
+        file("${buildDir}/merger-classes")
+    }
 }
 
 task compileJs(type: JavaExec) {
@@ -174,7 +176,7 @@ task compileJs(type: JavaExec) {
 
     main = "com.google.javascript.jscomp.CommandLineRunner"
     args = closureArgs + inputArgs + inputSourceMapsArgs
-    classpath = configurations.closureCompiler
+    classpath = "${buildDir}/merger-classes"
 
     doLast {
         ant.replaceregexp(
