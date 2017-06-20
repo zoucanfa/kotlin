@@ -69,6 +69,9 @@ import org.jetbrains.kotlin.cli.common.CliModuleVisibilityManagerImpl
 import org.jetbrains.kotlin.cli.common.KOTLIN_COMPILER_ENVIRONMENT_KEEPALIVE_PROPERTY
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity.*
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.cli.common.script.CliScriptErrorManager
+import org.jetbrains.kotlin.cli.common.script.KotlinScriptExternalImportsProviderImpl
 import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import org.jetbrains.kotlin.cli.jvm.JvmRuntimeVersionsConsistencyChecker
 import org.jetbrains.kotlin.cli.jvm.config.*
@@ -103,7 +106,7 @@ import org.jetbrains.kotlin.resolve.lazy.declarations.CliDeclarationProviderFact
 import org.jetbrains.kotlin.resolve.lazy.declarations.DeclarationProviderFactoryService
 import org.jetbrains.kotlin.script.KotlinScriptDefinitionProvider
 import org.jetbrains.kotlin.script.KotlinScriptExternalImportsProvider
-import org.jetbrains.kotlin.cli.common.script.KotlinScriptExternalImportsProviderImpl
+import org.jetbrains.kotlin.script.ScriptErrorManager
 import org.jetbrains.kotlin.utils.PathUtil
 import java.io.File
 
@@ -173,7 +176,8 @@ class KotlinCoreEnvironment private constructor(
         project.registerService(ModuleVisibilityManager::class.java, CliModuleVisibilityManagerImpl(configFiles == EnvironmentConfigFiles.JVM_CONFIG_FILES))
 
         registerProjectServicesForCLI(projectEnvironment)
-        registerProjectServices(projectEnvironment)
+        val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY)
+        registerProjectServices(projectEnvironment, messageCollector)
 
         sourceFiles += CompileEnvironmentUtil.getKtFiles(project, getSourceRootsCheckingForDuplicates(), this.configuration, {
             message ->
@@ -199,7 +203,6 @@ class KotlinCoreEnvironment private constructor(
         val initialRoots = convertClasspathRoots(configuration.getList(JVMConfigurationKeys.CONTENT_ROOTS))
 
         if (!configuration.getBoolean(JVMConfigurationKeys.SKIP_RUNTIME_VERSION_CHECK)) {
-            val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY)
             if (messageCollector != null) {
                 JvmRuntimeVersionsConsistencyChecker.checkCompilerClasspathConsistency(
                         messageCollector,
@@ -579,13 +582,16 @@ class KotlinCoreEnvironment private constructor(
         }
 
         // made public for Upsource
-        @JvmStatic fun registerProjectServices(projectEnvironment: JavaCoreProjectEnvironment) {
+        @JvmStatic fun registerProjectServices(projectEnvironment: JavaCoreProjectEnvironment, messageCollector: MessageCollector?) {
             with (projectEnvironment.project) {
                 val kotlinScriptDefinitionProvider = KotlinScriptDefinitionProvider()
                 registerService(KotlinScriptDefinitionProvider::class.java, kotlinScriptDefinitionProvider)
                 registerService(KotlinScriptExternalImportsProvider::class.java, KotlinScriptExternalImportsProviderImpl(projectEnvironment.project, kotlinScriptDefinitionProvider))
                 registerService(KotlinJavaPsiFacade::class.java, KotlinJavaPsiFacade(this))
                 registerService(KtLightClassForFacade.FacadeStubCache::class.java, KtLightClassForFacade.FacadeStubCache(this))
+                if (messageCollector != null) {
+                    registerService(ScriptErrorManager::class.java, CliScriptErrorManager(messageCollector))
+                }
             }
         }
 
