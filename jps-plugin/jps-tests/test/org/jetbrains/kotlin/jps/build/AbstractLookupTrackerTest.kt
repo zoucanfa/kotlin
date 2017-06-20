@@ -16,107 +16,195 @@
 
 package org.jetbrains.kotlin.jps.build
 
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.UsefulTestCase
+import com.intellij.util.containers.HashMap
 import com.intellij.util.containers.StringInterner
 import org.jetbrains.kotlin.TestWithWorkingDir
-import org.jetbrains.kotlin.cli.common.ExitCode
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.compilerRunner.*
+import org.jetbrains.kotlin.config.IncrementalCompilation
 import org.jetbrains.kotlin.config.Services
+import org.jetbrains.kotlin.incremental.IncrementalCompilationComponentsImpl
 import org.jetbrains.kotlin.incremental.components.LookupInfo
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.incremental.components.Position
 import org.jetbrains.kotlin.incremental.components.ScopeKind
+import org.jetbrains.kotlin.incremental.isKotlinFile
 import org.jetbrains.kotlin.incremental.makeModuleFile
+import org.jetbrains.kotlin.incremental.testingUtils.TouchPolicy
+import org.jetbrains.kotlin.incremental.testingUtils.copyTestSources
+import org.jetbrains.kotlin.incremental.testingUtils.getModificationsToPerform
 import org.jetbrains.kotlin.incremental.utils.TestMessageCollector
+import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCompilationComponents
 import org.jetbrains.kotlin.preloading.ClassCondition
 import org.jetbrains.kotlin.test.KotlinTestUtils
 import org.jetbrains.kotlin.utils.PathUtil
-import org.junit.Assert
-import org.junit.Test
 import java.io.*
 import java.util.*
 
-private val DECLARATION_KEYWORDS = listOf("interface", "class", "enum class", "object", "fun", "operator fun", "val", "var")
-private val DECLARATION_STARTS_WITH = DECLARATION_KEYWORDS.map { it + " " }
 
 abstract class AbstractLookupTrackerTest : TestWithWorkingDir() {
+    private val DECLARATION_KEYWORDS = listOf("interface", "class", "enum class", "object", "fun", "operator fun", "val", "var")
+    private val DECLARATION_STARTS_WITH = DECLARATION_KEYWORDS.map { it + " " }
     // ignore KDoc like comments which starts with `/**`, example: /** text */
     private val COMMENT_WITH_LOOKUP_INFO = "/\\*[^*]+\\*/".toRegex()
 
-    private fun File.kotlinFiles() =
-            walk().filter { it.isFile && it.extension.equals("kt", ignoreCase = true) }
+    private fun removeCommentsCommentsWithLookupInfo(files: Iterable<File>) {
+        files.forEach {
+            val content = it.readText()
+            it.writeText(content.replace(COMMENT_WITH_LOOKUP_INFO, ""))
+        }
+    }
+
+    protected lateinit var srcDir: File
+    protected lateinit var outDir: File
+    private var isICEnabledBackup: Boolean = false
+
+    override fun setUp() {
+        super.setUp()
+        srcDir = File(workingDir, "src").apply { mkdirs() }
+        outDir = File(workingDir, "out")
+        isICEnabledBackup = IncrementalCompilation.isEnabled()
+        IncrementalCompilation.setIsEnabled(true)
+    }
+
+    override fun tearDown() {
+        IncrementalCompilation.setIsEnabled(isICEnabledBackup)
+        super.tearDown()
+    }
 
     fun doTest(path: String) {
-        val srcDir = File(path)
-        val processedSrcDir = File(workingDir, "src").apply { mkdirs() }
-        val outDir = File(workingDir, "out").apply { mkdirs() }
+        val sb = StringBuilder()
+        fun CompilerOutput.logOutput(stepName: String) {
+            sb.appendln("==== $stepName ====")
 
-        val fileMapping = srcDir.kotlinFiles()
-                .associate { it to File(processedSrcDir, it.toRelativeString(srcDir)) }
+            sb.appendln("Compiling files:")
+            compiledFiles.map { it.toRelativeString(workingDir) }.sorted().forEach { sb.appendln("  " + it) }
 
-        for ((ktFile, processedKtFile) in fileMapping) {
-            processedKtFile.parentFile.mkdirs()
-            val codeWithoutComments = ktFile.readText().replace(COMMENT_WITH_LOOKUP_INFO, "")
-            processedKtFile.writeText(codeWithoutComments)
+            sb.appendln("Exit code: $exitCode")
+            errors.forEach { sb.appendln("  " + it) }
+
+            sb.appendln()
+        }
+
+        val testDir = File(path)
+        val workToOriginalFileMap = HashMap(copyTestSources(testDir, srcDir, filePrefix = ""))
+        var dirtyFiles = srcDir.walk().filterTo(HashSet()) { it.isKotlinFile() }
+        val incrementalData = IncrementalData()
+        val steps = getModificationsToPerform(testDir, moduleNames = null, allowNoFilesWithSuffixInTestData = true, touchPolicy = TouchPolicy.CHECKSUM)
+                .filter { it.isNotEmpty() }
+
+        makeAndCheckLookups(dirtyFiles, workToOriginalFileMap, incrementalData).logOutput("INITIAL BUILD")
+        for ((i, modifications) in steps.withIndex()) {
+            dirtyFiles = modifications.mapNotNullTo(HashSet()) { it.perform(workingDir, workToOriginalFileMap) }
+            makeAndCheckLookups(dirtyFiles, workToOriginalFileMap, incrementalData).logOutput("STEP ${i + 1}")
+        }
+
+        val expectedBuildLog = File(testDir, "build.log")
+        UsefulTestCase.assertSameLinesWithFile(expectedBuildLog.canonicalPath, sb.toString())
+    }
+
+    private class CompilerOutput(
+        val exitCode: String,
+        val errors: List<String>,
+        val compiledFiles: Iterable<File>
+    )
+    private class IncrementalData(val sourceToOutput: MutableMap<File, MutableSet<File>> = hashMapOf())
+
+    private fun makeAndCheckLookups(
+            filesToCompile: Iterable<File>,
+            workingToOriginalFileMap: Map<File, File>,
+            incrementalData: IncrementalData
+    ): CompilerOutput {
+        removeCommentsCommentsWithLookupInfo(filesToCompile)
+
+        for (dirtyFile in filesToCompile) {
+            incrementalData.sourceToOutput.remove(dirtyFile)?.forEach {
+                it.delete()
+            }
         }
 
         val lookupTracker = TestLookupTracker()
-        compileWithLookupTracker(processedSrcDir, outDir, lookupTracker)
-        checkLookups(lookupTracker, fileMapping)
+        val messageCollector = TestMessageCollector()
+        val outputItemsCollector = OutputItemsCollectorImpl()
+        val environment = createEnvironment(lookupTracker, messageCollector, outputItemsCollector)
+        val exitCode = runCompiler(filesToCompile, environment)
+
+        checkLookups(filesToCompile, lookupTracker, workingToOriginalFileMap)
+
+        for (output in outputItemsCollector.outputs) {
+            val outputFile = output.outputFile
+            if (outputFile.extension == "kotlin_module") continue
+
+            for (sourceFile in output.sourceFiles) {
+                val outputsForSource = incrementalData.sourceToOutput.getOrPut(sourceFile) { hashSetOf() }
+                outputsForSource.add(outputFile)
+            }
+        }
+
+        return CompilerOutput(exitCode.toString(), messageCollector.errors, filesToCompile)
     }
 
-    private fun compileWithLookupTracker(srcDir: File, outDir: File, lookupTracker: TestLookupTracker) {
+    private fun createEnvironment(
+            lookupTracker: LookupTracker,
+            messageCollector: MessageCollector,
+            outputItemsCollector: OutputItemsCollectorImpl
+    ): JpsCompilerEnvironment {
         val paths = PathUtil.getKotlinPathsForDistDirectory()
         val services = Services.Builder().run {
-            register(LookupTracker::class.java, lookupTracker)
+            register(IncrementalCompilationComponents::class.java,
+                     IncrementalCompilationComponentsImpl(emptyMap(), lookupTracker))
             build()
         }
         val classesToLoadByParent = ClassCondition { className ->
-            className.startsWith("org.jetbrains.kotlin.incremental.components.")
+            className.startsWith("org.jetbrains.kotlin.load.kotlin.incremental.components.")
+            || className.startsWith("org.jetbrains.kotlin.incremental.components.")
             || className == "org.jetbrains.kotlin.config.Services"
-            || className == "org.jetbrains.kotlin.cli.common.ExitCode"
+            || className.startsWith("org.apache.log4j.") // For logging from compiler
+            || className == "org.jetbrains.kotlin.progress.CompilationCanceledStatus"
+            || className == "org.jetbrains.kotlin.progress.CompilationCanceledException"
+            || className == "org.jetbrains.kotlin.modules.TargetId"
         }
-
-        val messageCollector = TestMessageCollector()
-        val outputItemsCollector = OutputItemsCollectorImpl()
-        val env = JpsCompilerEnvironment(paths, services, classesToLoadByParent, messageCollector, outputItemsCollector)
-
-        val stream = ByteArrayOutputStream()
-        val out = PrintStream(stream)
-
-        val rc = runCompiler(srcDir, outDir, env, out)
-
-        val reader = BufferedReader(StringReader(stream.toString()))
-        CompilerOutputParser.parseCompilerMessagesFromReader(messageCollector, reader, outputItemsCollector)
-        val actualOutput = (listOf(rc?.toString()) + messageCollector.errors).joinToString("\n")
-
-        Assert.assertEquals("Unexpected compiler output", "OK", actualOutput)
+        val wrappedMessageCollector = MessageCollectorToOutputItemsCollectorAdapter(messageCollector, outputItemsCollector)
+        return JpsCompilerEnvironment(paths, services, classesToLoadByParent, wrappedMessageCollector, outputItemsCollector)
     }
 
-    private fun runCompiler(srcDir: File, outDir: File, env: JpsCompilerEnvironment, out: PrintStream): Any? {
-        val module = makeModuleFile("lookup-tracker-test", true,
-                                    outDir,
-                                    srcDir.kotlinFiles().toList(),
-                                    listOf(srcDir),
-                                    emptyList(),
-                                    emptyList())
-        val args = arrayOf("-module", module.canonicalPath)
+    private fun runCompiler(filesToCompile: Iterable<File>, env: JpsCompilerEnvironment): Any? {
+        val module = makeModuleFile(name = "test",
+                                    isTest = true,
+                                    outputDir = outDir,
+                                    sourcesToCompile = filesToCompile.toList(),
+                                    javaSourceRoots = listOf(srcDir),
+                                    classpath = listOf(outDir).filter { it.exists() },
+                                    friendDirs = emptyList())
+        outDir.mkdirs()
+        val args = arrayOf("-module", module.canonicalPath, "-Xreport-output-files")
+
         try {
-            return CompilerRunnerUtil.invokeExecMethod(K2JVMCompiler::class.java.name, args, env, out)
+            val stream = ByteArrayOutputStream()
+            val out = PrintStream(stream)
+            val exitCode = CompilerRunnerUtil.invokeExecMethod(K2JVMCompiler::class.java.name, args, env, out)
+            val reader = BufferedReader(StringReader(stream.toString()))
+            CompilerOutputParser.parseCompilerMessagesFromReader(env.messageCollector, reader, env.outputItemsCollector)
+
+            return exitCode
         }
         finally {
             module.delete()
         }
     }
 
-    private fun checkLookups(lookupTracker: TestLookupTracker, fileMapping: Map<File, File>) {
+    private fun checkLookups(
+            compiledFiles: Iterable<File>,
+            lookupTracker: TestLookupTracker,
+            workingToOriginalFileMap: Map<File, File>
+    ) {
         val fileToLookups = lookupTracker.lookups.groupBy { it.filePath }
 
         fun checkLookupsInFile(expectedFile: File, actualFile: File) {
             val independentFilePath = FileUtil.toSystemIndependentName(actualFile.path)
-            val lookupsFromFile = fileToLookups[independentFilePath] ?: return
+            val lookupsFromFile = fileToLookups[independentFilePath] ?: error("No lookups from compiled file: $actualFile")
 
             val text = actualFile.readText()
 
@@ -167,8 +255,8 @@ abstract class AbstractLookupTrackerTest : TestWithWorkingDir() {
             KotlinTestUtils.assertEqualsToFile(expectedFile, actual)
         }
 
-        for ((ktFile, processedKtFile) in fileMapping) {
-            checkLookupsInFile(ktFile, processedKtFile)
+        for (file in compiledFiles) {
+            //checkLookupsInFile(workingToOriginalFileMap[file]!!, file)
         }
     }
 }

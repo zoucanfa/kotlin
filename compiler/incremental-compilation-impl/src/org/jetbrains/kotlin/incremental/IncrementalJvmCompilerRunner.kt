@@ -25,15 +25,12 @@ import org.jetbrains.kotlin.build.GeneratedJvmClass
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
-import org.jetbrains.kotlin.cli.common.messages.OutputMessageUtil
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.compilerRunner.ArgumentUtils
-import org.jetbrains.kotlin.compilerRunner.OutputItemsCollector
+import org.jetbrains.kotlin.compilerRunner.MessageCollectorToOutputItemsCollectorAdapter
 import org.jetbrains.kotlin.compilerRunner.OutputItemsCollectorImpl
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.IncrementalCompilation
@@ -55,8 +52,6 @@ import org.jetbrains.kotlin.modules.TargetId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.progress.CompilationCanceledStatus
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.serialization.ProtoBuf
-import org.jetbrains.kotlin.serialization.js.JsProtoBuf
 import org.jetbrains.kotlin.serialization.js.PackagesWithHeaderMetadata
 import java.io.File
 import java.io.IOException
@@ -361,7 +356,7 @@ class IncrementalJsCompilerRunner(
         args.reportOutputFiles = true
         val outputItemCollector = OutputItemsCollectorImpl()
         @Suppress("NAME_SHADOWING")
-        val messageCollector = MessageCollectorWrapper(messageCollector, outputItemCollector)
+        val messageCollector = MessageCollectorToOutputItemsCollectorAdapter(messageCollector, outputItemCollector)
 
         //reporter.report { "compiling with args: ${ArgumentUtils.convertArgumentsToStringList(args)}" }
         //reporter.report { "compiling with classpath: ${classpath.toList().sorted().joinToString()}" }
@@ -717,7 +712,7 @@ class IncrementalJvmCompilerRunner(
         args.reportOutputFiles = true
         val outputItemCollector = OutputItemsCollectorImpl()
         @Suppress("NAME_SHADOWING")
-        val messageCollector = MessageCollectorWrapper(messageCollector, outputItemCollector)
+        val messageCollector = MessageCollectorToOutputItemsCollectorAdapter(messageCollector, outputItemCollector)
 
         try {
             val incrementalCaches = makeIncrementalCachesMap(targets, { listOf<TargetId>() }, getIncrementalCache, { this })
@@ -754,16 +749,3 @@ var K2JVMCompilerArguments.destinationAsFile: File
 var K2JVMCompilerArguments.classpathAsList: List<File>
     get() = classpath.split(File.pathSeparator).map(::File)
     set(value) { classpath = value.joinToString(separator = File.pathSeparator, transform = { it.path }) }
-
-private class MessageCollectorWrapper(
-        private val delegate: MessageCollector,
-        private val outputCollector: OutputItemsCollector
-) : MessageCollector by delegate {
-    override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageLocation?) {
-        // TODO: consider adding some other way of passing input -> output mapping from compiler, e.g. dedicated service
-        OutputMessageUtil.parseOutputMessage(message)?.let {
-            outputCollector.add(it.sourceFiles, it.outputFile)
-        }
-        delegate.report(severity, message, location)
-    }
-}
