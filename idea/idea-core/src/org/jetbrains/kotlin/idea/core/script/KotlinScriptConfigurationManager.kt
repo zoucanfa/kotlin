@@ -49,7 +49,7 @@ import kotlin.concurrent.write
 import kotlin.script.dependencies.KotlinScriptExternalDependencies
 
 
-// NOTE: this service is need exclusively because KotlinScriptConfigurationManager
+// NOTE: this service exists exclusively because KotlinScriptConfigurationManager
 // cannot be registered as implementing two services (state would be duplicated)
 class IdeScriptExternalImportsProvider(
         private val scriptConfigurationManager: KotlinScriptConfigurationManager
