@@ -16,14 +16,20 @@
 
 package org.jetbrains.kotlin.js.sourceMap;
 
-import java.io.File;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public interface SourceMapBuilder extends SourceMapMappingConsumer {
-    void skipLinesAtBeginning(int count);
+import java.io.IOException;
+import java.io.Reader;
+import java.util.function.Supplier;
 
-    void addLink();
+public interface SourceMapMappingConsumer {
+    void newLine();
 
-    File getOutFile();
+    void addMapping(
+            @NotNull String source, @Nullable Object sourceIdentity, @NotNull Supplier<Reader> sourceSupplier,
+            int sourceLine, int sourceColumn
+    );
 
-    String build();
+    void addEmptyMapping();
 }

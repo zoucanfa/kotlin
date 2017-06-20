@@ -59,8 +59,14 @@ class SourceMapLocationRemapper(val sourceMaps: Map<String, SourceMap>) {
             }
 
             val segment = group.segments[lastSegmentIndex]
-            val location = JsLocation(segment.sourceFileName, segment.sourceLineNumber, segment.sourceColumnNumber)
-            node.source = JsLocationWithSource(location, sourceMap) { sourceMap.sourceContentResolver(segment.sourceFileName) }
+            val sourceFileName = segment.sourceFileName
+            node.source = if (sourceFileName != null) {
+                val location = JsLocation(segment.sourceFileName, segment.sourceLineNumber, segment.sourceColumnNumber)
+                JsLocationWithSource(location, sourceMap) { sourceMap.sourceContentResolver(segment.sourceFileName) }
+            }
+            else {
+                null
+            }
 
             return true
         }

@@ -17,11 +17,11 @@
 package org.jetbrains.kotlin.js.sourceMap;
 
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.util.PairConsumer;
 import gnu.trove.TObjectIntHashMap;
 import kotlin.io.TextStreamsKt;
 import org.jetbrains.kotlin.js.backend.JsToStringGenerationVisitor;
 import org.jetbrains.kotlin.js.common.SourceInfo;
+import org.jetbrains.kotlin.js.util.TextOutput;
 import org.jetbrains.kotlin.js.util.TextOutput;
 
 import java.io.File;
@@ -35,7 +35,6 @@ public class SourceMap3Builder implements SourceMapBuilder {
     private final File generatedFile;
     private final TextOutput textOutput;
     private final String pathPrefix;
-    private final PairConsumer<SourceMapBuilder, Object> sourceInfoConsumer;
 
     private final TObjectIntHashMap<SourceKey> sources = new TObjectIntHashMap<SourceKey>() {
         @Override
@@ -52,13 +51,15 @@ public class SourceMap3Builder implements SourceMapBuilder {
     private int previousSourceIndex;
     private int previousSourceLine;
     private int previousSourceColumn;
+    private int previousMappingOffset;
+    private int previousPreviousSourceIndex;
+    private int previousPreviousSourceLine;
+    private int previousPreviousSourceColumn;
 
-    public SourceMap3Builder(File generatedFile, TextOutput textOutput, String pathPrefix,
-            PairConsumer<SourceMapBuilder, Object> sourceInfoConsumer) {
+    public SourceMap3Builder(File generatedFile, TextOutput textOutput, String pathPrefix) {
         this.generatedFile = generatedFile;
         this.textOutput = textOutput;
         this.pathPrefix = pathPrefix;
-        this.sourceInfoConsumer = sourceInfoConsumer;
     }
 
     @Override
@@ -130,14 +131,6 @@ public class SourceMap3Builder implements SourceMapBuilder {
         out.insert(0, StringUtil.repeatSymbol(';', count));
     }
 
-    @Override
-    public void processSourceInfo(Object sourceInfo) {
-        if (sourceInfo instanceof SourceInfo) {
-            throw new UnsupportedOperationException("SourceInfo is not yet supported");
-        }
-        sourceInfoConsumer.consume(this, sourceInfo);
-    }
-
     private int getSourceIndex(String source, Object identityObject, Supplier<Reader> contentSupplier) {
         SourceKey key = new SourceKey(source, identityObject);
         int sourceIndex = sources.get(key);
@@ -153,24 +146,9 @@ public class SourceMap3Builder implements SourceMapBuilder {
 
     @Override
     public void addMapping(String source, Object identityObject, Supplier<Reader> sourceContent, int sourceLine, int sourceColumn) {
+        addEmptyMapping();
         source = source.replace(File.separatorChar, '/');
-        boolean newGroupStarted = previousGeneratedColumn == -1;
-        if (newGroupStarted) {
-            previousGeneratedColumn = 0;
-        }
 
-        int columnDiff = textOutput.getColumn() - previousGeneratedColumn;
-        if (!newGroupStarted && columnDiff == 0) {
-            return;
-        }
-        if (!newGroupStarted) {
-            out.append(',');
-        }
-
-        // TODO fix sections overlapping
-        // assert columnDiff != 0;
-        Base64VLQ.encode(out, columnDiff);
-        previousGeneratedColumn = textOutput.getColumn();
         int sourceIndex = getSourceIndex(source, identityObject, sourceContent);
         Base64VLQ.encode(out, sourceIndex - previousSourceIndex);
         previousSourceIndex = sourceIndex;
@@ -180,6 +158,35 @@ public class SourceMap3Builder implements SourceMapBuilder {
 
         Base64VLQ.encode(out, sourceColumn - previousSourceColumn);
         previousSourceColumn = sourceColumn;
+    }
+
+    @Override
+    public void addEmptyMapping() {
+        boolean newGroupStarted = previousGeneratedColumn == -1;
+        if (newGroupStarted) {
+            previousGeneratedColumn = 0;
+        }
+
+        int columnDiff = textOutput.getColumn() - previousGeneratedColumn;
+        if (!newGroupStarted) {
+            out.append(',');
+        }
+
+        if (columnDiff > 0 || newGroupStarted) {
+            Base64VLQ.encode(out, columnDiff);
+            previousGeneratedColumn = textOutput.getColumn();
+
+            previousMappingOffset = out.length();
+            previousPreviousSourceIndex = previousSourceIndex;
+            previousPreviousSourceLine = previousSourceLine;
+            previousPreviousSourceColumn = previousSourceColumn;
+        }
+        else {
+            out.setLength(previousMappingOffset);
+            previousSourceIndex = previousPreviousSourceIndex;
+            previousSourceLine = previousPreviousSourceLine;
+            previousSourceColumn = previousPreviousSourceColumn;
+        }
     }
 
     @Override

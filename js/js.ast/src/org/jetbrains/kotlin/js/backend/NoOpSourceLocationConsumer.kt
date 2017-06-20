@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.js.sourceMap;
+package org.jetbrains.kotlin.js.backend
 
-import java.io.File;
+object NoOpSourceLocationConsumer : SourceLocationConsumer {
+    override fun newLine() {}
 
-public interface SourceMapBuilder extends SourceMapMappingConsumer {
-    void skipLinesAtBeginning(int count);
+    override fun pushSourceInfo(info: Any?) {}
 
-    void addLink();
-
-    File getOutFile();
-
-    String build();
+    override fun popSourceInfo() {}
 }

@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.js.sourceMap;
+package org.jetbrains.kotlin.js.backend;
 
-import java.io.File;
+import org.jetbrains.annotations.Nullable;
 
-public interface SourceMapBuilder extends SourceMapMappingConsumer {
-    void skipLinesAtBeginning(int count);
+public interface SourceLocationConsumer {
+    void newLine();
 
-    void addLink();
+    void pushSourceInfo(@Nullable Object info);
 
-    File getOutFile();
-
-    String build();
+    void popSourceInfo();
 }
