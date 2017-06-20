@@ -464,7 +464,7 @@ class ClassTranslator private constructor(
                     .source(classDeclaration)
             val instanceCreationBlock = JsBlock()
             val instanceCreatedGuard = JsIf(instanceCreatedCondition, instanceCreationBlock)
-            instanceFun.body.statements += instanceCreatedGuard
+            instanceFun.body.statements += instanceCreatedGuard.apply { source = classDeclaration }
 
             val objectRef = context().getInnerReference(descriptor)
             instanceCreationBlock.statements += JsNew(objectRef).source(classDeclaration).makeStmt()

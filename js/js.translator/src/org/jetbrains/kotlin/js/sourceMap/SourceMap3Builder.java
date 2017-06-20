@@ -19,9 +19,9 @@ package org.jetbrains.kotlin.js.sourceMap;
 import com.intellij.openapi.util.text.StringUtil;
 import gnu.trove.TObjectIntHashMap;
 import kotlin.io.TextStreamsKt;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.js.backend.JsToStringGenerationVisitor;
-import org.jetbrains.kotlin.js.common.SourceInfo;
-import org.jetbrains.kotlin.js.util.TextOutput;
 import org.jetbrains.kotlin.js.util.TextOutput;
 
 import java.io.File;
@@ -55,6 +55,7 @@ public class SourceMap3Builder implements SourceMapBuilder {
     private int previousPreviousSourceIndex;
     private int previousPreviousSourceLine;
     private int previousPreviousSourceColumn;
+    private boolean currentMappingIsEmpty = true;
 
     public SourceMap3Builder(File generatedFile, TextOutput textOutput, String pathPrefix) {
         this.generatedFile = generatedFile;
@@ -145,8 +146,11 @@ public class SourceMap3Builder implements SourceMapBuilder {
     }
 
     @Override
-    public void addMapping(String source, Object identityObject, Supplier<Reader> sourceContent, int sourceLine, int sourceColumn) {
-        addEmptyMapping();
+    public void addMapping(
+            @NotNull String source, @Nullable Object identityObject, @NotNull Supplier<Reader> sourceContent,
+            int sourceLine, int sourceColumn
+    ) {
+        startMapping();
         source = source.replace(File.separatorChar, '/');
 
         int sourceIndex = getSourceIndex(source, identityObject, sourceContent);
@@ -158,10 +162,19 @@ public class SourceMap3Builder implements SourceMapBuilder {
 
         Base64VLQ.encode(out, sourceColumn - previousSourceColumn);
         previousSourceColumn = sourceColumn;
+
+        currentMappingIsEmpty = false;
     }
 
     @Override
     public void addEmptyMapping() {
+        if (!currentMappingIsEmpty) {
+            startMapping();
+            currentMappingIsEmpty = true;
+        }
+    }
+
+    private void startMapping() {
         boolean newGroupStarted = previousGeneratedColumn == -1;
         if (newGroupStarted) {
             previousGeneratedColumn = 0;

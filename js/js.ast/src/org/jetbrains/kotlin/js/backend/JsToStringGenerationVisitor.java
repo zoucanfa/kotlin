@@ -49,6 +49,7 @@ public class JsToStringGenerationVisitor extends JsVisitor {
 
     @NotNull
     private final List<Object> sourceInfoStack = new ArrayList<>();
+    private boolean currentMappingIsEmpty = true;
 
     public static CharSequence javaScriptString(String value) {
         return javaScriptString(value, false);
@@ -590,6 +591,8 @@ public class JsToStringGenerationVisitor extends JsVisitor {
 
     @Override
     public void visitFunction(@NotNull JsFunction x) {
+        pushSourceInfo(x.getSource());
+
         p.print(CHARS_FUNCTION);
         space();
         if (x.getName() != null) {
@@ -610,14 +613,18 @@ public class JsToStringGenerationVisitor extends JsVisitor {
 
         boolean shouldMakeEmptySource = !sourceInfoStack.isEmpty() && sourceInfoStack.get(sourceInfoStack.size() - 1) != null;
         if (shouldMakeEmptySource) {
+            currentMappingIsEmpty = true;
             sourceLocationConsumer.pushSourceInfo(null);
         }
         accept(x.getBody());
         if (shouldMakeEmptySource) {
             sourceLocationConsumer.popSourceInfo();
+            currentMappingIsEmpty = false;
         }
 
         needSemi = true;
+
+        popSourceInfo();
     }
 
     @Override
@@ -1071,12 +1078,14 @@ public class JsToStringGenerationVisitor extends JsVisitor {
         sourceInfoStack.add(location);
         if (location != null) {
             sourceLocationConsumer.pushSourceInfo(location);
+            currentMappingIsEmpty = false;
         }
     }
 
     private void popSourceInfo() {
         if (!sourceInfoStack.isEmpty() && sourceInfoStack.remove(sourceInfoStack.size() - 1) != null) {
             sourceLocationConsumer.popSourceInfo();
+            currentMappingIsEmpty = false;
         }
     }
 

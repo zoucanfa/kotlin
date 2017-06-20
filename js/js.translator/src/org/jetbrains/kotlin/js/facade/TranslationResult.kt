@@ -22,13 +22,15 @@ import org.jetbrains.kotlin.backend.common.output.*
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.js.backend.JsToStringGenerationVisitor
 import org.jetbrains.kotlin.js.backend.NoOpSourceLocationConsumer
+import org.jetbrains.kotlin.js.backend.SourceLocationConsumer
 import org.jetbrains.kotlin.js.backend.ast.JsProgram
 import org.jetbrains.kotlin.js.config.JSConfigurationKeys
 import org.jetbrains.kotlin.js.config.JsConfig
 import org.jetbrains.kotlin.js.config.SourceMapSourceEmbedding
+import org.jetbrains.kotlin.js.parser.sourcemaps.SourceMapParser
+import org.jetbrains.kotlin.js.parser.sourcemaps.SourceMapSuccess
 import org.jetbrains.kotlin.js.sourceMap.SourceFilePathResolver
 import org.jetbrains.kotlin.js.sourceMap.SourceMap3Builder
-import org.jetbrains.kotlin.js.backend.SourceLocationConsumer
 import org.jetbrains.kotlin.js.translate.general.FileTranslationResult
 import org.jetbrains.kotlin.js.util.TextOutput
 import org.jetbrains.kotlin.js.util.TextOutputImpl
@@ -39,6 +41,7 @@ import org.jetbrains.kotlin.serialization.js.JsModuleDescriptor
 import org.jetbrains.kotlin.serialization.js.KotlinJavascriptSerializationUtil
 import org.jetbrains.kotlin.utils.KotlinJavascriptMetadataUtils
 import java.io.File
+import java.io.StringReader
 import java.util.*
 
 abstract class TranslationResult protected constructor(val diagnostics: Diagnostics) {
@@ -56,7 +59,7 @@ abstract class TranslationResult protected constructor(val diagnostics: Diagnost
             val fileTranslationResults: Map<KtFile, FileTranslationResult>
     ) : TranslationResult(diagnostics) {
         @Suppress("unused") // Used in kotlin-web-demo in WebDemoTranslatorFacade
-        fun getCode(): String = getCode(TextOutputImpl(), sourceLocationConsumer = null)
+        fun getCode(): String = TextOutputImpl().also { getCode(it, sourceLocationConsumer = null) }.toString()
 
         fun getOutputFiles(outputFile: File, outputPrefixFile: File?, outputPostfixFile: File?): OutputFileCollection {
             val output = TextOutputImpl()
@@ -77,7 +80,12 @@ abstract class TranslationResult protected constructor(val diagnostics: Diagnost
                         null
                     }
 
-            val code = getCode(output, sourceMapBuilderConsumer)
+            getCode(output, sourceMapBuilderConsumer)
+            if (sourceMapBuilderConsumer != null) {
+                sourceMapBuilder.addLink()
+            }
+            val code = output.toString()
+
             val prefix = outputPrefixFile?.readText() ?: ""
             val postfix = outputPostfixFile?.readText() ?: ""
             val sourceFiles = files.map {
@@ -113,17 +121,21 @@ abstract class TranslationResult protected constructor(val diagnostics: Diagnost
 
             if (sourceMapBuilderConsumer != null) {
                 sourceMapBuilder.skipLinesAtBeginning(StringUtil.getLineBreakCount(prefix))
-                val sourceMapFile = SimpleOutputFile(sourceFiles, sourceMapBuilder.outFile.name, sourceMapBuilder.build())
+                val sourceMapContent = sourceMapBuilder.build()
+                val sourceMapFile = SimpleOutputFile(sourceFiles, sourceMapBuilder.outFile.name, sourceMapContent)
+                //val parsedSourceMap = SourceMapParser.parse(StringReader(sourceMapContent)) as SourceMapSuccess
+                //parsedSourceMap.value.debug()
                 outputFiles.add(sourceMapFile)
-                sourceMapBuilder.addLink()
             }
 
             return SimpleOutputFileCollection(outputFiles)
         }
 
-        private fun getCode(output: TextOutput, sourceLocationConsumer: SourceLocationConsumer?): String {
+        private fun getCode(
+                output: TextOutput,
+                sourceLocationConsumer: SourceLocationConsumer?
+        ) {
             program.accept(JsToStringGenerationVisitor(output, sourceLocationConsumer ?: NoOpSourceLocationConsumer))
-            return output.toString()
         }
     }
 }

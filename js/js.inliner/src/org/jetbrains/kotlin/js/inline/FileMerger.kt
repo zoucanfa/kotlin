@@ -98,6 +98,7 @@ fun main(args: Array<String>) {
     sourceMapFile.writeText(sourceMapJson.toString(2))
 
     val sourceMap = (sourceMapFile.reader().use { SourceMapParser.parse(it) } as SourceMapSuccess).value
+
     for ((index, group) in sourceMap.groups.withIndex()) {
         print("${index + 1}:")
         for (segment in group.segments) {
