@@ -14,22 +14,14 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.js.test.utils
+package org.jetbrains.kotlin.js.backend;
 
-import org.jetbrains.kotlin.js.backend.ast.*
+import org.jetbrains.annotations.Nullable;
 
-class AmbiguousAstSourcePropagation : RecursiveJsVisitor() {
-    private var lastSource: Any? = null
+public interface SourceLocationConsumer {
+    void newLine();
 
-    override fun visitElement(node: JsNode) {
-        val source = node.source
-        if (source == null && node is JsExpression) {
-            node.source = lastSource
-        }
+    void pushSourceInfo(@Nullable Object info);
 
-        val oldLastSource = lastSource
-        lastSource = node.source
-        super.visitElement(node)
-        lastSource = oldLastSource
-    }
+    void popSourceInfo();
 }

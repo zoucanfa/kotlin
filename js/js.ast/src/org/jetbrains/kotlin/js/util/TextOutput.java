@@ -40,13 +40,5 @@ public interface TextOutput {
 
     boolean isJustNewlined();
 
-    void setOutListener(OutListener outListener);
-
     void maybeIndent();
-
-    public interface OutListener {
-        void newLined();
-
-        void indentedAfterNewLine();
-    }
 }
