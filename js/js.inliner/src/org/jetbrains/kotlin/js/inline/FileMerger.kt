@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.js
+package org.jetbrains.kotlin.js.inline
 
 import com.google.gwt.dev.js.ThrowExceptionOnErrorReporter
+import org.jetbrains.kotlin.js.backend.JsToStringGenerationVisitor
 import org.jetbrains.kotlin.js.backend.ast.*
 import org.jetbrains.kotlin.js.facade.SourceMapBuilderConsumer
 import org.jetbrains.kotlin.js.inline.util.fixForwardNameReferences
@@ -25,23 +26,24 @@ import org.jetbrains.kotlin.js.parser.sourcemaps.SourceMapError
 import org.jetbrains.kotlin.js.parser.sourcemaps.SourceMapLocationRemapper
 import org.jetbrains.kotlin.js.parser.sourcemaps.SourceMapParser
 import org.jetbrains.kotlin.js.parser.sourcemaps.SourceMapSuccess
-import org.jetbrains.kotlin.js.sourceMap.JsSourceGenerationVisitor
 import org.jetbrains.kotlin.js.sourceMap.SourceFilePathResolver
 import org.jetbrains.kotlin.js.sourceMap.SourceMap3Builder
 import org.jetbrains.kotlin.js.util.TextOutputImpl
+import org.json.JSONArray
+import org.json.JSONObject
+import org.json.JSONTokener
 import java.io.File
 
 fun main(args: Array<String>) {
     val program = JsProgram()
-
-    val outputFile = File(args[0])
-
-    val wrapperFile = File(args[1])
+    val wrapperFile = File(args[0])
     val wrapper = parse(wrapperFile.readText(), ThrowExceptionOnErrorReporter, program.scope, wrapperFile.path)
     val insertionPlace = wrapper.createInsertionPlace()
 
+    val outputFile = File("dist/js/kotlin.js")
+
     val allFiles = mutableListOf<File>()
-    args.drop(2).map { File(it) }.forEach { collectFiles(it, allFiles) }
+    args.drop(1).map { File(it) }.forEach { collectFiles(it, allFiles) }
 
     for (file in allFiles) {
         val statements = parse(file.readText(), ThrowExceptionOnErrorReporter, program.scope, file.path)
@@ -52,7 +54,7 @@ fun main(args: Array<String>) {
         if (sourceMapFile.exists()) {
             val sourceMapParse = sourceMapFile.reader().use { SourceMapParser.parse(it) }
             when (sourceMapParse) {
-                is SourceMapError -> throw RuntimeException("Error parsing source map file $sourceMapFile: ${sourceMapParse.message}")
+                is SourceMapError -> println("Error parsing source map file $sourceMapFile: ${sourceMapParse.message}")
                 is SourceMapSuccess -> {
                     val sourceMap = sourceMapParse.value
                     val remapper = SourceMapLocationRemapper(mapOf(file.path to sourceMap))
@@ -68,13 +70,41 @@ fun main(args: Array<String>) {
 
     val sourceMapFile = File(outputFile.parentFile, outputFile.name + ".map")
     val textOutput = TextOutputImpl()
-    val consumer = SourceMapBuilderConsumer(SourceFilePathResolver(mutableListOf()), true, true)
-    val sourceMapBuilder = SourceMap3Builder(outputFile, textOutput, "", consumer)
-    program.globalBlock.accept(JsSourceGenerationVisitor(textOutput, sourceMapBuilder))
+    val sourceMapBuilder = SourceMap3Builder(outputFile, textOutput, "")
+    val consumer = SourceMapBuilderConsumer(sourceMapBuilder, SourceFilePathResolver(mutableListOf()), true, true)
+    program.globalBlock.accept(JsToStringGenerationVisitor(textOutput, consumer))
     val sourceMapContent = sourceMapBuilder.build()
 
-    outputFile.writeText(textOutput.toString())
-    sourceMapFile.writeText(sourceMapContent)
+    val programText = textOutput.toString()
+            .replace(Regex("module.exports,\\s*require\\([^)]+\\)"), "")
+            .replace(Regex("function\\s*\\(_,\\s*Kotlin\\)"), "function()")
+            .replace(Regex("return\\s+_;"), "")
+
+    outputFile.writeText(programText + "\n//# sourceMappingURL=kotlin.js.map\n")
+
+    val sourceMapJson = JSONObject(JSONTokener(sourceMapContent))
+    val sources = sourceMapJson["sources"] as JSONArray
+
+    sourceMapJson.put("sourcesContent", sources.map { sourcePath ->
+        val sourceFile = File(sourcePath as String)
+        if (sourceFile.exists()) {
+            sourceFile.readText()
+        }
+        else {
+            null
+        }
+    })
+
+    sourceMapFile.writeText(sourceMapJson.toString(2))
+
+    val sourceMap = (sourceMapFile.reader().use { SourceMapParser.parse(it) } as SourceMapSuccess).value
+    for ((index, group) in sourceMap.groups.withIndex()) {
+        print("${index + 1}:")
+        for (segment in group.segments) {
+            print(" ${segment.generatedColumnNumber + 1},${segment.sourceLineNumber + 1}")
+        }
+        println()
+    }
 }
 
 private fun List<JsStatement>.createInsertionPlace(): JsBlock {
