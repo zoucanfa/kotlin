@@ -1,5 +1,5 @@
 ==== INITIAL BUILD ====
-Compiling files:
+Compiled and checked lookups in files:
   src/bar.kt
   src/baz.kt
   src/foo1.kt
@@ -7,7 +7,7 @@ Compiling files:
 Exit code: OK
 
 ==== STEP 1 ====
-Compiling files:
+Compiled and checked lookups in files:
   src/foo1.kt
   src/foo2.kt
 Exit code: OK

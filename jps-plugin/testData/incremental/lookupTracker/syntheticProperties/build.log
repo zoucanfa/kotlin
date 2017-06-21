@@ -1,5 +1,5 @@
 ==== INITIAL BUILD ====
-Compiling files:
+Compiled and checked lookups in files:
   src/KotlinClass.kt
   src/usages.kt
 Exit code: COMPILATION_ERROR

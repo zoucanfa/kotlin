@@ -1,5 +1,5 @@
 ==== INITIAL BUILD ====
-Compiling files:
+Compiled and checked lookups in files:
   src/comparison.kt
   src/declarations.kt
   src/delegateProperty.kt
@@ -8,7 +8,7 @@ Compiling files:
 Exit code: OK
 
 ==== STEP 1 ====
-Compiling files:
+Compiled and checked lookups in files:
   src/comparison.kt
   src/delegateProperty.kt
   src/mathematicalLike.kt
