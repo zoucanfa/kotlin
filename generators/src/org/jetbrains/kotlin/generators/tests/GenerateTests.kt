@@ -1164,8 +1164,12 @@ fun main(args: Array<String>) {
             model("incremental/classHierarchyAffected", extension = null, excludeParentDirs = true)
         }
 
-        testClass<AbstractLookupTrackerTest> {
-            model("incremental/lookupTracker", extension = null, recursive = false)
+        testClass<AbstractJvmLookupTrackerTest> {
+            model("incremental/lookupTracker/common", extension = null, recursive = false)
+            model("incremental/lookupTracker/jvm", extension = null, recursive = false)
+        }
+        testClass<AbstractJsLookupTrackerTest> {
+            model("incremental/lookupTracker/common", extension = null, recursive = false)
         }
 
         testClass(AbstractIncrementalLazyCachesTest::class.java) {
