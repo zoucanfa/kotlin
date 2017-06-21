@@ -72,8 +72,8 @@ fun makeCompileServices(
         compilationCanceledStatus: CompilationCanceledStatus?
 ): Services =
     with(Services.Builder()) {
-        register(IncrementalCompilationComponents::class.java, 
-                 IncrementalCompilationComponentsImpl(incrementalCaches, lookupTracker))
+        register(LookupTracker::class.java, lookupTracker)
+        register(IncrementalCompilationComponents::class.java, IncrementalCompilationComponentsImpl(incrementalCaches))
         compilationCanceledStatus?.let {
             register(CompilationCanceledStatus::class.java, it)
         }
