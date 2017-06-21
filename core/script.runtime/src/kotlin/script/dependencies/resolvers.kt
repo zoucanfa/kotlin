@@ -19,35 +19,53 @@
 package kotlin.script.dependencies
 
 import java.io.File
+import java.util.concurrent.CompletableFuture
 
 typealias Environment = Map<String, Any?>?
-typealias ErrorReporter = (ScriptDependenciesResolver.ReportSeverity, String, ScriptContents.Position?) -> Unit
 
 interface ScriptDependenciesResolver {
-    enum class ReportSeverity { ERROR, WARNING, INFO, DEBUG }
+    fun resolve(contents: ScriptContents, environment: Environment): ScriptDependencyResult = emptySuccess()
 }
 
 interface StaticScriptDependenciesResolver : ScriptDependenciesResolver {
-    fun resolve(environment: Environment, onError: ErrorReporter): ScriptDependencies = ScriptDependencies.Empty
-}
-
-interface SyncDependenciesResolver : ScriptDependenciesResolver {
-    fun resolve(contents: ScriptContents, environment: Environment, onError: ErrorReporter): ScriptDependencies = ScriptDependencies.Empty
+    fun resolve(environment: Environment): ScriptDependencyResult = emptySuccess()
 }
 
 interface AsyncScriptDependenciesResolver : ScriptDependenciesResolver {
-    fun resolve(
-            contents: ScriptContents, environment: Environment, onError: ErrorReporter, onDependenciesComputed: (ScriptDependencies) -> Unit
-    ): Unit = onDependenciesComputed(ScriptDependencies.Empty)
+    fun resolveAsync(
+            contents: ScriptContents, environment: Environment
+    ): CompletableFuture<ScriptDependencyResult> = CompletableFuture.completedFuture(emptySuccess())
+
+    override fun resolve(contents: ScriptContents, environment: Environment): ScriptDependencyResult
+            = resolveAsync(contents, environment).get() ?: ScriptDependencyResult.Failure(ScriptReport("Async resolver returned null"))
 }
+
+private fun emptySuccess() = ScriptDependencyResult.Success(ScriptDependencies.Empty)
 
 class EmptyDependenciesResolver : StaticScriptDependenciesResolver
 
 interface ScriptContents {
-
-    data class Position(val line: Int, val col: Int)
-
     val file: File?
     val annotations: Iterable<Annotation>
     val text: CharSequence?
+}
+
+data class ScriptReport(val message: String, val severity: Severity = ScriptReport.Severity.ERROR, val position: Position? = null) {
+    data class Position(val line: Int, val startColumn: Int, val endColumn: Int?)
+    enum class Severity { ERROR, WARNING, INFO, DEBUG }
+}
+
+sealed class ScriptDependencyResult {
+    abstract val dependencies: ScriptDependencies?
+    abstract val reports: List<ScriptReport>
+
+    class Success(
+            override val dependencies: ScriptDependencies,
+            override val reports: List<ScriptReport> = listOf()
+    ) : ScriptDependencyResult()
+
+    class Failure(override val reports: List<ScriptReport>) : ScriptDependencyResult() {
+        constructor(vararg reports: ScriptReport): this(reports.asList())
+        override val dependencies: ScriptDependencies? get() = null
+    }
 }
