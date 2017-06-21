@@ -21,6 +21,7 @@ package kotlin.script.dependencies
 import java.io.File
 import java.util.concurrent.CompletableFuture
 
+// TODO_R: nullabilty is irritating
 typealias Environment = Map<String, Any?>?
 
 interface ScriptDependenciesResolver {
@@ -31,6 +32,7 @@ interface StaticScriptDependenciesResolver : ScriptDependenciesResolver {
     fun resolve(environment: Environment): ScriptDependencyResult = emptySuccess()
 }
 
+// TODO_R: contents -> script or scriptContents
 interface AsyncScriptDependenciesResolver : ScriptDependenciesResolver {
     fun resolveAsync(
             contents: ScriptContents, environment: Environment
