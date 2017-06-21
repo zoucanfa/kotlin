@@ -42,6 +42,7 @@ import org.jetbrains.kotlin.config.CommonConfigurationKeys;
 import org.jetbrains.kotlin.config.CompilerConfiguration;
 import org.jetbrains.kotlin.config.ContentRootsKt;
 import org.jetbrains.kotlin.config.Services;
+import org.jetbrains.kotlin.incremental.components.LookupTracker;
 import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS;
 import org.jetbrains.kotlin.js.analyzer.JsAnalysisResult;
 import org.jetbrains.kotlin.js.config.EcmaVersion;
@@ -316,6 +317,11 @@ public class K2JSCompiler extends CLICompiler<K2JSCompilerArguments> {
         IncrementalJsService incrementalService = services.get(IncrementalJsService.class);
         if (incrementalService != null) {
             configuration.put(JSConfigurationKeys.INCREMENTAL_SERVICE, incrementalService);
+        }
+
+        LookupTracker lookupTracker = services.get(LookupTracker.class);
+        if (lookupTracker != null) {
+            configuration.put(CommonConfigurationKeys.LOOKUP_TRACKER, lookupTracker);
         }
     }
 
