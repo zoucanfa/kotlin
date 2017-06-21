@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.idea.test;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.roots.*;
@@ -27,8 +28,10 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VfsUtil;
 import kotlin.jvm.functions.Function0;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.checkers.KotlinMultiFileTestWithJava;
 import org.jetbrains.kotlin.idea.util.application.ApplicationUtilsKt;
 import org.jetbrains.kotlin.test.InTextDirectivesUtils;
+import org.jetbrains.kotlin.utils.KotlinPaths;
 import org.jetbrains.kotlin.utils.PathUtil;
 
 import java.io.File;
@@ -43,6 +46,8 @@ public class ConfigLibraryUtil {
     private static final String DEFAULT_JAVA_RUNTIME_LIB_NAME = "JAVA_RUNTIME_LIB_NAME";
     private static final String DEFAULT_KOTLIN_TEST_LIB_NAME = "KOTLIN_TEST_LIB_NAME";
     private static final String DEFAULT_KOTLIN_JS_STDLIB_NAME = "KOTLIN_JS_STDLIB_NAME";
+
+    private static final Logger LOG = Logger.getInstance(KotlinMultiFileTestWithJava.class);
 
     private ConfigLibraryUtil() {
     }
@@ -67,9 +72,11 @@ public class ConfigLibraryUtil {
     }
 
     public static void configureKotlinRuntime(Module module) {
-        addLibrary(getKotlinRuntimeLibEditor(DEFAULT_JAVA_RUNTIME_LIB_NAME, PathUtil.getKotlinPathsForDistDirectory().getStdlibPath()),
+        KotlinPaths kotlinPaths = PathUtil.getKotlinPathsForDistDirectory();
+        LOG.info("Configuring kotlin runtime: " + kotlinPaths.getHomePath());
+        addLibrary(getKotlinRuntimeLibEditor(DEFAULT_JAVA_RUNTIME_LIB_NAME, kotlinPaths.getStdlibPath()),
                    module);
-        addLibrary(getKotlinRuntimeLibEditor(DEFAULT_KOTLIN_TEST_LIB_NAME, PathUtil.getKotlinPathsForDistDirectory().getKotlinTestPath()),
+        addLibrary(getKotlinRuntimeLibEditor(DEFAULT_KOTLIN_TEST_LIB_NAME, kotlinPaths.getKotlinTestPath()),
                    module);
     }
 
