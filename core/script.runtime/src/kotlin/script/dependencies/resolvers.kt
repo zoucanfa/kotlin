@@ -19,32 +19,22 @@
 package kotlin.script.dependencies
 
 import java.io.File
-import java.util.concurrent.CompletableFuture
 
-// TODO_R: nullabilty is irritating
-typealias Environment = Map<String, Any?>?
+typealias Environment = Map<String, Any?>
 
 interface ScriptDependenciesResolver {
-    fun resolve(contents: ScriptContents, environment: Environment): ScriptDependencyResult = emptySuccess()
+    fun resolve(scriptContents: ScriptContents, environment: Environment): ScriptDependencyResult
 }
 
 interface StaticScriptDependenciesResolver : ScriptDependenciesResolver {
-    fun resolve(environment: Environment): ScriptDependencyResult = emptySuccess()
+    fun resolve(environment: Environment): ScriptDependencyResult
+
+    override fun resolve(scriptContents: ScriptContents, environment: Environment) = resolve(environment)
 }
 
-// TODO_R: contents -> script or scriptContents
-interface AsyncScriptDependenciesResolver : ScriptDependenciesResolver {
-    fun resolveAsync(
-            contents: ScriptContents, environment: Environment
-    ): CompletableFuture<ScriptDependencyResult> = CompletableFuture.completedFuture(emptySuccess())
-
-    override fun resolve(contents: ScriptContents, environment: Environment): ScriptDependencyResult
-            = resolveAsync(contents, environment).get() ?: ScriptDependencyResult.Failure(ScriptReport("Async resolver returned null"))
+object EmptyDependenciesResolver : StaticScriptDependenciesResolver {
+    override fun resolve(environment: Environment) = ScriptDependencyResult.Success(ScriptDependencies.Empty)
 }
-
-private fun emptySuccess() = ScriptDependencyResult.Success(ScriptDependencies.Empty)
-
-class EmptyDependenciesResolver : StaticScriptDependenciesResolver
 
 interface ScriptContents {
     val file: File?
@@ -53,7 +43,7 @@ interface ScriptContents {
 }
 
 data class ScriptReport(val message: String, val severity: Severity = ScriptReport.Severity.ERROR, val position: Position? = null) {
-    data class Position(val line: Int, val startColumn: Int, val endColumn: Int?)
+    data class Position(val startLine: Int, val startColumn: Int, val endLine: Int? = null, val endColumn: Int? = null)
     enum class Severity { ERROR, WARNING, INFO, DEBUG }
 }
 
