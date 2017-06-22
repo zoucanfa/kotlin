@@ -24,16 +24,16 @@ typealias Environment = Map<String, Any?>
 
 interface ScriptDependenciesResolver {
     fun resolve(scriptContents: ScriptContents, environment: Environment): ScriptDependencyResult
+
+    object Empty : StaticScriptDependenciesResolver {
+        override fun resolve(environment: Environment) = ScriptDependencyResult.Success(ScriptDependencies.Empty)
+    }
 }
 
 interface StaticScriptDependenciesResolver : ScriptDependenciesResolver {
     fun resolve(environment: Environment): ScriptDependencyResult
 
     override fun resolve(scriptContents: ScriptContents, environment: Environment) = resolve(environment)
-}
-
-object EmptyDependenciesResolver : StaticScriptDependenciesResolver {
-    override fun resolve(environment: Environment) = ScriptDependencyResult.Success(ScriptDependencies.Empty)
 }
 
 interface ScriptContents {
@@ -51,6 +51,9 @@ sealed class ScriptDependencyResult {
     abstract val dependencies: ScriptDependencies?
     abstract val reports: List<ScriptReport>
 
+    operator fun component1() = dependencies
+    operator fun component2() = reports
+
     class Success(
             override val dependencies: ScriptDependencies,
             override val reports: List<ScriptReport> = listOf()
@@ -61,3 +64,5 @@ sealed class ScriptDependencyResult {
         override val dependencies: ScriptDependencies? get() = null
     }
 }
+
+fun ScriptDependencies.asSuccess(): ScriptDependencyResult.Success = ScriptDependencyResult.Success(this)
