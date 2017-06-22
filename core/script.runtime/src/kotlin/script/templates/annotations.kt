@@ -19,14 +19,13 @@
 package kotlin.script.templates
 
 import kotlin.reflect.KClass
-import kotlin.script.dependencies.EmptyDependenciesResolver
 import kotlin.script.dependencies.ScriptDependenciesResolver
 
 const val DEFAULT_SCRIPT_FILE_PATTERN = ".*\\.kts"
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class ScriptTemplateDefinition(val resolver: KClass<out ScriptDependenciesResolver> = EmptyDependenciesResolver::class,
+annotation class ScriptTemplateDefinition(val resolver: KClass<out ScriptDependenciesResolver> = ScriptDependenciesResolver.Empty::class,
                                           val scriptFilePattern: String = DEFAULT_SCRIPT_FILE_PATTERN)
 
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
