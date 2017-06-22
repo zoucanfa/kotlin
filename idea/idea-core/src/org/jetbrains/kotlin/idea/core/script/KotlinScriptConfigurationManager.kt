@@ -46,7 +46,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.function.Supplier
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import kotlin.script.dependencies.KotlinScriptExternalDependencies
+import kotlin.script.dependencies.ScriptDependencies
 
 
 // NOTE: this service exists exclusively because KotlinScriptConfigurationManager
@@ -54,7 +54,7 @@ import kotlin.script.dependencies.KotlinScriptExternalDependencies
 class IdeScriptExternalImportsProvider(
         private val scriptConfigurationManager: KotlinScriptConfigurationManager
 ) : KotlinScriptExternalImportsProvider {
-    override fun getScriptDependencies(file: VirtualFile): KotlinScriptExternalDependencies? {
+    override fun getScriptDependencies(file: VirtualFile): ScriptDependencies? {
         return scriptConfigurationManager.getScriptDependencies(file)
     }
 }
@@ -147,14 +147,14 @@ class KotlinScriptConfigurationManager(
     private class TimeStampedRequest(val future: CompletableFuture<Unit>, val timeStamp: TimeStamp)
 
     private class DataAndRequest(
-            val dependencies: KotlinScriptExternalDependencies?,
+            val dependencies: ScriptDependencies?,
             val modificationStamp: Long?,
             val requestInProgress: TimeStampedRequest? = null
     )
 
     private val cache = hashMapOf<String, DataAndRequest?>()
 
-    override fun getScriptDependencies(file: VirtualFile): KotlinScriptExternalDependencies = cacheLock.read {
+    override fun getScriptDependencies(file: VirtualFile): ScriptDependencies = cacheLock.read {
         val path = file.path
         val cached = cache[path]
         cached?.dependencies?.let { return it }
@@ -163,7 +163,7 @@ class KotlinScriptConfigurationManager(
 
         updateExternalImportsCache(listOf(file))
 
-        return cache[path]?.dependencies ?: NoDependencies
+        return cache[path]?.dependencies ?: ScriptDependencies.Empty
     }
 
     private fun tryLoadingFromDisk(cached: DataAndRequest?, file: VirtualFile, path: String) {
@@ -225,7 +225,7 @@ class KotlinScriptConfigurationManager(
         val currentTimeStamp = TimeStamps.next()
 
         val newFuture = supplyAsync(Supplier {
-            val newDependencies = resolveDependencies(scriptDefinition, file, oldDataAndRequest?.dependencies) ?: EmptyDependencies
+            val newDependencies = resolveDependencies(scriptDefinition, file) ?: ScriptDependencies.Empty // TODO_R: process null result appropriately
             cacheLock.read {
                 val lastTimeStamp = cache[path]?.requestInProgress?.timeStamp
                 if (lastTimeStamp == currentTimeStamp) {
@@ -253,13 +253,13 @@ class KotlinScriptConfigurationManager(
     private fun updateSync(file: VirtualFile, scriptDef: KotlinScriptDefinition): Boolean {
         val path = file.path
         val oldDeps = cache[path]?.dependencies
-        val newDeps = resolveDependencies(scriptDef, file, oldDeps) ?: EmptyDependencies
+        val newDeps = resolveDependencies(scriptDef, file) ?: ScriptDependencies.Empty
         return cacheSync(newDeps, oldDeps, path, file)
     }
 
     private fun cacheSync(
-            new: KotlinScriptExternalDependencies,
-            old: KotlinScriptExternalDependencies?,
+            new: ScriptDependencies,
+            old: ScriptDependencies?,
             path: String,
             file: VirtualFile
     ): Boolean {
@@ -277,7 +277,7 @@ class KotlinScriptConfigurationManager(
         }
     }
 
-    private fun save(path: String, new: KotlinScriptExternalDependencies?, virtualFile: VirtualFile, persist: Boolean) {
+    private fun save(path: String, new: ScriptDependencies?, virtualFile: VirtualFile, persist: Boolean) {
         cacheLock.write {
             cache.put(path, DataAndRequest(new, virtualFile.modificationStamp))
         }
@@ -342,8 +342,6 @@ class KotlinScriptConfigurationManager(
             }
         }
     }
-
-    private object NoDependencies: KotlinScriptExternalDependencies
 }
 
 private class ClearableLazyValue<out T : Any>(private val lock: ReentrantReadWriteLock, private val compute: () -> T) {
@@ -368,7 +366,7 @@ private class ClearableLazyValue<out T : Any>(private val lock: ReentrantReadWri
 }
 
 // TODO: relying on this to compare dependencies seems wrong, doesn't take javaHome and other stuff into account
-private fun KotlinScriptExternalDependencies.match(other: KotlinScriptExternalDependencies)
+private fun ScriptDependencies.match(other: ScriptDependencies)
         = classpath.isSamePathListAs(other.classpath) &&
           sources.toSet().isSamePathListAs(other.sources.toSet()) // TODO: gradle returns stdlib and reflect sources in unstable order for some reason
 
@@ -390,5 +388,3 @@ object TimeStamps {
 
     fun next() = TimeStamp(current++)
 }
-
-private object EmptyDependencies: KotlinScriptExternalDependencies

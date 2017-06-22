@@ -24,7 +24,7 @@ import org.jetbrains.kotlin.idea.caches.FileAttributeService
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.File
-import kotlin.script.dependencies.KotlinScriptExternalDependencies
+import kotlin.script.dependencies.ScriptDependencies
 
 object ScriptDependenciesFileAttribute {
     private val VERSION = 1
@@ -36,25 +36,25 @@ object ScriptDependenciesFileAttribute {
         fileAttributeService.register(ID, VERSION, false)
     }
 
-    fun write(virtualFile: VirtualFile, dependencies: KotlinScriptExternalDependencies) {
+    fun write(virtualFile: VirtualFile, dependencies: ScriptDependencies) {
         fileAttributeService.write(virtualFile, ID, dependencies) { output, dep ->
             with(dep) {
                 output.writeFileList(classpath)
                 output.writeStringList(imports)
                 // TODO: actually read/write nullable
-                output.writeString(javaHome ?: "")
+                output.writeFile(javaHome ?: File(""))
                 output.writeFileList(scripts)
                 output.writeFileList(sources)
             }
         }
     }
 
-    fun read(virtualFile: VirtualFile): KotlinScriptExternalDependencies? {
+    fun read(virtualFile: VirtualFile): ScriptDependencies? {
         return fileAttributeService.read(virtualFile, ID) { input ->
             SerializedScriptDependencies(
                     classpath = input.readFileList(),
                     imports = input.readStringList(),
-                    javaHome = input.readString(),
+                    javaHome = input.readFile(),
                     scripts = input.readFileList(),
                     sources = input.readFileList()
             )
@@ -63,8 +63,9 @@ object ScriptDependenciesFileAttribute {
 }
 
 private fun DataInput.readStringList(): List<String> = readSeq(this) { readString() }
-private fun DataInput.readFileList() = readStringList().map { File(it) }
+private fun DataInput.readFileList() = readSeq(this) { readFile() }
 private fun DataInput.readString() = readUTF(this)
+private fun DataInput.readFile() = readUTF(this).let { File(it) }
 
 private fun DataOutput.writeFileList(iterable: Iterable<File>) = writeSeq(this, iterable.toList()) { writeFile(it) }
 private fun DataOutput.writeFile(it: File) = writeString(it.canonicalPath)
@@ -73,9 +74,9 @@ private fun DataOutput.writeStringList(iterable: Iterable<String>) = writeSeq(th
 
 
 private class SerializedScriptDependencies(
-        override val classpath: Iterable<File>,
-        override val imports: Iterable<String>,
-        override val javaHome: String?,
-        override val scripts: Iterable<File>,
-        override val sources: Iterable<File>
-) : KotlinScriptExternalDependencies
+        override val classpath: List<File>,
+        override val imports: List<String>,
+        override val javaHome: File?,
+        override val scripts: List<File>,
+        override val sources: List<File>
+) : ScriptDependencies
