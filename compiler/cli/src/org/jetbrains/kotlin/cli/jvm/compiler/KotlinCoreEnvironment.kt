@@ -74,10 +74,7 @@ import org.jetbrains.kotlin.cli.common.script.CliScriptErrorManager
 import org.jetbrains.kotlin.cli.common.script.KotlinScriptExternalImportsProviderImpl
 import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import org.jetbrains.kotlin.cli.jvm.JvmRuntimeVersionsConsistencyChecker
-import org.jetbrains.kotlin.cli.jvm.config.JavaSourceRoot
-import org.jetbrains.kotlin.cli.jvm.config.JvmClasspathRoot
-import org.jetbrains.kotlin.cli.jvm.config.JvmContentRoot
-import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
+import org.jetbrains.kotlin.cli.jvm.config.*
 import org.jetbrains.kotlin.cli.jvm.index.*
 import org.jetbrains.kotlin.cli.jvm.javac.JavacWrapperRegistrar
 import org.jetbrains.kotlin.cli.jvm.modules.CliJavaModuleFinder
