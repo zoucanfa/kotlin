@@ -96,6 +96,20 @@ dist {
     }
 }
 
+compileBuiltinsJava {
+    doFirst {
+        configurations.compile.each {
+            if (it.isFile()) {
+                ant.checksum file: it, property: 'dep_checksum'
+                println("Checksum of ${it} is ${ant.properties['dep_checksum']}")
+            }
+            else {
+                println("Cannot checksum ${it}: does not exist or not a file")
+            }
+        }
+    }
+}
+
 compileBuiltinsKotlin {
     kotlinOptions {
         freeCompilerArgs = [
