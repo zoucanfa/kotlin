@@ -34,19 +34,19 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiElementFinder
 import com.intellij.psi.search.NonClasspathDirectoriesScope
 import com.intellij.util.io.URLUtil
+import kotlinx.coroutines.experimental.asCoroutineDispatcher
+import kotlinx.coroutines.experimental.future.future
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.script.*
 import java.io.File
-import java.lang.Math.max
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.CompletableFuture.supplyAsync
 import java.util.concurrent.Executors.newFixedThreadPool
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import java.util.function.Supplier
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 import kotlin.script.dependencies.ScriptDependencies
+import kotlin.script.dependencies.experimental.AsyncScriptDependenciesResolver
 
 
 // NOTE: this service exists exclusively because KotlinScriptConfigurationManager
@@ -64,7 +64,7 @@ class KotlinScriptConfigurationManager(
         private val scriptDefinitionProvider: KotlinScriptDefinitionProvider
 ) : KotlinScriptExternalImportsProviderBase(project) {
     private val cacheLock = ReentrantReadWriteLock()
-    private val threadPool = newFixedThreadPool(max(1, Runtime.getRuntime().availableProcessors() / 2))
+    private val scriptDependencyUpdatesDispatcher = newFixedThreadPool(1).asCoroutineDispatcher()
 
     init {
         reloadScriptDefinitions()
@@ -189,14 +189,18 @@ class KotlinScriptConfigurationManager(
             return cache.remove(file.path) != null
         }
 
-        // TODO: support apis that allow for async updates for any template
-        if (scriptDef is KotlinScriptDefinitionFromAnnotatedTemplate) {
-            return updateAsync(file, scriptDef)
+        val dependencyResolver = scriptDef.dependencyResolver
+        if (dependencyResolver is AsyncScriptDependenciesResolver) {
+            return updateAsync(file, scriptDef, dependencyResolver)
         }
         return updateSync(file, scriptDef)
     }
 
-    private fun updateAsync(file: VirtualFile, scriptDefinition: KotlinScriptDefinitionFromAnnotatedTemplate): Boolean {
+    private fun updateAsync(
+            file: VirtualFile,
+            scriptDefinition: KotlinScriptDefinition,
+            dependencyResolver: AsyncScriptDependenciesResolver
+    ): Boolean {
         val path = file.path
         val oldDataAndRequest = cache[path]
 
@@ -206,7 +210,7 @@ class KotlinScriptConfigurationManager(
 
         oldDataAndRequest?.requestInProgress?.future?.cancel(true)
 
-        val (currentTimeStamp, newFuture) = sendRequest(path, scriptDefinition, file, oldDataAndRequest)
+        val (currentTimeStamp, newFuture) = sendRequest(path, scriptDefinition, dependencyResolver, file, oldDataAndRequest)
 
         cache[path] = DataAndRequest(
                 oldDataAndRequest?.dependencies,
@@ -218,24 +222,33 @@ class KotlinScriptConfigurationManager(
 
     private fun sendRequest(
             path: String,
-            scriptDefinition: KotlinScriptDefinitionFromAnnotatedTemplate,
+            scriptDef: KotlinScriptDefinition,
+            dependenciesResolver: AsyncScriptDependenciesResolver,
             file: VirtualFile,
             oldDataAndRequest: DataAndRequest?
     ): Pair<TimeStamp, CompletableFuture<Unit>> {
         val currentTimeStamp = TimeStamps.next()
 
-        val newFuture = supplyAsync(Supplier {
-            val newDependencies = resolveDependencies(scriptDefinition, file) ?: ScriptDependencies.Empty // TODO_R: process null result appropriately
+        val newFuture = future(scriptDependencyUpdatesDispatcher) {
+            val result = dependenciesResolver.resolveAsync(
+                    getScriptContents(scriptDef, file),
+                    (scriptDef as? KotlinScriptDefinitionFromAnnotatedTemplate)?.environment.orEmpty()
+            )
+            // TODO_R: process failure appropriately
+            println(result.toString() + "deps=${result.dependencies?.classpath}\nreports=${result.reports}")
             cacheLock.read {
                 val lastTimeStamp = cache[path]?.requestInProgress?.timeStamp
                 if (lastTimeStamp == currentTimeStamp) {
-                    if (cacheSync(newDependencies, oldDataAndRequest?.dependencies, path, file)) {
+                    if (cacheSync(result.dependencies ?: ScriptDependencies.Empty, oldDataAndRequest?.dependencies, path, file)) {
                         invalidateLocalCaches()
                         notifyRootsChanged()
                     }
                 }
             }
-        }, threadPool)
+        }
+                .exceptionally {
+                    it.printStackTrace()
+                }
         return Pair(currentTimeStamp, newFuture)
     }
 
