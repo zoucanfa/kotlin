@@ -80,10 +80,24 @@ compileKotlin {
 
 kotlin.experimental.coroutines "enable"
 
+task originalJar(type: Jar)
+
+configure([originalJar, sourcesJar]) {
+    baseName = 'original-kotlin-reflect'
+    version = null
+}
 
 task reflectShadowJar(type: ShadowJar) {
     classifier = 'shadow'
     version = null
+
+    configurations = [project.configurations.shadows]
+    relocate 'org.jetbrains.kotlin', 'kotlin.reflect.jvm.internal.impl'
+    relocate 'javax.inject', 'kotlin.reflect.jvm.internal.impl.javax.inject'
+    mergeServiceFiles()
+}
+
+configure([originalJar, reflectShadowJar]) {
     manifestAttributes(manifest, project, 'Main')
 
     from (sourceSets.main.output)
@@ -93,11 +107,6 @@ task reflectShadowJar(type: ShadowJar) {
     from ("${core}/deserialization/src") {
         include 'META-INF/services/**'
     }
-
-    configurations = [project.configurations.shadows]
-    relocate 'org.jetbrains.kotlin', 'kotlin.reflect.jvm.internal.impl'
-    relocate 'javax.inject', 'kotlin.reflect.jvm.internal.impl.javax.inject'
-    mergeServiceFiles()
 }
 
 createScriptTask(project, "stripMetadata") {
@@ -182,4 +191,11 @@ artifacts {
 dist {
     from(proguard)
     from(relocatedSourcesJar)
+}
+
+task distOriginal(type: Copy) {
+    from(originalJar)
+    from(sourcesJar)
+    rename('original-', '')
+    into distLibDir
 }
