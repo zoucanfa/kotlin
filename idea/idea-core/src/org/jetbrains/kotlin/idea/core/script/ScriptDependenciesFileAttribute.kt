@@ -49,6 +49,7 @@ object ScriptDependenciesFileAttribute {
         }
     }
 
+    // TODO_R: check cast to VirtualFileWithId
     fun read(virtualFile: VirtualFile): ScriptDependencies? {
         return fileAttributeService.read(virtualFile, ID) { input ->
             SerializedScriptDependencies(
