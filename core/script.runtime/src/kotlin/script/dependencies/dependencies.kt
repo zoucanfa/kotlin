@@ -21,6 +21,7 @@ package kotlin.script.dependencies
 import java.io.File
 import java.util.Collections.emptyList
 
+// TODO_R: open class?
 interface ScriptDependencies {
     val javaHome: File? get() = null
     val classpath: List<File> get() = emptyList()

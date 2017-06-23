@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("unused")
+
 package kotlin.script.dependencies.experimental
 
 import kotlinx.coroutines.experimental.runBlocking

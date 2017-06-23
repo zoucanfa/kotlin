@@ -51,15 +51,12 @@ sealed class ScriptDependencyResult {
     abstract val dependencies: ScriptDependencies?
     abstract val reports: List<ScriptReport>
 
-    operator fun component1() = dependencies
-    operator fun component2() = reports
-
-    class Success(
+    data class Success(
             override val dependencies: ScriptDependencies,
             override val reports: List<ScriptReport> = listOf()
     ) : ScriptDependencyResult()
 
-    class Failure(override val reports: List<ScriptReport>) : ScriptDependencyResult() {
+    data class Failure(override val reports: List<ScriptReport>) : ScriptDependencyResult() {
         constructor(vararg reports: ScriptReport): this(reports.asList())
         override val dependencies: ScriptDependencies? get() = null
     }
