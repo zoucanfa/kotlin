@@ -23,7 +23,6 @@ import org.jetbrains.kotlin.name.NameUtils
 import org.jetbrains.kotlin.parsing.KotlinParserDefinition
 import org.jetbrains.kotlin.psi.KtScript
 import kotlin.reflect.KClass
-import kotlin.script.dependencies.EmptyDependenciesResolver
 import kotlin.script.dependencies.ScriptDependenciesResolver
 import kotlin.script.templates.standard.ScriptTemplateWithArgs
 
@@ -43,7 +42,7 @@ open class KotlinScriptDefinition(val template: KClass<out Any>) {
     open fun getScriptName(script: KtScript): Name =
             NameUtils.getScriptNameForFile(script.containingKtFile.name)
 
-    open val dependencyResolver: ScriptDependenciesResolver = EmptyDependenciesResolver()
+    open val dependencyResolver: ScriptDependenciesResolver = ScriptDependenciesResolver.Empty
 
     open val acceptedAnnotations: List<KClass<out Annotation>> = emptyList()
 }

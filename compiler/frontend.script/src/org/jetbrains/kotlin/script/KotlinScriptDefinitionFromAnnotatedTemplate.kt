@@ -26,7 +26,6 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.primaryConstructor
-import kotlin.script.dependencies.EmptyDependenciesResolver
 import kotlin.script.dependencies.ScriptDependenciesResolver
 import kotlin.script.templates.AcceptedAnnotations
 
@@ -75,7 +74,7 @@ open class KotlinScriptDefinitionFromAnnotatedTemplate(
                     null
                 }
             else -> null
-        } ?: EmptyDependenciesResolver()
+        } ?: ScriptDependenciesResolver.Empty
     }
 
     val samWithReceiverAnnotations: List<String>? by lazy {
