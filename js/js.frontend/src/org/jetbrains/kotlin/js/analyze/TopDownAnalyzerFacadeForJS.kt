@@ -60,18 +60,20 @@ object TopDownAnalyzerFacadeForJS {
             moduleContext: ModuleContext,
             config: JsConfig
     ): JsAnalysisResult {
+        val lookupTracker = config.configuration.get(CommonConfigurationKeys.LOOKUP_TRACKER) ?: LookupTracker.DO_NOTHING
         val packageFragment = config.configuration[JSConfigurationKeys.INCREMENTAL_DATA_PROVIDER]?.let {
             val metadata = PackagesWithHeaderMetadata(it.headerMetadata, it.packagePartsMetadata)
             KotlinJavascriptSerializationUtil.readDescriptors(metadata,
                                                               moduleContext.storageManager,
                                                               moduleContext.module,
-                                                              DeserializationConfiguration.Default)
+                                                              DeserializationConfiguration.Default,
+                                                              lookupTracker)
         }
         val analyzerForJs = createTopDownAnalyzerForJs(
                 moduleContext, trace,
                 FileBasedDeclarationProviderFactory(moduleContext.storageManager, files),
                 config.configuration.languageVersionSettings,
-                config.configuration.get(CommonConfigurationKeys.LOOKUP_TRACKER) ?: LookupTracker.DO_NOTHING,
+                lookupTracker,
                 packageFragment
         )
         analyzerForJs.analyzeDeclarations(TopDownAnalysisMode.TopLevelDeclarations, files)

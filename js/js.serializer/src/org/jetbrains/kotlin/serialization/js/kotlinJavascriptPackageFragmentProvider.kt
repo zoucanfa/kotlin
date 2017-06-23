@@ -30,7 +30,8 @@ fun createKotlinJavascriptPackageFragmentProvider(
         module: ModuleDescriptor,
         header: JsProtoBuf.Header,
         packageFragmentProtos: List<ProtoBuf.PackageFragment>,
-        configuration: DeserializationConfiguration
+        configuration: DeserializationConfiguration,
+        lookupTracker: LookupTracker
 ): PackageFragmentProvider {
     val packageFragments = packageFragmentProtos.mapNotNull { proto ->
         proto.fqName?.let { fqName ->
@@ -51,7 +52,7 @@ fun createKotlinJavascriptPackageFragmentProvider(
             provider,
             LocalClassifierTypeSettings.Default,
             ErrorReporter.DO_NOTHING,
-            LookupTracker.DO_NOTHING,
+            lookupTracker,
             DynamicTypeDeserializer,
             emptyList(),
             notFoundClasses
