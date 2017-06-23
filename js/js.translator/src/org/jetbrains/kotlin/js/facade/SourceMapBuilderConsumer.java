@@ -21,7 +21,6 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.PairConsumer;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.kotlin.js.backend.ast.JsLocation;
 import org.jetbrains.kotlin.js.backend.ast.JsLocationWithSource;
 import org.jetbrains.kotlin.js.sourceMap.SourceFilePathResolver;
 import org.jetbrains.kotlin.js.sourceMap.SourceMapBuilder;
@@ -80,15 +79,10 @@ public class SourceMapBuilderConsumer implements PairConsumer<SourceMapBuilder, 
                 throw new RuntimeException("IO error occurred generating source maps", e);
             }
         }
-        else if (sourceInfo instanceof JsLocation) {
-            JsLocation location = (JsLocation) sourceInfo;
-            builder.addMapping(location.getFile(), null, () -> null, location.getStartLine(), location.getStartChar());
-        }
         else if (sourceInfo instanceof JsLocationWithSource) {
-            JsLocationWithSource locationWithSource = (JsLocationWithSource) sourceInfo;
-            JsLocation location = locationWithSource.getLocation();
-            Supplier<Reader> contentSupplier = provideExternalModuleContent ? locationWithSource.getSourceProvider()::invoke : () -> null;
-            builder.addMapping(location.getFile(), locationWithSource.getIdentityObject(), contentSupplier,
+            JsLocationWithSource location = (JsLocationWithSource) sourceInfo;
+            Supplier<Reader> contentSupplier = provideExternalModuleContent ? location.getSourceProvider()::invoke : () -> null;
+            builder.addMapping(location.getFile(), location.getIdentityObject(), contentSupplier,
                                location.getStartLine(), location.getStartChar());
         }
     }

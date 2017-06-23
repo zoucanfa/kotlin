@@ -73,22 +73,17 @@ object SourceMapParser {
             emptyList()
         }
 
-        val sourcesContent = if (jsonObject.has("sourcesContent")) {
+        val sourcesContent: List<String?> = if (jsonObject.has("sourcesContent")) {
             val sourcesContentProperty = jsonObject.get("sourcesContent") as? JSONArray ?:
                                          return SourceMapError("'sourcesContent' property is not of array type")
-            sourcesContentProperty.map {
-                when (it) {
-                    is String -> it
-                    null -> null
-                    else -> return SourceMapError("'sources' array must contain strings")
-                }
-            }
+            if (sourcesContentProperty.any { it !is String? }) return SourceMapError("'sources' array must contain strings")
+            sourcesContentProperty.map { it as String? }
         }
         else {
-            null
+            emptyList()
         }
 
-        val sourcePathToContent = if (sourcesContent != null) sources.zip(sourcesContent).associate { it } else emptyMap()
+        val sourcePathToContent = sources.zip(sourcesContent).associate { it }
 
         if (!jsonObject.has("mappings")) return SourceMapError("'mappings' property not found")
         val mappings = jsonObject.get("mappings") as? String ?: return SourceMapError("'mappings' property is not of string type")
