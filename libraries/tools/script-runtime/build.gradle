@@ -5,8 +5,15 @@ apply plugin: 'kotlin'
 configureJvmProject(project)
 configurePublishing(project)
 
+repositories {
+    maven {
+        setUrl("https://dl.bintray.com/kotlin/kotlinx/")
+    }
+}
+
 dependencies {
     compileOnly project(':kotlin-stdlib')
+    compileOnly('org.jetbrains.kotlinx:kotlinx-coroutines-core:0.14.1')
 }
 
 sourceSets {
