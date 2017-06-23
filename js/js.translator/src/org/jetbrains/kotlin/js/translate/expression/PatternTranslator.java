@@ -87,7 +87,7 @@ public final class PatternTranslator extends AbstractTranslator {
             expressionToCast = JsAstUtils.charToBoxedChar(expressionToCast);
         }
 
-        TemporaryVariable temporary = context().declareTemporary(expressionToCast);
+        TemporaryVariable temporary = context().declareTemporary(expressionToCast, expression);
         JsExpression isCheck = translateIsCheck(temporary.assignmentExpression(), typeReference);
         if (isCheck == null) return expressionToCast;
 
