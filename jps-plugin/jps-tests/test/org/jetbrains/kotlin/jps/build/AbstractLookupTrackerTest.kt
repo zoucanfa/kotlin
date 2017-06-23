@@ -207,28 +207,32 @@ abstract class AbstractLookupTrackerTest : TestWithWorkingDir() {
         val steps = getModificationsToPerform(testDir, moduleNames = null, allowNoFilesWithSuffixInTestData = true, touchPolicy = TouchPolicy.CHECKSUM)
                 .filter { it.isNotEmpty() }
 
-        val originalFilesToLookups = arrayListOf<Map<File, List<LookupInfo>>>()
+        val filesToLookups = arrayListOf<Map<File, List<LookupInfo>>>()
         fun CompilerOutput.originalFilesToLookups() =
                 compiledFiles.associateBy({ workToOriginalFileMap[it]!! }, { lookups[it] ?: emptyList() })
 
         make(dirtyFiles, incrementalData).apply {
             logOutput("INITIAL BUILD")
-            originalFilesToLookups.add(originalFilesToLookups())
+            filesToLookups.add(originalFilesToLookups())
 
         }
         for ((i, modifications) in steps.withIndex()) {
             dirtyFiles = modifications.mapNotNullTo(HashSet()) { it.perform(workingDir, workToOriginalFileMap) }
             make(dirtyFiles, incrementalData).apply {
                 logOutput("STEP ${i + 1}")
-                originalFilesToLookups.add(originalFilesToLookups())
+                filesToLookups.add(originalFilesToLookups())
             }
         }
 
         val expectedBuildLog = File(testDir, "build.log")
         UsefulTestCase.assertSameLinesWithFile(expectedBuildLog.canonicalPath, sb.toString())
 
-        for ((i, lookupsAtStepI) in originalFilesToLookups.withIndex()) {
-
+        assertEquals(steps.size + 1, filesToLookups.size)
+        for ((i, lookupsAtStepI) in filesToLookups.withIndex()) {
+            val step = if (i == 0) "INITIAL BUILD" else "STEP $i"
+            for ((file, lookups) in lookupsAtStepI) {
+                checkLookupsInFile(step, file, lookups)
+            }
         }
     }
 
@@ -244,6 +248,10 @@ abstract class AbstractLookupTrackerTest : TestWithWorkingDir() {
             filesToCompile: Iterable<File>,
             incrementalData: IncrementalData
     ): CompilerOutput {
+        filesToCompile.forEach {
+            it.writeText(it.readText().replace(COMMENT_WITH_LOOKUP_INFO, ""))
+        }
+
         for (dirtyFile in filesToCompile) {
             incrementalData.sourceToOutput.remove(dirtyFile)?.forEach {
                 it.delete()
@@ -267,7 +275,8 @@ abstract class AbstractLookupTrackerTest : TestWithWorkingDir() {
         }
 
         val lookups = lookupTracker.lookups.groupBy { File(it.filePath) }
-        return CompilerOutput(exitCode.toString(), messageCollector.errors, filesToCompile, lookups)
+        val lookupsFromCompiledFiles = filesToCompile.associate { it to (lookups[it] ?: emptyList()) }
+        return CompilerOutput(exitCode.toString(), messageCollector.errors, filesToCompile, lookupsFromCompiledFiles)
     }
 
     protected open fun Services.Builder.registerAdditionalServices() {}
@@ -337,7 +346,7 @@ abstract class AbstractLookupTrackerTest : TestWithWorkingDir() {
         }
 
         val actual = lines.joinToString("\n")
-        KotlinTestUtils.assertEqualsToFile(expectedFile, actual,)
+        KotlinTestUtils.assertEqualsToFile("Lookups do not match after $step", expectedFile, actual)
     }
 }
 
