@@ -16,8 +16,6 @@
 
 package org.jetbrains.kotlin.incremental
 
-import com.intellij.openapi.Disposable
-import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.util.io.PersistentEnumeratorBase
 import org.jetbrains.kotlin.annotation.AnnotationFileUpdater
 import org.jetbrains.kotlin.build.GeneratedFile
@@ -28,23 +26,14 @@ import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
-import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.compilerRunner.ArgumentUtils
 import org.jetbrains.kotlin.compilerRunner.MessageCollectorToOutputItemsCollectorAdapter
 import org.jetbrains.kotlin.compilerRunner.OutputItemsCollectorImpl
-import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.IncrementalCompilation
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.incremental.multiproject.ArtifactChangesProvider
 import org.jetbrains.kotlin.incremental.multiproject.ChangesRegistry
-import org.jetbrains.kotlin.js.analyzer.JsAnalysisResult
-import org.jetbrains.kotlin.js.config.JSConfigurationKeys
-import org.jetbrains.kotlin.js.config.JsConfig
-import org.jetbrains.kotlin.js.facade.K2JSTranslator
-import org.jetbrains.kotlin.js.facade.MainCallParameters
-import org.jetbrains.kotlin.js.facade.TranslationResult
-import org.jetbrains.kotlin.js.facade.TranslationUnit
 import org.jetbrains.kotlin.js.incremental.IncrementalDataProvider
 import org.jetbrains.kotlin.js.incremental.IncrementalDataProviderImpl
 import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumer
@@ -53,8 +42,6 @@ import org.jetbrains.kotlin.load.kotlin.header.KotlinClassHeader
 import org.jetbrains.kotlin.modules.TargetId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.progress.CompilationCanceledStatus
-import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.serialization.js.PackagesWithHeaderMetadata
 import java.io.File
 import java.io.IOException
 import java.util.*
