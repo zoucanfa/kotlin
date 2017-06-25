@@ -196,4 +196,14 @@ class Kotlin2JsGradlePluginIT : BaseGradleIT() {
             assertTrue("Source map should contain reference to $sourceFilePath") { map.contains("\"$sourceFilePath\"") }
         }
     }
+
+    /** Issue: KT-18495 */
+    @Test
+    fun testNoSeparateClassesDirWarning() {
+        val project = Project("kotlin2JsProject", "4.0")
+        project.build("build") {
+            assertSuccessful()
+            assertNotContains("this build assumes a single directory for all classes from a source set")
+        }
+    }
 }
