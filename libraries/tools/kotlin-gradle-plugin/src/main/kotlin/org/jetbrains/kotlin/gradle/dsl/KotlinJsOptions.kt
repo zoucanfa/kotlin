@@ -50,7 +50,7 @@ interface KotlinJsOptions  : org.jetbrains.kotlin.gradle.dsl.KotlinCommonOptions
 
     /**
      * Embed source files into source map
-     * Possible values: never, always, inlining
+     * Possible values: "never", "always", "inlining"
      * Default value: "inlining"
      */
      var sourceMapEmbedSources: kotlin.String
