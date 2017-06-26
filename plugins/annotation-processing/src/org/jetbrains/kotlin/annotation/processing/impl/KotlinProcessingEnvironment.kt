@@ -26,8 +26,6 @@ import org.jetbrains.kotlin.java.model.internal.JeElementRegistry
 import org.jetbrains.kotlin.java.model.util.disposeAll
 import org.jetbrains.kotlin.java.model.util.toDisposable
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.utils.toDisposable
-import org.jetbrains.kotlin.utils.dispose
 import java.io.File
 import java.util.*
 import javax.annotation.processing.ProcessingEnvironment
