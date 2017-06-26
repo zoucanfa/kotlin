@@ -122,11 +122,7 @@
                 <fileset dir="${output}/kotlinc" />
             </copy>
             <chmod perm="ugo+rx">
-                <fileset dir="${package_deploy_dir}/bin/">
-                    <include name="kotlinc"/>
-                    <include name="kotlinc-js"/>
-                    <include name="kotlinc-jvm"/>
-                </fileset>
+                <fileset dir="${package_deploy_dir}/bin/*"/>
             </chmod>
         </publish-to-npm>
     </target>
