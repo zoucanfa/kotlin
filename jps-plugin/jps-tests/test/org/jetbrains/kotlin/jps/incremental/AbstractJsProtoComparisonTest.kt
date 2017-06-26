@@ -25,13 +25,15 @@ import org.jetbrains.kotlin.incremental.Difference
 import org.jetbrains.kotlin.incremental.PackagePartProtoData
 import org.jetbrains.kotlin.incremental.ProtoData
 import org.jetbrains.kotlin.incremental.utils.TestMessageCollector
-import org.jetbrains.kotlin.js.incremental.IncrementalJsService
-import org.jetbrains.kotlin.js.incremental.IncrementalJsServiceImpl
+import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumer
+import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.serialization.ProtoBuf
 import org.jetbrains.kotlin.serialization.deserialization.NameResolverImpl
 import org.jetbrains.kotlin.serialization.js.JsProtoBuf
+import org.jetbrains.kotlin.serialization.js.JsSerializerProtocol
 import org.junit.Assert
 import java.io.File
 
@@ -42,10 +44,10 @@ abstract class AbstractJsProtoComparisonTest : AbstractProtoComparisonTest<Proto
                 ?: super.expectedOutputFile(testDir)
 
     override fun compileAndGetClasses(sourceDir: File, outputDir: File): Map<ClassId, ProtoData> {
-        val incrementalService = IncrementalJsServiceImpl()
+        val incrementalResults = IncrementalResultsConsumerImpl()
         // todo: find out if it is safe to call directly
         val services = Services.Builder().run {
-            register(IncrementalJsService::class.java, incrementalService)
+            register(IncrementalResultsConsumer::class.java, incrementalResults)
             build()
         }
 
@@ -66,7 +68,8 @@ abstract class AbstractJsProtoComparisonTest : AbstractProtoComparisonTest<Proto
 
         val classes = hashMapOf<ClassId, ProtoData>()
 
-        for ((sourceFile, proto) in incrementalService.packageParts) {
+        for ((sourceFile, protoBytes, _) in incrementalResults.packageParts) {
+            val proto = ProtoBuf.PackageFragment.parseFrom(protoBytes, JsSerializerProtocol.extensionRegistry)
             val nameResolver = NameResolverImpl(proto.strings, proto.qualifiedNames)
 
             proto.class_List.forEach {
