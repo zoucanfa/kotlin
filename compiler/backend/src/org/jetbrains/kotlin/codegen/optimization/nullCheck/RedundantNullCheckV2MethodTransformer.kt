@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.codegen.optimization.common.isInsn
 import org.jetbrains.kotlin.codegen.optimization.fixStack.peek
 import org.jetbrains.kotlin.codegen.optimization.fixStack.top
 import org.jetbrains.kotlin.codegen.optimization.transformer.MethodTransformer
+import org.jetbrains.kotlin.resolve.jvm.AsmTypes
 import org.jetbrains.kotlin.utils.SmartList
 import org.jetbrains.kotlin.utils.addToStdlib.assertedCast
 import org.jetbrains.org.objectweb.asm.Label
@@ -205,7 +206,7 @@ class RedundantNullCheckV2MethodTransformer : MethodTransformer() {
                 for ((varIndex, dependentChecks) in checksDependingOnVariable) {
                     for (checkInsn in dependentChecks) {
                         val varType = checkedReferenceTypes[checkInsn]
-                                      ?: throw AssertionError("No var type @${checkInsn.getIndex()}")
+                                      ?: AsmTypes.OBJECT_TYPE
                         nullabilityAssumptions.injectAssumptionsForCheck(varIndex, checkInsn, varType)
                     }
                 }
