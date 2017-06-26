@@ -69,6 +69,7 @@ class JavacWrapper(
         kotlinFiles: Collection<KtFile>,
         arguments: Array<String>?,
         jvmClasspathRoots: List<File>,
+        private val compileJava: Boolean,
         private val outputDirectory: File?,
         private val context: Context
 ) : Closeable {
@@ -148,6 +149,7 @@ class JavacWrapper(
     private val symbolBasedPackagesCache = hashMapOf<String, SymbolBasedPackage?>()
 
     fun compile(outDir: File? = null): Boolean = with(javac) {
+        if (!compileJava) return true
         if (errorCount() > 0) return false
 
         val javaFilesNumber = fileObjects.length()
