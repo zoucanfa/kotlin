@@ -23,15 +23,10 @@ import java.io.DataOutput
 import java.io.File
 import java.util.*
 
-open class JsIncrementalCache(
-        private val cachesDir: File
-) : BasicMapsOwner() {
+open class IncrementalJsCache(cachesDir: File) : BasicMapsOwner(cachesDir) {
     companion object {
         private val TRANSLATION_RESULT_MAP = "translation-result"
     }
-
-    protected val String.storageFile: File
-        get() = File(cachesDir, this + "." + CACHE_EXTENSION)
 
     val translationResults = registerMap(TranslationResultMap(TRANSLATION_RESULT_MAP.storageFile))
 }

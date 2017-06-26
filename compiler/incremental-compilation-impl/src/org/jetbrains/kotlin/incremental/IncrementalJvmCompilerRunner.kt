@@ -21,23 +21,16 @@ import org.jetbrains.kotlin.annotation.AnnotationFileUpdater
 import org.jetbrains.kotlin.build.GeneratedFile
 import org.jetbrains.kotlin.build.GeneratedJvmClass
 import org.jetbrains.kotlin.cli.common.ExitCode
-import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
-import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.compilerRunner.ArgumentUtils
 import org.jetbrains.kotlin.compilerRunner.MessageCollectorToOutputItemsCollectorAdapter
 import org.jetbrains.kotlin.compilerRunner.OutputItemsCollectorImpl
 import org.jetbrains.kotlin.config.IncrementalCompilation
-import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.incremental.multiproject.ArtifactChangesProvider
 import org.jetbrains.kotlin.incremental.multiproject.ChangesRegistry
-import org.jetbrains.kotlin.js.incremental.IncrementalDataProvider
-import org.jetbrains.kotlin.js.incremental.IncrementalDataProviderImpl
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumer
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.load.kotlin.header.KotlinClassHeader
 import org.jetbrains.kotlin.modules.TargetId
 import org.jetbrains.kotlin.name.FqName
@@ -70,26 +63,7 @@ fun makeIncrementally(
     }
 }
 
-fun makeJsIncrementally(
-        cachesDir: File,
-        sourceRoots: Iterable<File>,
-        args: K2JSCompilerArguments,
-        messageCollector: MessageCollector = MessageCollector.NONE,
-        reporter: ICReporter = EmptyICReporter
-) {
-    val versions = commonCacheVersions(cachesDir) + jsCacheVersion(cachesDir)
-    val allKotlinFiles = sourceRoots.asSequence().flatMap { it.walk() }
-            .filter { it.isFile && it.extension.equals("kt", ignoreCase = true) }.toList()
-
-    withJsIC {
-        val compiler = IncrementalJsCompilerRunner(cachesDir, versions, reporter)
-        compiler.compile(allKotlinFiles, args, messageCollector) {
-            it.sourceSnapshotMap.compareAndUpdate(allKotlinFiles)
-        }
-    }
-}
-
-private object EmptyICReporter : ICReporter {
+object EmptyICReporter : ICReporter {
     override fun report(message: ()->String) {
     }
 }
@@ -103,224 +77,6 @@ inline fun <R> withIC(fn: ()->R): R {
     }
     finally {
         IncrementalCompilation.setIsEnabled(isEnabledBackup)
-    }
-}
-
-inline fun <R> withJsIC(fn: ()->R): R {
-    val isJsEnabledBackup = IncrementalCompilation.isEnabledForJs()
-    IncrementalCompilation.setIsEnabledForJs(true)
-
-    try {
-        return withIC { fn() }
-    }
-    finally {
-        IncrementalCompilation.setIsEnabledForJs(isJsEnabledBackup)
-    }
-}
-
-class IncrementalJsCompilerRunner(
-        workingDir: File,
-        private val cacheVersions: List<CacheVersion>,
-        private val reporter: ICReporter
-) {
-    private val cacheDirectory = File(workingDir, CACHES_DIR_NAME)
-
-    fun compile(
-            allKotlinSources: List<File>,
-            args: K2JSCompilerArguments,
-            messageCollector: MessageCollector,
-            changedFiles: (JsGradleIncrementalCacheImpl)->ChangedFiles
-    ): ExitCode {
-        var caches = JsGradleIncrementalCacheImpl(cacheDirectory)
-
-        fun onError(e: Exception): ExitCode {
-            caches.clean()
-            try {
-                caches.close()
-            }
-            catch (e: Throwable) {}
-            finally {
-                cacheDirectory.deleteRecursively()
-                cacheDirectory.mkdirs()
-            }
-
-            // todo: warn?
-            reporter.report { "Possible cache corruption. Rebuilding. $e" }
-            caches = JsGradleIncrementalCacheImpl(cacheDirectory)
-            return compileIncrementally(args, caches, allKotlinSources, CompilationMode.Rebuild, messageCollector)
-        }
-
-        return try {
-            val compilationMode = calculateSourcesToCompile(caches, changedFiles(caches), args)
-            compileIncrementally(args, caches, allKotlinSources, compilationMode, messageCollector)
-        }
-        catch (e: PersistentEnumeratorBase.CorruptedException) {
-            onError(e)
-        }
-        catch (e: IOException) {
-            onError(e)
-        }
-        finally {
-            var seenError = false
-            try {
-                caches.flush(memoryCachesOnly = false)
-            }
-            catch (e: Throwable) {
-                seenError = true
-            }
-
-            try {
-                caches.close()
-            }
-            catch (e: Throwable) {
-                seenError = true
-                cacheDirectory.deleteRecursively()
-                cacheDirectory.mkdirs()
-            }
-
-            if (!seenError) {
-                reporter.report { "flushed incremental caches" }
-            }
-            else {
-                reporter.report { "error during closing caches" }
-            }
-        }
-    }
-
-    private sealed class CompilationMode {
-        class Incremental(val dirtyFiles: Set<File>) : CompilationMode()
-        object Rebuild : CompilationMode()
-    }
-
-    private fun calculateSourcesToCompile(
-            caches: JsIncrementalCache,
-            changedFiles: ChangedFiles,
-            args: K2JSCompilerArguments
-    ): CompilationMode {
-        fun rebuild(reason: ()->String): CompilationMode {
-            reporter.report { "Non-incremental compilation will be performed: ${reason()}" }
-            caches.clean()
-            //dirtySourcesSinceLastTimeFile.delete()
-            args.outputFile?.let { File(it).delete() }
-            return CompilationMode.Rebuild
-        }
-
-        if (changedFiles !is ChangedFiles.Known) return rebuild { "inputs' changes are unknown (first or clean build)" }
-
-        val dirtyFiles = HashSet<File>(with(changedFiles) { modified.size + removed.size})
-        with(changedFiles) {
-            modified.asSequence() + removed.asSequence()
-        }.forEach { if (it.isKotlinFile()) dirtyFiles.add(it) }
-
-        return CompilationMode.Incremental(dirtyFiles)
-    }
-
-    private fun compileIncrementally(
-            args: K2JSCompilerArguments,
-            cache: JsIncrementalCache,
-            allKotlinSources: List<File>,
-            compilationMode: CompilationMode,
-            messageCollector: MessageCollector
-    ): ExitCode {
-        assert(IncrementalCompilation.isEnabledForJs()) { "Incremental compilation is not enabled" }
-
-        @Suppress("NAME_SHADOWING")
-        var compilationMode = compilationMode
-        var dirtySources: MutableList<File>
-
-        when (compilationMode) {
-            is CompilationMode.Incremental -> {
-                dirtySources = ArrayList(compilationMode.dirtyFiles)
-            }
-            is CompilationMode.Rebuild -> {
-                dirtySources = allKotlinSources.toMutableList()
-            }
-        }.run {} // run is added to force exhaustive when
-
-        val allSourcesToCompile = HashSet<File>()
-        args.freeArgs.addAll(allKotlinSources.map { it.absolutePath })
-
-        var exitCode = ExitCode.OK
-        while (dirtySources.any()) {
-            val (sourcesToCompile, _) = dirtySources.partition(File::exists)
-            allSourcesToCompile.addAll(sourcesToCompile)
-
-            // todo: val text = allSourcesToCompile.map { it.canonicalPath }.joinToString(separator = System.getProperty("line.separator"))
-            // todo: dirtySourcesSinceLastTimeFile.writeText(text)
-            val metadataHeaderFile = File(cacheDirectory, "header.metadata")
-
-            val services = Services.Builder()
-            if (compilationMode is CompilationMode.Incremental) {
-                dirtySources.forEach { cache.translationResults.remove(it) }
-                val headerMetada = metadataHeaderFile.readBytes()
-                val packagePartsMetadata = arrayListOf<ByteArray>()
-                val binaryTrees = arrayListOf<ByteArray>()
-
-                cache.translationResults.values().forEach {
-                    packagePartsMetadata.add(it.metadata)
-                    binaryTrees.add(it.binaryAst)
-                }
-
-                val incrementalDataProvider = IncrementalDataProviderImpl(
-                        headerMetada,
-                        packagePartsMetadata = packagePartsMetadata,
-                        binaryTrees = binaryTrees)
-                services.register(IncrementalDataProvider::class.java, incrementalDataProvider)
-            }
-            else {
-                cache.clean()
-            }
-
-            val incrementalResults = IncrementalResultsConsumerImpl()
-            services.register(IncrementalResultsConsumer::class.java, incrementalResults)
-
-            exitCode = compileChanged(sourcesToCompile.toSet(), args, messageCollector, services.build())
-            if (exitCode != ExitCode.OK) break
-
-            //dirtySourcesSinceLastTimeFile.delete()
-            metadataHeaderFile.writeBytes(incrementalResults.headerMetadata!!)
-
-            var hasChanges = false
-            incrementalResults.packageParts.forEach {
-                hasChanges = hasChanges || cache.translationResults.put(it.sourceFile, metadata = it.proto, binaryAst = it.binaryAst)
-            }
-
-            if (compilationMode is CompilationMode.Rebuild || !hasChanges) break
-
-            compilationMode = CompilationMode.Rebuild
-            dirtySources = allKotlinSources.toMutableList()
-        }
-
-        if (exitCode == ExitCode.OK) {
-            cacheVersions.forEach { it.saveIfNeeded() }
-        }
-
-        return exitCode
-    }
-
-    private fun compileChanged(
-            sourcesToCompile: Set<File>,
-            args: K2JSCompilerArguments,
-            messageCollector: MessageCollector,
-            services: Services
-    ): ExitCode {
-        val compiler = K2JSCompiler()
-
-        args.reportOutputFiles = true
-        val outputItemCollector = OutputItemsCollectorImpl()
-        @Suppress("NAME_SHADOWING")
-        val messageCollector = MessageCollectorToOutputItemsCollectorAdapter(messageCollector, outputItemCollector)
-
-        //reporter.report { "compiling with args: ${ArgumentUtils.convertArgumentsToStringList(args)}" }
-        //reporter.report { "compiling with classpath: ${classpath.toList().sorted().joinToString()}" }
-
-        return compiler.exec(messageCollector, services, args).also { exitCode ->
-            reporter.reportCompileIteration(sourcesToCompile, exitCode)
-        }
-    }
-
-    companion object {
-        const val CACHES_DIR_NAME = "caches-js"
     }
 }
 
