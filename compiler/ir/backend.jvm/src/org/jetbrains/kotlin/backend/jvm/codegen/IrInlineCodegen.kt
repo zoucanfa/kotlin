@@ -40,27 +40,30 @@ class IrInlineCodegen(
 ) : InlineCodegen<ExpressionCodegen>(codegen, state, function, typeParameterMappings, sourceCompiler), IrCallGenerator {
 
     override fun putClosureParametersOnStack(next: LambdaInfo, functionReferenceReceiver: StackValue?) {
-        //closure conversion
+        val lambdaInfo = next as IrExpressionLambda
+
+        val argumentTypes = lambdaInfo.loweredMethod.argumentTypes
+        lambdaInfo.reference.getArguments().forEachIndexed { index, (descriptor, ir) ->
+            putCapturedValueOnStack(ir, argumentTypes[index], index)
+        }
     }
 
     override fun genValueAndPut(valueParameterDescriptor: ValueParameterDescriptor?, argumentExpression: IrExpression, parameterType: Type, parameterIndex: Int, codegen: ExpressionCodegen, blockInfo: BlockInfo) {
         //if (isInliningParameter(argumentExpression, valueParameterDescriptor)) {
         if (argumentExpression is IrBlock && argumentExpression.origin == IrStatementOrigin.LAMBDA) {
-            val irReference = argumentExpression.statements.filterIsInstance<IrFunctionReference>().single()
-            val irFunction = irReference.symbol.owner
-            val lambdaInfo = rememberClosure(irFunction as IrFunction, parameterType, valueParameterDescriptor!!) as IrExpressionLambda
-
-            val argumentTypes = lambdaInfo.loweredMethod.argumentTypes
-            irReference.getArguments().forEachIndexed { index, (descriptor, ir) ->
-                putCapturedValueOnStack(ir, argumentTypes[index], index)
-            }
+            val irReference: IrFunctionReference = argumentExpression.statements.filterIsInstance<IrFunctionReference>().single()
+            rememberClosure(irReference, parameterType, valueParameterDescriptor!!) as IrExpressionLambda
         }
         else {
             putValueOnStack(argumentExpression, parameterType, valueParameterDescriptor?.index ?: -1)
         }
     }
 
-     fun putCapturedValueOnStack(argumentExpression: IrExpression, valueType: Type, capturedParamindex: Int) {
+    override fun putValueIfNeeded(parameterType: Type, value: StackValue, kind: ValueKind, parameterIndex: Int, codegen: ExpressionCodegen) {
+        putArgumentOrCapturedToLocalVal(value.type, value, -1, parameterIndex, ValueKind.CAPTURED)
+    }
+
+    fun putCapturedValueOnStack(argumentExpression: IrExpression, valueType: Type, capturedParamindex: Int) {
         val onStack = codegen.gen(argumentExpression, valueType, BlockInfo.create())
         putArgumentOrCapturedToLocalVal(onStack.type, onStack, capturedParamindex, capturedParamindex, ValueKind.CAPTURED)
     }
@@ -79,11 +82,12 @@ class IrInlineCodegen(
         performInline(typeArguments, callDefault, codegen)
     }
 
-    private fun rememberClosure(expression: IrFunction, type: Type, parameter: ValueParameterDescriptor): LambdaInfo {
+    private fun rememberClosure(irReference: IrFunctionReference, type: Type, parameter: ValueParameterDescriptor): LambdaInfo {
         //assert(InlineUtil.isInlinableParameterExpression(ktLambda)) { "Couldn't find inline expression in ${expression.text}" }
 
+        val expression = irReference.symbol.owner as IrFunction
         return IrExpressionLambda(
-                expression, typeMapper, parameter.isCrossinline, false/*TODO*/
+                irReference, expression, typeMapper, parameter.isCrossinline, false/*TODO*/
         ).also { lambda ->
             val closureInfo = invocationParamBuilder.addNextValueParameter(type, true, null, parameter.index)
             closureInfo.lambda = lambda
@@ -93,7 +97,8 @@ class IrInlineCodegen(
 }
 
 class IrExpressionLambda(
-        val expression: IrFunction,
+        val reference: IrFunctionReference,
+        val function: IrFunction,
         typeMapper: KotlinTypeMapper,
         isCrossInline: Boolean,
         override val isBoundCallableReference: Boolean
@@ -108,13 +113,13 @@ class IrExpressionLambda(
         get() = Type.getObjectType("test123")
 
     override val invokeMethod: Method
-        get() = typeMapper.mapAsmMethod(expression.descriptor)
+        get() = typeMapper.mapAsmMethod(function.descriptor)
 
     val loweredMethod: Method
-        get() = typeMapper.mapAsmMethod(expression.descriptor)
+        get() = typeMapper.mapAsmMethod(function.descriptor)
 
     override val invokeMethodDescriptor: FunctionDescriptor
-        get() = expression.descriptor
+        get() = function.descriptor
 
     override val capturedVars: List<CapturedParamDesc>
         get() = emptyList() //cause closure conversion
