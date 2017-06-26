@@ -93,14 +93,11 @@ class JavaTypeResolver(
         val allowFlexible = attr.allowFlexible && attr.howThisTypeIsUsed != SUPERTYPE
         val isRaw = javaType.isRaw
         if (!isRaw && !allowFlexible) {
-            return computeSimpleJavaClassifierType(javaType, attr) ?: errorType()
+            return computeSimpleJavaClassifierType(javaType, attr, null) ?: errorType()
         }
 
-        fun computeBound(lower: Boolean, lowerResult: SimpleType? = null) =
-                computeSimpleJavaClassifierType(javaType, attr.computeAttributes(allowFlexible, isRaw, forLower = lower), lowerResult)
-
-        val lower = computeBound(lower = true) ?: return errorType()
-        val upper = computeBound(lower = false, lowerResult = lower) ?: return errorType()
+        val lower = computeSimpleJavaClassifierType(javaType, attr.computeAttributes(allowFlexible, isRaw, forLower = true), null) ?: return errorType()
+        val upper = computeSimpleJavaClassifierType(javaType, attr.computeAttributes(allowFlexible, isRaw, forLower = false), lower) ?: return errorType()
 
         return if (javaType.isRaw) {
             RawTypeImpl(lower, upper)
@@ -112,7 +109,7 @@ class JavaTypeResolver(
 
     private fun computeSimpleJavaClassifierType(
             javaType: JavaClassifierType, attr: JavaTypeAttributes,
-            lowerResult: SimpleType? = null
+            lowerResult: SimpleType?
     ): SimpleType? {
         val annotations =
                 lowerResult?.annotations ?: composeAnnotations(c.resolveAnnotations(javaType), attr.typeAnnotations)
