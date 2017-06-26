@@ -65,7 +65,7 @@ class IrSourceCompilerForInline(
     override fun generateLambdaBody(adapter: MethodVisitor, jvmMethodSignature: JvmMethodSignature, lambdaInfo: ExpressionLambda): SMAP {
         lambdaInfo as? IrExpressionLambda ?: error("Expecting ir lambda, but $lambdaInfo")
 
-        val functionCodegen = object : FunctionCodegen(lambdaInfo.expression, codegen.classCodegen) {
+        val functionCodegen = object : FunctionCodegen(lambdaInfo.function, codegen.classCodegen) {
             override fun createMethod(flags: Int, signature: JvmMethodGenericSignature): MethodVisitor {
                 //TODO: to avoid smap assertion
                 adapter.visitLineNumber(1, Label())
