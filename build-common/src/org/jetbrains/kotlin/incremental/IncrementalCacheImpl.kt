@@ -53,7 +53,7 @@ open class IncrementalCacheImpl<Target>(
         private val targetDataRoot: File,
         targetOutputDir: File?,
         target: Target
-) : BasicMapsOwner(), IncrementalCache {
+) : BasicMapsOwner(File(targetDataRoot, KOTLIN_CACHE_DIRECTORY_NAME)), IncrementalCache {
     companion object {
         private val PROTO_MAP = "proto"
         private val CONSTANTS_MAP = "constants"
@@ -70,11 +70,6 @@ open class IncrementalCacheImpl<Target>(
 
         private val MODULE_MAPPING_FILE_NAME = "." + ModuleMapping.MAPPING_FILE_EXT
     }
-
-    private val baseDir = File(targetDataRoot, KOTLIN_CACHE_DIRECTORY_NAME)
-
-    protected val String.storageFile: File
-        get() = File(baseDir, this + "." + CACHE_EXTENSION)
 
     private val protoMap = registerMap(ProtoMap(PROTO_MAP.storageFile))
     private val constantsMap = registerMap(ConstantsMap(CONSTANTS_MAP.storageFile))
