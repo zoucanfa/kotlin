@@ -29,7 +29,7 @@ import org.jetbrains.kotlin.js.config.JSConfigurationKeys;
 import org.jetbrains.kotlin.js.config.JsConfig;
 import org.jetbrains.kotlin.js.coroutine.CoroutineTransformer;
 import org.jetbrains.kotlin.js.facade.exceptions.TranslationException;
-import org.jetbrains.kotlin.js.incremental.IncrementalJsService;
+import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumer;
 import org.jetbrains.kotlin.js.inline.JsInliner;
 import org.jetbrains.kotlin.js.inline.clean.LabeledBlockToDoWhileTransformation;
 import org.jetbrains.kotlin.js.inline.clean.RemoveUnusedImportsKt;
@@ -61,11 +61,11 @@ public final class K2JSTranslator {
     private final JsConfig config;
 
     @Nullable
-    private final IncrementalJsService incrementalService;
+    private final IncrementalResultsConsumer incrementalResults;
 
     public K2JSTranslator(@NotNull JsConfig config) {
         this.config = config;
-        this.incrementalService = config.getConfiguration().get(JSConfigurationKeys.INCREMENTAL_SERVICE);
+        this.incrementalResults = config.getConfiguration().get(JSConfigurationKeys.INCREMENTAL_RESULTS_CONSUMER);
     }
 
     @NotNull
@@ -143,7 +143,7 @@ public final class K2JSTranslator {
         ExpandIsCallsKt.expandIsCalls(newFragments);
         ProgressIndicatorAndCompilationCanceledStatus.checkCanceled();
 
-        if (incrementalService != null) {
+        if (incrementalResults != null) {
             JsAstSerializer serializer = new JsAstSerializer();
             KotlinJavascriptSerializationUtil serializationUtil = KotlinJavascriptSerializationUtil.INSTANCE;
 
@@ -160,10 +160,10 @@ public final class K2JSTranslator {
                         bindingTrace.getBindingContext(), moduleDescriptor, scope, file.getPackageFqName());
 
                 File ioFile = VfsUtilCore.virtualToIoFile(file.getVirtualFile());
-                incrementalService.processPackagePart(ioFile, packagePart, binaryAst);
+                incrementalResults.processPackagePart(ioFile, packagePart.toByteArray(), binaryAst);
             }
 
-            incrementalService.processHeader(serializationUtil.serializeHeader(null));
+            incrementalResults.processHeader(serializationUtil.serializeHeader(null).toByteArray());
         }
 
         ResolveTemporaryNamesKt.resolveTemporaryNames(translationResult.getProgram());

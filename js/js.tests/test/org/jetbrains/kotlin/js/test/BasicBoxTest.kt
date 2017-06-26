@@ -41,7 +41,8 @@ import org.jetbrains.kotlin.js.facade.K2JSTranslator
 import org.jetbrains.kotlin.js.facade.MainCallParameters
 import org.jetbrains.kotlin.js.facade.TranslationResult
 import org.jetbrains.kotlin.js.facade.TranslationUnit
-import org.jetbrains.kotlin.js.incremental.IncrementalJsServiceImpl
+import org.jetbrains.kotlin.js.incremental.IncrementalDataProviderImpl
+import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.js.test.utils.DirectiveTestUtils
 import org.jetbrains.kotlin.js.test.utils.JsTestUtils
 import org.jetbrains.kotlin.js.test.utils.verifyAst
@@ -369,18 +370,18 @@ abstract class BasicBoxTest(
             FileUtil.writeToFile(outputFile, wrappedContent)
         }
 
-        config.configuration[JSConfigurationKeys.INCREMENTAL_SERVICE]?.let {
-            val incrementalService = it as IncrementalJsServiceImpl
+        config.configuration[JSConfigurationKeys.INCREMENTAL_RESULTS_CONSUMER]?.let {
+            val incrementalService = it as IncrementalResultsConsumerImpl
 
             val incrementalDir = File(outputDir, "incremental/${outputFile.nameWithoutExtension}")
 
             for ((i, packagePart) in incrementalService.packageParts.withIndex()) {
                 FileUtil.writeToFile(File(incrementalDir, "$i.$AST_EXTENSION"), packagePart.binaryAst)
-                FileUtil.writeToFile(File(incrementalDir, "$i.$METADATA_EXTENSION"), packagePart.proto.toByteArray())
+                FileUtil.writeToFile(File(incrementalDir, "$i.$METADATA_EXTENSION"), packagePart.proto)
             }
 
-            incrementalService.headerProto?.let {
-                FileUtil.writeToFile(File(incrementalDir, HEADER_FILE), it.toByteArray())
+            incrementalService.headerMetadata?.let {
+                FileUtil.writeToFile(File(incrementalDir, HEADER_FILE), it)
             }
         }
 
@@ -426,16 +427,15 @@ abstract class BasicBoxTest(
         val hasFilesToRecompile = module.hasFilesToRecompile
         configuration.put(JSConfigurationKeys.META_INFO, multiModule)
         if (hasFilesToRecompile) {
-            configuration.put(JSConfigurationKeys.INCREMENTAL_SERVICE, IncrementalJsServiceImpl())
+            if (additionalMetadata != null) {
+                val (headerFile, packagePartFiles) = additionalMetadata
+                configuration.put(JSConfigurationKeys.INCREMENTAL_DATA_PROVIDER,
+                                  IncrementalDataProviderImpl(headerFile.readBytes(), packagePartFiles.map { it.readBytes() }, emptyList()))
+            }
+
+            configuration.put(JSConfigurationKeys.INCREMENTAL_RESULTS_CONSUMER, IncrementalResultsConsumerImpl())
         }
         configuration.put(JSConfigurationKeys.SOURCE_MAP, hasFilesToRecompile)
-
-        if (additionalMetadata != null) {
-            val metadata = PackagesWithHeaderMetadata(
-                    FileUtil.loadFileBytes(additionalMetadata.first),
-                    additionalMetadata.second.map { FileUtil.loadFileBytes(it) })
-            configuration.put(JSConfigurationKeys.FALLBACK_METADATA, metadata)
-        }
 
         if (typedArraysEnabled) {
             configuration.put(JSConfigurationKeys.TYPED_ARRAYS_ENABLED, true)
