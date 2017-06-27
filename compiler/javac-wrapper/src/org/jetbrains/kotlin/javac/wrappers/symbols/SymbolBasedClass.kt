@@ -97,8 +97,16 @@ class SymbolBasedClass(
 
     override val methods: Collection<JavaMethod>
         get() = element.enclosedElements
-                .filter { it.kind == ElementKind.METHOD }
+                .filter { it.kind == ElementKind.METHOD && !isEnumValuesOrValueOf(it as ExecutableElement)}
                 .map { SymbolBasedMethod(it as ExecutableElement, javac) }
+
+    private fun isEnumValuesOrValueOf(method: ExecutableElement): Boolean {
+        return isEnum && when (method.simpleName.toString()) {
+            "values" -> method.parameters.isEmpty()
+            "valueOf" -> method.parameters.let { it.size == 1 && it.first().asType().toString() == "java.lang.String" }
+            else -> false
+        }
+    }
 
     override val fields: Collection<JavaField>
         get() = element.enclosedElements

@@ -126,6 +126,12 @@ public class CompileKotlinAgainstJavaTestGenerated extends AbstractCompileKotlin
         doTest(fileName);
     }
 
+    @TestMetadata("EnumValues.kt")
+    public void testEnumValues() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/compileKotlinAgainstJava/EnumValues.kt");
+        doTest(fileName);
+    }
+
     @TestMetadata("Inheritance.kt")
     public void testInheritance() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/compileKotlinAgainstJava/Inheritance.kt");
