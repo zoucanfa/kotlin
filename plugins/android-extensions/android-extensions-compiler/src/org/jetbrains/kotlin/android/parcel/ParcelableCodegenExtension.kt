@@ -33,15 +33,22 @@ import org.jetbrains.kotlin.codegen.OwnerKind
 import org.jetbrains.kotlin.codegen.context.ClassContext
 import org.jetbrains.kotlin.descriptors.impl.ClassDescriptorImpl
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation.*
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.resolve.DescriptorFactory
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.Variance
 import org.jetbrains.org.objectweb.asm.Opcodes.*
 import org.jetbrains.org.objectweb.asm.Type
+import java.io.FileDescriptor
 
 class ParcelableCodegenExtension : ExpressionCodegenExtension {
+    private companion object {
+        private val FILE_DESCRIPTOR_FQNAME = FqName(FileDescriptor::class.java.canonicalName)
+    }
+
     override fun generateClassSyntheticParts(codegen: ImplementationBodyCodegen) {
         val parcelableClass = codegen.descriptor
         if (!parcelableClass.isMagicParcelable) return
@@ -53,7 +60,7 @@ class ParcelableCodegenExtension : ExpressionCodegenExtension {
         val parcelAsmType = codegen.typeMapper.mapType(parcelClassType)
 
         with (parcelableClass) {
-            writeDescribeContentsFunction(codegen)
+            writeDescribeContentsFunction(codegen, propertiesToSerialize)
             writeWriteToParcel(codegen, propertiesToSerialize, parcelAsmType)
         }
 
@@ -84,13 +91,27 @@ class ParcelableCodegenExtension : ExpressionCodegenExtension {
         }
     }
 
-    private fun ClassDescriptor.writeDescribeContentsFunction(codegen: ImplementationBodyCodegen): Unit? {
-        val hasFileDescriptorAnywhere = false
+    private fun ClassDescriptor.writeDescribeContentsFunction(
+            codegen: ImplementationBodyCodegen,
+            propertiesToSerialize: List<Pair<String, KotlinType>>
+    ): Unit? {
+        val hasFileDescriptorAnywhere = propertiesToSerialize.any { it.second.containsFileDescriptor() }
 
         return findFunction(DESCRIBE_CONTENTS)?.write(codegen) {
             v.aconst(if (hasFileDescriptorAnywhere) 1 /* CONTENTS_FILE_DESCRIPTOR */ else 0)
             v.areturn(Type.INT_TYPE)
         }
+    }
+
+    private fun KotlinType.containsFileDescriptor(): Boolean {
+        val declarationDescriptor = this.constructor.declarationDescriptor
+        if (declarationDescriptor != null) {
+            if (declarationDescriptor.fqNameSafe == FILE_DESCRIPTOR_FQNAME) {
+                return true
+            }
+        }
+
+        return this.arguments.any { it.type.containsFileDescriptor() }
     }
 
     private fun getPropertiesToSerialize(
