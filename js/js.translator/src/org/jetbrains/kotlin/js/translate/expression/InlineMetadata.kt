@@ -18,17 +18,29 @@ package org.jetbrains.kotlin.js.translate.expression
 
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.js.backend.ast.*
-import org.jetbrains.kotlin.js.config.JsConfig
+import org.jetbrains.kotlin.js.translate.context.InlineFunctionContext
 import org.jetbrains.kotlin.js.translate.context.Namer
+import org.jetbrains.kotlin.js.translate.context.TranslationContext
 
 private val METADATA_PROPERTIES_COUNT = 2
 
-class InlineMetadata(val tag: JsStringLiteral, val function: JsFunction) {
+class InlineMetadata(val tag: JsStringLiteral, val function: JsFunction, val callExpression: JsExpression) {
     companion object {
         @JvmStatic
-        fun compose(function: JsFunction, descriptor: CallableDescriptor, config: JsConfig): InlineMetadata {
-            val tag = JsStringLiteral(Namer.getFunctionTag(descriptor, config))
-            return InlineMetadata(tag, function)
+        fun compose(function: JsFunction, descriptor: CallableDescriptor, context: TranslationContext): InlineMetadata {
+            val tag = JsStringLiteral(Namer.getFunctionTag(descriptor, context.config))
+            return InlineMetadata(tag, function, wrapInlineFunction(context.inlineFunctionContext!!, function))
+        }
+
+        private fun wrapInlineFunction(context: InlineFunctionContext, function: JsFunction): JsExpression {
+            if (context.importBlock.isEmpty && context.declarationsBlock.isEmpty) return function
+
+            val iif = JsFunction(function.scope, JsBlock(), "")
+            iif.body.statements += context.importBlock.statements
+            iif.body.statements += context.declarationsBlock.statements
+            iif.body.statements += JsReturn(function)
+
+            return JsInvocation(iif)
         }
 
         @JvmStatic
@@ -46,16 +58,31 @@ class InlineMetadata(val tag: JsStringLiteral, val function: JsFunction) {
             if (arguments.size != METADATA_PROPERTIES_COUNT) return null
 
             val tag = arguments[0] as? JsStringLiteral
-            val function = arguments[1] as? JsFunction
+            val callExpression = arguments[1]
+            val function = tryExtractFunction(callExpression)
             if (tag == null || function == null) return null
 
-            return InlineMetadata(tag, function)
+            return InlineMetadata(tag, function, callExpression)
         }
+
+
+        private fun tryExtractFunction(callExpression: JsExpression): JsFunction? {
+            return when (callExpression) {
+                is JsInvocation -> {
+                    val qualifier = callExpression.qualifier
+                    if (callExpression.arguments.isNotEmpty() || qualifier !is JsFunction) return null
+                    (qualifier.body.statements.lastOrNull() as? JsReturn)?.expression as? JsFunction
+                }
+                is JsFunction -> callExpression
+                else -> null
+            }
+        }
+
     }
 
     val functionWithMetadata: JsExpression
         get() {
-            val propertiesList = listOf(tag, function)
+            val propertiesList = listOf(tag, callExpression)
             return JsInvocation(Namer.createInlineFunction(), propertiesList)
         }
 }

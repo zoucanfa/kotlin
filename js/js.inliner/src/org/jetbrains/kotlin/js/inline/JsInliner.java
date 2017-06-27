@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.descriptors.DeclarationDescriptor;
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor;
 import org.jetbrains.kotlin.diagnostics.DiagnosticSink;
 import org.jetbrains.kotlin.diagnostics.Errors;
+import org.jetbrains.kotlin.js.backend.JsToStringGenerationVisitor;
 import org.jetbrains.kotlin.js.backend.ast.*;
 import org.jetbrains.kotlin.js.backend.ast.metadata.MetadataProperties;
 import org.jetbrains.kotlin.js.config.JsConfig;
@@ -55,6 +56,7 @@ public class JsInliner extends JsVisitorWithContextImpl {
     private final Set<JsFunction> inProcessFunctions = CollectionUtilsKt.IdentitySet();
     private final FunctionReader functionReader;
     private final DiagnosticSink trace;
+    private final Map<String, JsName> existingImports = new HashMap<>();
 
     // these are needed for error reporting, when inliner detects cycle
     private final Stack<JsFunction> namedFunctionsStack = new Stack<>();
@@ -108,6 +110,18 @@ public class JsInliner extends JsVisitorWithContextImpl {
         this.accessors = accessors;
         this.functionReader = functionReader;
         this.trace = trace;
+    }
+
+    @Override
+    public boolean visit(@NotNull JsVars x, @NotNull JsContext ctx) {
+        if (x.getVars().size() == 1) {
+            JsVars.JsVar jsVar = x.getVars().get(0);
+            if (MetadataProperties.getImported(jsVar.getName()) && jsVar.getInitExpression() != null) {
+                String tag = extractImportTag(jsVar.getInitExpression());
+                existingImports.put(tag, jsVar.getName());
+            }
+        }
+        return super.visit(x, ctx);
     }
 
     @Override
@@ -260,6 +274,42 @@ public class JsInliner extends JsVisitorWithContextImpl {
     private JsFunction getCurrentNamedFunction() {
         if (namedFunctionsStack.empty()) return null;
         return namedFunctionsStack.peek();
+    }
+
+    @Nullable
+    private static String extractImportTag(@NotNull JsExpression expression) {
+        StringBuilder sb = new StringBuilder();
+        return extractImportTagImpl(expression, sb) ? sb.toString() : null;
+    }
+
+    private static boolean extractImportTagImpl(@NotNull JsExpression expression, @NotNull StringBuilder sb) {
+        if (expression instanceof JsNameRef) {
+            JsNameRef nameRef = (JsNameRef) expression;
+            if (nameRef.getQualifier() != null) {
+                if (!extractImportTagImpl(nameRef.getQualifier(), sb)) {
+                    return false;
+                }
+            }
+            else {
+                sb.append('.');
+            }
+            sb.append(JsToStringGenerationVisitor.javaScriptString(nameRef.getIdent()));
+            return true;
+        }
+        else if (expression instanceof JsArrayAccess) {
+            JsArrayAccess arrayAccess = (JsArrayAccess) expression;
+            if (!extractImportTagImpl(arrayAccess.getArrayExpression(), sb)) {
+                return false;
+            }
+            sb.append(".");
+            if (!extractImportTagImpl(arrayAccess.getIndexExpression(), sb)) {
+                return false;
+            }
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     private void reportInlineCycle(@NotNull JsInvocation call, @NotNull JsFunction calledFunction) {

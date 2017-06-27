@@ -76,6 +76,9 @@ public class TranslationContext {
 
     private final Set<String> modulesImportedForInline = new HashSet<>();
 
+    @Nullable
+    private InlineFunctionContext inlineFunctionContext;
+
     @NotNull
     public static TranslationContext rootContext(@NotNull StaticContext staticContext) {
         DynamicContext rootDynamicContext = DynamicContext.rootContext(
@@ -108,6 +111,14 @@ public class TranslationContext {
         }
 
         continuationParameterDescriptor = calculateContinuationParameter();
+        inlineFunctionContext = parent != null ? parent.inlineFunctionContext : null;
+
+        DeclarationDescriptor parentDescriptor = parent != null ? parent.declarationDescriptor : null;
+        if (parentDescriptor != declarationDescriptor &&
+            declarationDescriptor instanceof CallableDescriptor &&
+            CallExpressionTranslator.shouldBeInlined((CallableDescriptor) declarationDescriptor, this)) {
+            inlineFunctionContext = new InlineFunctionContext((CallableDescriptor) declarationDescriptor);
+        }
     }
 
     private VariableDescriptor calculateContinuationParameter() {
@@ -141,6 +152,11 @@ public class TranslationContext {
     @NotNull
     public DynamicContext dynamicContext() {
         return dynamicContext;
+    }
+
+    @Nullable
+    public InlineFunctionContext getInlineFunctionContext() {
+        return inlineFunctionContext;
     }
 
     @NotNull
@@ -371,26 +387,43 @@ public class TranslationContext {
 
     @NotNull
     public JsExpression getInnerReference(@NotNull DeclarationDescriptor descriptor) {
-        JsName name = getInnerNameForDescriptor(descriptor);
-        JsExpression result = pureFqn(name, null);
+        JsName name;
+        if (inlineFunctionContext == null || DescriptorUtils.isAncestor(inlineFunctionContext.getDescriptor(), descriptor, false)) {
+            name = getInnerNameForDescriptor(descriptor);
+        }
+        else {
+            String tag = staticContext.getTag(descriptor);
+            name = inlineFunctionContext.getImports().computeIfAbsent(tag, t -> {
+                JsName result = JsScope.declareTemporaryName(StaticContext.getSuggestedName(descriptor));
+                JsExpression imported = createInlineLocalImportExpression(descriptor);
+                inlineFunctionContext.getImportBlock().getStatements().add(JsAstUtils.newVar(result, imported));
+                return result;
+            });
+        }
 
+        return pureFqn(name, null);
+    }
+
+    @NotNull
+    private JsExpression createInlineLocalImportExpression(@NotNull DeclarationDescriptor descriptor) {
         SuggestedName suggested = staticContext.suggestName(descriptor);
         if (suggested != null && getConfig().getModuleKind() != ModuleKind.PLAIN && isPublicInlineFunction()) {
             String moduleId = AnnotationsUtils.getModuleName(suggested.getDescriptor());
             if (moduleId != null) {
-                result = exportModuleForInline(getCurrentModule(), moduleId, name, result);
+                JsName name = getInnerNameForDescriptor(descriptor);
+                return exportModuleForInline(getCurrentModule(), moduleId, name, pureFqn(name, null));
             }
             else if (isNativeObject(suggested.getDescriptor()) && DescriptorUtils.isTopLevelDeclaration(suggested.getDescriptor())) {
                 String fileModuleId = AnnotationsUtils.getFileModuleName(bindingContext(), suggested.getDescriptor());
                 if (fileModuleId != null) {
                     JsName fileModuleName = staticContext.getImportedModule(fileModuleId, null).getInternalName();
-                    result = exportModuleForInline(getCurrentModule(), fileModuleId, fileModuleName,
-                                                   staticContext.getQualifiedReference(descriptor));
+                    return exportModuleForInline(getCurrentModule(), fileModuleId, fileModuleName,
+                                                 staticContext.getQualifiedReference(descriptor));
                 }
             }
         }
 
-        return result;
+        return staticContext.getQualifiedReference(descriptor);
     }
 
     @NotNull
@@ -742,7 +775,12 @@ public class TranslationContext {
     }
 
     public void addDeclarationStatement(@NotNull JsStatement statement) {
-        staticContext.getDeclarationStatements().add(statement);
+        if (inlineFunctionContext != null) {
+            inlineFunctionContext.getDeclarationsBlock().getStatements().add(statement);
+        }
+        else {
+            staticContext.getDeclarationStatements().add(statement);
+        }
     }
 
     public void addTopLevelStatement(@NotNull JsStatement statement) {
