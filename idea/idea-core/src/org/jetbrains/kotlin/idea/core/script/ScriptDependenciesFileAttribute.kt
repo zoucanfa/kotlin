@@ -18,14 +18,18 @@ package org.jetbrains.kotlin.idea.core.script
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.util.io.DataInputOutputUtil.*
-import com.intellij.util.io.IOUtil.*
+import com.intellij.openapi.vfs.VirtualFileWithId
+import com.intellij.util.io.DataInputOutputUtil.readSeq
+import com.intellij.util.io.DataInputOutputUtil.writeSeq
+import com.intellij.util.io.IOUtil.readUTF
+import com.intellij.util.io.IOUtil.writeUTF
 import org.jetbrains.kotlin.idea.caches.FileAttributeService
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.File
 import kotlin.script.dependencies.KotlinScriptExternalDependencies
 
+// TODO_R: write nullable, write version
 object ScriptDependenciesFileAttribute {
     private val VERSION = 1
     private val ID = "kotlin-script-dependencies"
@@ -37,6 +41,8 @@ object ScriptDependenciesFileAttribute {
     }
 
     fun write(virtualFile: VirtualFile, dependencies: KotlinScriptExternalDependencies) {
+        if (virtualFile !is VirtualFileWithId) return
+
         fileAttributeService.write(virtualFile, ID, dependencies) { output, dep ->
             with(dep) {
                 output.writeFileList(classpath)
@@ -50,6 +56,8 @@ object ScriptDependenciesFileAttribute {
     }
 
     fun read(virtualFile: VirtualFile): KotlinScriptExternalDependencies? {
+        if (virtualFile !is VirtualFileWithId) return null
+
         return fileAttributeService.read(virtualFile, ID) { input ->
             SerializedScriptDependencies(
                     classpath = input.readFileList(),
