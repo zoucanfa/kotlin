@@ -26,26 +26,28 @@ import org.jetbrains.kotlin.js.inline.util.*
 import org.jetbrains.kotlin.js.inline.util.rewriters.ReturnReplacingVisitor
 import org.jetbrains.kotlin.js.translate.context.Namer
 
-class FunctionInlineMutator
-private constructor(
+class FunctionInlineMutator(
         private val call: JsInvocation,
         private val inliningContext: InliningContext
 ) {
+    val wrapper: JsBlock?
     private val invokedFunction: JsFunction
-    private val namingContext = inliningContext.newNamingContext()
-    private val body: JsBlock
-    private var resultExpr: JsExpression? = null
+    val namingContext = inliningContext.newNamingContext()
+    val body: JsBlock
+    var resultExpr: JsExpression? = null
     private var resultName: JsName? = null
-    private var breakLabel: JsLabel? = null
+    var breakLabel: JsLabel? = null
     private val currentStatement = inliningContext.statementContext.currentNode
 
     init {
         val functionContext = inliningContext.functionContext
-        invokedFunction = uncoverClosure(functionContext.getFunctionDefinition(call).deepCopy())
+        val (function, wrapper) = functionContext.getFunctionDefinition(call)
+        invokedFunction = uncoverClosure(function.deepCopy())
+        this.wrapper = wrapper
         body = invokedFunction.body
     }
 
-    private fun process() {
+    fun process() {
         val arguments = getArguments()
         val parameters = getParameters()
 
@@ -166,21 +168,6 @@ private constructor(
     }
 
     companion object {
-
-        @JvmStatic fun getInlineableCallReplacement(call: JsInvocation, inliningContext: InliningContext): InlineableResult {
-            val mutator = FunctionInlineMutator(call, inliningContext)
-            mutator.process()
-
-            var inlineableBody: JsStatement = mutator.body
-            val breakLabel = mutator.breakLabel
-            if (breakLabel != null) {
-                breakLabel.statement = inlineableBody
-                inlineableBody = breakLabel
-            }
-
-            return InlineableResult(inlineableBody, mutator.resultExpr)
-        }
-
         @JvmStatic
         private fun getThisReplacement(call: JsInvocation): JsExpression? {
             if (isCallInvocation(call)) {

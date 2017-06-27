@@ -28,16 +28,21 @@ class NameReplacingVisitor(private val replaceMap: Map<JsName, JsExpression>) : 
     override fun endVisit(x: JsVars.JsVar, ctx: JsContext<JsNode>) {
         val replacement = replaceMap[x.name]
         if (replacement is HasName) {
-            val replacementVar = JsVars.JsVar(replacement.name, x.initExpression)
-            ctx.replaceMe(replacementVar.source(x.source))
+            x.name = replacement.name
         }
     }
 
     override fun endVisit(x: JsLabel, ctx: JsContext<JsNode>) {
         val replacement = replaceMap[x.name]
         if (replacement is HasName) {
-            val replacementLabel = JsLabel(replacement.name, x.statement)
-            ctx.replaceMe(replacementLabel)
+            x.name = replacement.name
+        }
+    }
+
+    override fun endVisit(x: JsFunction, ctx: JsContext<JsNode>) {
+        val replacement = replaceMap[x.name]
+        if (replacement is HasName) {
+            x.name = replacement.name
         }
     }
 }
