@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.js.backend;
+package org.jetbrains.kotlin.js.backend
 
-import org.jetbrains.annotations.Nullable;
+interface SourceLocationConsumer {
+    fun newLine()
 
-public interface SourceLocationConsumer {
-    void newLine();
+    fun pushSourceInfo(info: Any?)
 
-    void pushSourceInfo(@Nullable Object info);
-
-    void popSourceInfo();
+    fun popSourceInfo()
 }
