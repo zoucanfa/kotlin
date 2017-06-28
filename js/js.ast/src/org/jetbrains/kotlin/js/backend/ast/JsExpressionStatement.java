@@ -35,16 +35,6 @@ public final class JsExpressionStatement extends JsStatement {
     }
 
     @Override
-    public void setSource(Object info) {
-        throw new IllegalStateException("You must not set source info for JsExpressionStatement, set for expression");
-    }
-
-    @Override
-    public JsNode source(Object info) {
-        throw new IllegalStateException("You must not set source info for JsExpressionStatement, set for expression");
-    }
-
-    @Override
     public void traverse(JsVisitorWithContext v, JsContext ctx) {
         if (v.visit(this, ctx)) {
             expression = v.accept(expression);
