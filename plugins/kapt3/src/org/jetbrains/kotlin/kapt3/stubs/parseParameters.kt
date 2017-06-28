@@ -26,7 +26,7 @@ import org.jetbrains.org.objectweb.asm.tree.ClassNode
 import org.jetbrains.org.objectweb.asm.tree.MethodNode
 import java.util.*
 
-internal class ParameterInfo(
+internal data class ParameterInfo(
         val flags: Long,
         val name: String,
         val type: Type,
@@ -74,5 +74,10 @@ internal fun MethodNode.getParametersInfo(containingClass: ClassNode): List<Para
         val invisibleAnnotations = invisibleParameterAnnotations?.get(index)
         parameterInfos += ParameterInfo(0, name, type, visibleAnnotations, invisibleAnnotations)
     }
+
+    if (parameterInfos.any { getValidIdentifierName(it.name) == null }) {
+        return parameterInfos.mapIndexed { index, p -> p.copy(name = "p$index") }
+    }
+
     return parameterInfos
 }

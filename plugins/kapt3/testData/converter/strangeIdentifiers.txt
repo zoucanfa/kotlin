@@ -49,8 +49,8 @@ public final class Test {
     }
 
     public final void strangeFun4(@org.jetbrains.annotations.NotNull()
-    java.lang.String a, @org.jetbrains.annotations.NotNull()
-    java.lang.String p1_1899121793) {
+    java.lang.String p0, @org.jetbrains.annotations.NotNull()
+    java.lang.String p1) {
     }
 
     public Test() {

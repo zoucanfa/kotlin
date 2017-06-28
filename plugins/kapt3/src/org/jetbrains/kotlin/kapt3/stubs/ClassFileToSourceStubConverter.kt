@@ -50,7 +50,7 @@ class ClassFileToSourceStubConverter(
         val generateNonExistentClass: Boolean,
         val correctErrorTypes: Boolean
 ) {
-    private companion object {
+    internal companion object {
         private val VISIBILITY_MODIFIERS = (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_PROTECTED).toLong()
         private val MODALITY_MODIFIERS = (Opcodes.ACC_FINAL or Opcodes.ACC_ABSTRACT).toLong()
 
@@ -74,7 +74,7 @@ class ClassFileToSourceStubConverter(
 
         private val JAVA_KEYWORD_FILTER_REGEX = "[a-z]+".toRegex()
 
-        private val JAVA_KEYWORDS = Tokens.TokenKind.values()
+        internal val JAVA_KEYWORDS = Tokens.TokenKind.values()
                 .filter { JAVA_KEYWORD_FILTER_REGEX.matches(it.toString().orEmpty()) }
                 .mapTo(hashSetOf(), Any::toString)
     }
@@ -553,23 +553,6 @@ class ClassFileToSourceStubConverter(
         return name.pathSegments().all { getValidIdentifierName(it.asString(), false) != null }
     }
 
-    fun getValidIdentifierName(name: String, canBeConstructor: Boolean = false): String? {
-        if (canBeConstructor && name == "<init>") {
-            return name
-        }
-
-        if (name in JAVA_KEYWORDS) return null
-
-        if (name.isEmpty()
-            || !Character.isJavaIdentifierStart(name[0])
-            || name.drop(1).any { !Character.isJavaIdentifierPart(it) }
-        ) {
-            return null
-        }
-
-        return name
-    }
-
     private inline fun <T : JCExpression?> getNotAnonymousType(descriptor: DeclarationDescriptor?, f: () -> T): T {
         if (descriptor is CallableDescriptor) {
             val returnTypeDescriptor = descriptor.returnType?.constructor?.declarationDescriptor
@@ -701,6 +684,23 @@ class ClassFileToSourceStubConverter(
         Type.DOUBLE_TYPE -> 0.0
         else -> null
     }
+}
+
+internal fun getValidIdentifierName(name: String, canBeConstructor: Boolean = false): String? {
+    if (canBeConstructor && name == "<init>") {
+        return name
+    }
+
+    if (name in ClassFileToSourceStubConverter.JAVA_KEYWORDS) return null
+
+    if (name.isEmpty()
+        || !Character.isJavaIdentifierStart(name[0])
+        || name.drop(1).any { !Character.isJavaIdentifierPart(it) }
+            ) {
+        return null
+    }
+
+    return name
 }
 
 private val ClassDescriptor.isNested: Boolean
