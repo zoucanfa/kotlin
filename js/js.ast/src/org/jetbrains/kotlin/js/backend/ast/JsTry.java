@@ -14,13 +14,13 @@ import java.util.List;
 /**
  * A JavaScript <code>try</code> statement.
  */
-public class JsTry extends SourceInfoAwareJsNode implements JsStatement {
+public class JsTry extends JsStatement {
     private final List<JsCatch> catches;
     private JsBlock finallyBlock;
     private JsBlock tryBlock;
 
     public JsTry() {
-        catches = new SmartList<JsCatch>();
+        catches = new SmartList<>();
     }
 
     public JsTry(JsBlock tryBlock, List<JsCatch> catches, @Nullable JsBlock finallyBlock) {
@@ -30,7 +30,7 @@ public class JsTry extends SourceInfoAwareJsNode implements JsStatement {
     }
 
     public JsTry(JsBlock tryBlock, @Nullable JsCatch jsCatch, @Nullable JsBlock finallyBlock) {
-        this(tryBlock, new SmartList<JsCatch>(), finallyBlock);
+        this(tryBlock, new SmartList<>(), finallyBlock);
 
         if (jsCatch != null) {
             catches.add(jsCatch);

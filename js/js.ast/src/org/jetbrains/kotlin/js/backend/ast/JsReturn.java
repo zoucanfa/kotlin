@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A JavaScript return statement.
  */
-public final class JsReturn extends SourceInfoAwareJsNode implements JsStatement {
+public final class JsReturn extends JsStatement {
     private JsExpression expression;
 
     public JsReturn() {

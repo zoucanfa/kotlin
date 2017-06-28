@@ -4,7 +4,7 @@
 
 package org.jetbrains.kotlin.js.backend.ast
 
-object JsEmpty : SourceInfoAwareJsNode(), JsStatement {
+object JsEmpty : JsStatement() {
 
     override fun accept(v: JsVisitor) {
         v.visitEmpty(this)

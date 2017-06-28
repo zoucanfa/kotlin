@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.js.util.AstUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class JsContinue extends SourceInfoAwareJsNode implements JsStatement {
+public class JsContinue extends JsStatement {
     protected JsNameRef label;
 
     public JsContinue() {

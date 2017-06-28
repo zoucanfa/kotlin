@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a JavaScript debugger statement.
  */
-public class JsDebugger extends SourceInfoAwareJsNode implements JsStatement {
+public class JsDebugger extends JsStatement {
     public JsDebugger() {
     }
 

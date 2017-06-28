@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a JavaScript label statement.
  */
-public class JsLabel extends SourceInfoAwareJsNode implements JsStatement, HasName {
+public class JsLabel extends JsStatement implements HasName {
     private JsName label;
 
     private JsStatement statement;

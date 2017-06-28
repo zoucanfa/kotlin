@@ -13,14 +13,14 @@ import java.util.List;
 /**
  * A JavaScript switch statement.
  */
-public class JsSwitch extends SourceInfoAwareJsNode implements JsStatement {
+public class JsSwitch extends JsStatement {
 
     private final List<JsSwitchMember> cases;
     private JsExpression expression;
 
     public JsSwitch() {
         super();
-        cases = new ArrayList<JsSwitchMember>();
+        cases = new ArrayList<>();
     }
 
     public JsSwitch(JsExpression expression, List<JsSwitchMember> cases) {

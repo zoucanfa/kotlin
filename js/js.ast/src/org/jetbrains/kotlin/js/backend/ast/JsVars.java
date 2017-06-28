@@ -15,7 +15,7 @@ import java.util.*;
 /**
  * A JavaScript <code>var</code> statement.
  */
-public class JsVars extends SourceInfoAwareJsNode implements JsStatement, Iterable<JsVars.JsVar> {
+public class JsVars extends JsStatement implements Iterable<JsVars.JsVar> {
     private final List<JsVar> vars;
 
     private boolean multiline;

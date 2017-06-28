@@ -7,7 +7,7 @@ package org.jetbrains.kotlin.js.backend.ast;
 import org.jetbrains.kotlin.js.util.AstUtil;
 import org.jetbrains.annotations.NotNull;
 
-public class JsThrow extends SourceInfoAwareJsNode implements JsStatement {
+public class JsThrow extends JsStatement {
     private JsExpression expression;
 
     public JsThrow() {

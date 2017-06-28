@@ -6,7 +6,7 @@ package org.jetbrains.kotlin.js.backend.ast;
 
 import org.jetbrains.annotations.NotNull;
 
-public final class JsExpressionStatement extends AbstractNode implements JsStatement {
+public final class JsExpressionStatement extends JsStatement {
     @NotNull
     private JsExpression expression;
 

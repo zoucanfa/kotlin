@@ -6,8 +6,8 @@ package org.jetbrains.kotlin.js.backend.ast;
 
 import org.jetbrains.annotations.NotNull;
 
-public interface JsStatement extends JsNode {
+public abstract class JsStatement extends SourceInfoAwareJsNode {
     @NotNull
     @Override
-    JsStatement deepCopy();
+    public abstract JsStatement deepCopy();
 }

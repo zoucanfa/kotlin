@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a JavaScript if statement.
  */
-public final class JsIf extends SourceInfoAwareJsNode implements JsStatement {
+public final class JsIf extends JsStatement {
     @NotNull
     private JsExpression ifExpression;
 
