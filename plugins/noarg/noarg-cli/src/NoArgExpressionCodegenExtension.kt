@@ -17,7 +17,6 @@
 package org.jetbrains.kotlin.noarg
 
 import org.jetbrains.kotlin.codegen.*
-import org.jetbrains.kotlin.codegen.context.ConstructorContext
 import org.jetbrains.kotlin.codegen.extensions.ExpressionCodegenExtension
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
@@ -32,7 +31,6 @@ import org.jetbrains.kotlin.resolve.jvm.jvmSignature.JvmMethodSignature
 import org.jetbrains.kotlin.codegen.FunctionGenerationStrategy.CodegenBased
 import org.jetbrains.kotlin.resolve.descriptorUtil.builtIns
 import org.jetbrains.org.objectweb.asm.Opcodes
-import org.jetbrains.org.objectweb.asm.Type
 
 class NoArgExpressionCodegenExtension : ExpressionCodegenExtension {
     override fun generateClassSyntheticParts(codegen: ImplementationBodyCodegen) = with(codegen) {
@@ -46,10 +44,21 @@ class NoArgExpressionCodegenExtension : ExpressionCodegenExtension {
 
         val constructorDescriptor = createNoArgConstructorDescriptor(descriptor)
 
+        val isParentASealedClass = (descriptor.containingDeclaration as? ClassDescriptor)?.modality == Modality.SEALED
+
         functionCodegen.generateMethod(JvmDeclarationOrigin.NO_ORIGIN, constructorDescriptor, object: CodegenBased(state) {
             override fun doGenerateBody(codegen: ExpressionCodegen, signature: JvmMethodSignature) {
                 codegen.v.load(0, AsmTypes.OBJECT_TYPE)
-                codegen.v.visitMethodInsn(Opcodes.INVOKESPECIAL, superClassInternalName, "<init>", "()V", false)
+
+                if (isParentASealedClass) {
+                    codegen.v.aconst(null)
+                    codegen.v.visitMethodInsn(Opcodes.INVOKESPECIAL, superClassInternalName, "<init>",
+                                              "(Lkotlin/jvm/internal/DefaultConstructorMarker;)V", false)
+                }
+                else {
+                    codegen.v.visitMethodInsn(Opcodes.INVOKESPECIAL, superClassInternalName, "<init>", "()V", false)
+                }
+
                 generateInitializers(codegen)
                 codegen.v.visitInsn(Opcodes.RETURN)
             }
