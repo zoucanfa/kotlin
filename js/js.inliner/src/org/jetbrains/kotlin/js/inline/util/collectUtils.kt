@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.js.inline.util
 
 import org.jetbrains.kotlin.js.backend.ast.*
+import org.jetbrains.kotlin.js.backend.ast.metadata.owningInlineFunction
 import org.jetbrains.kotlin.js.backend.ast.metadata.staticRef
 import org.jetbrains.kotlin.js.inline.util.collectors.InstanceCollector
 import org.jetbrains.kotlin.js.translate.expression.InlineMetadata
@@ -160,6 +161,7 @@ fun collectNamedFunctionsAndWrappers(fragments: List<JsProgramFragment>): Map<Js
 
 fun collectNamedFunctionsAndMetadata(scope: JsNode): Map<JsName, Pair<FunctionWithWrapper, JsExpression>> {
     val namedFunctions = mutableMapOf<JsName, Pair<FunctionWithWrapper, JsExpression>>()
+    val relatedDeclarations = mutableMapOf<JsFunction, MutableList<JsStatement>>()
 
     scope.accept(object : RecursiveJsVisitor() {
         override fun visitBinaryExpression(x: JsBinaryOperation) {
@@ -196,9 +198,24 @@ fun collectNamedFunctionsAndMetadata(scope: JsNode): Map<JsName, Pair<FunctionWi
             }
             super.visitFunction(x)
         }
+
+        override fun visitElement(node: JsNode) {
+            super.visitElement(node)
+            if (node is JsStatement) {
+                val function = node.owningInlineFunction
+                if (function != null) {
+                    relatedDeclarations.getOrPut(function, ::mutableListOf) += node
+                }
+            }
+        }
     })
 
-    return namedFunctions
+    return namedFunctions.mapValues { (_, v) ->
+        val (funWithWrapper, metadata) = v
+        val wrapper = funWithWrapper.wrapperBody ?: relatedDeclarations[funWithWrapper.function]?.let { JsBlock(it) }
+        val newFunWithWrapper = funWithWrapper.copy(wrapperBody = wrapper)
+        Pair(newFunWithWrapper, metadata)
+    }
 }
 
 data class FunctionWithWrapper(val function: JsFunction, val wrapperBody: JsBlock?)
