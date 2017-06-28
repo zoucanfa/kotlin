@@ -24,13 +24,12 @@ import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.js.backend.ast.*
 import org.jetbrains.kotlin.js.backend.ast.metadata.inlineStrategy
 import org.jetbrains.kotlin.js.config.JsConfig
-import org.jetbrains.kotlin.js.inline.util.IdentitySet
-import org.jetbrains.kotlin.js.inline.util.FunctionWithWrapper
-import org.jetbrains.kotlin.js.inline.util.isCallInvocation
+import org.jetbrains.kotlin.js.inline.util.*
 import org.jetbrains.kotlin.js.parser.OffsetToSourceMapping
 import org.jetbrains.kotlin.js.parser.parseFunction
 import org.jetbrains.kotlin.js.parser.sourcemaps.*
 import org.jetbrains.kotlin.js.translate.context.Namer
+import org.jetbrains.kotlin.js.translate.expression.InlineMetadata
 import org.jetbrains.kotlin.js.translate.utils.JsDescriptorUtils.getModuleName
 import org.jetbrains.kotlin.resolve.descriptorUtil.isExtension
 import org.jetbrains.kotlin.resolve.inline.InlineStrategy
@@ -190,21 +189,32 @@ class FunctionReader(
         }
 
         val position = info.offsetToSourceMapping[offset]
-        val function = parseFunction(source, info.filePath, position, offset, ThrowExceptionOnErrorReporter, JsRootScope(JsProgram()))
+        val functionOrIif = parseFunction(source, info.filePath, position, offset, ThrowExceptionOnErrorReporter, JsRootScope(JsProgram()))
+        functionOrIif.fixForwardNameReferences()
+        val function = InlineMetadata.tryExtractFunction(functionOrIif) ?: return null
+        val wrapper = if (function != functionOrIif) {
+            val body = ((functionOrIif as JsInvocation).qualifier as JsFunction).body
+            JsBlock(body.statements.filter { it !is JsReturn })
+        }
+        else {
+            null
+        }
         val moduleReference = moduleNameMap[tag] ?: currentModuleName.makeRef()
 
         val sourceMap = info.sourceMap
         if (sourceMap != null) {
             val remapper = SourceMapLocationRemapper(sourceMap)
             remapper.remap(function)
+            wrapper?.let { remapper.remap(it) }
         }
 
         val replacements = hashMapOf(info.moduleVariable to moduleReference,
                                      info.kotlinVariable to Namer.kotlinObject())
         replaceExternalNames(function, replacements)
+        wrapper?.let { replaceExternalNames(it, replacements) }
         function.markInlineArguments(descriptor)
 
-        return FunctionWithWrapper(function, null)
+        return FunctionWithWrapper(function, wrapper)
     }
 }
 
@@ -245,14 +255,12 @@ private fun JsFunction.markInlineArguments(descriptor: CallableDescriptor) {
     visitor.accept(this)
 }
 
-private fun replaceExternalNames(function: JsFunction, externalReplacements: Map<String, JsExpression>) {
-    val replacements = externalReplacements.filterKeys { !function.scope.hasOwnName(it) }
-
-    if (replacements.isEmpty()) return
+private fun replaceExternalNames(node: JsNode, replacements: Map<String, JsExpression>) {
+    val skipNames = collectDefinedNamesInAllScopes(node)
 
     val visitor = object: JsVisitorWithContextImpl() {
         override fun endVisit(x: JsNameRef, ctx: JsContext<JsNode>) {
-            if (x.qualifier != null) return
+            if (x.qualifier != null || x.name in skipNames) return
 
             replacements[x.ident]?.let {
                 ctx.replaceMe(it)
@@ -260,5 +268,5 @@ private fun replaceExternalNames(function: JsFunction, externalReplacements: Map
         }
     }
 
-    visitor.accept(function)
+    visitor.accept(node)
 }

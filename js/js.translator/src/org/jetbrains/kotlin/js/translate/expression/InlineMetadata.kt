@@ -65,8 +65,8 @@ class InlineMetadata(val tag: JsStringLiteral, val function: JsFunction, val cal
             return InlineMetadata(tag, function, callExpression)
         }
 
-
-        private fun tryExtractFunction(callExpression: JsExpression): JsFunction? {
+        @JvmStatic
+        fun tryExtractFunction(callExpression: JsExpression): JsFunction? {
             return when (callExpression) {
                 is JsInvocation -> {
                     val qualifier = callExpression.qualifier
@@ -77,7 +77,6 @@ class InlineMetadata(val tag: JsStringLiteral, val function: JsFunction, val cal
                 else -> null
             }
         }
-
     }
 
     val functionWithMetadata: JsExpression
