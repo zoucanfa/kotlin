@@ -10,6 +10,7 @@ import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.FileCollection
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
@@ -56,7 +57,7 @@ internal abstract class KotlinSourceSetProcessor<T : AbstractKotlinCompile<*>>(
     protected val logger = Logging.getLogger(this.javaClass)!!
 
     protected val isSeparateClassesDirSupported: Boolean =
-            sourceSet.output.javaClass.methods.any { it.name == "addClassesDir" }
+            sourceSet.output.javaClass.methods.any { it.name == "getClassesDirs" }
 
     protected val sourceSetName: String = sourceSet.name
     protected val sourceRootDir: String = "src/$sourceSetName/kotlin"
@@ -195,13 +196,15 @@ internal class Kotlin2JvmSourceSetProcessor(
 private fun SourceSetOutput.tryAddClassesDir(
         classesDirProvider: () -> FileCollection
 ): Boolean {
-    val addClassesDir = ReflectionUtil.findMethod(
+    val getClassesDirs = ReflectionUtil.findMethod(
             javaClass.methods.asList(),
-            "addClassesDir",
-            Callable::class.java
+            "getClassesDirs"
     ) ?: return false
 
-    addClassesDir(this, Callable { classesDirProvider() })
+    val classesDirs = getClassesDirs(this) as? ConfigurableFileCollection
+            ?: return false
+
+    classesDirs.from(Callable { classesDirProvider() })
     return true
 }
 
