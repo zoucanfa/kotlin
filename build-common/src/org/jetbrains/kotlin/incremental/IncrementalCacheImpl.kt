@@ -202,7 +202,7 @@ open class IncrementalCacheImpl<Target>(
         return when {
             mapValue.isPackageFacade -> {
                 val (nameResolver, packageProto) = JvmProtoBufUtil.readPackageDataFrom(mapValue.bytes, mapValue.strings)
-                return computePackageChanges(className.packageFqName, packageProto, nameResolver, createChangeInfo)
+                computePackageChanges(className.packageFqName, packageProto, nameResolver, createChangeInfo)
             }
             else -> {
                 val (nameResolver, classProto) = JvmProtoBufUtil.readClassDataFrom(mapValue.bytes, mapValue.strings)
