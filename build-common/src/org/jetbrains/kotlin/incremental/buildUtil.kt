@@ -181,8 +181,8 @@ data class DirtyData(
         val dirtyClassesFqNames: Collection<FqName> = emptyList()
 )
 
-fun <Target> CompilationResult.getDirtyData(
-        caches: Iterable<IncrementalCacheImpl<Target>>,
+fun CompilationResult.getDirtyData(
+        caches: Iterable<IncrementalCacheCommon>,
         reporter: ICReporter
 ): DirtyData {
     val dirtyLookupSymbols = HashSet<LookupSymbol>()
@@ -235,8 +235,8 @@ fun mapLookupSymbolsToFiles(
     return dirtyFiles
 }
 
-fun <Target> mapClassesFqNamesToFiles(
-        caches: Iterable<IncrementalCacheImpl<Target>>,
+fun mapClassesFqNamesToFiles(
+        caches: Iterable<IncrementalCacheCommon>,
         classesFqNames: Iterable<FqName>,
         reporter: ICReporter,
         excludes: Set<File> = emptySet()
@@ -259,9 +259,9 @@ fun <Target> mapClassesFqNamesToFiles(
 private fun findSrcDirRoot(file: File, roots: Iterable<File>): File? =
         roots.firstOrNull { FileUtil.isAncestor(it, file, false) }
 
-fun <Target> withSubtypes(
+fun withSubtypes(
         typeFqName: FqName,
-        caches: Iterable<IncrementalCacheImpl<Target>>
+        caches: Iterable<IncrementalCacheCommon>
 ): Set<FqName> {
     val types = LinkedList(listOf(typeFqName))
     val subtypes = hashSetOf<FqName>()

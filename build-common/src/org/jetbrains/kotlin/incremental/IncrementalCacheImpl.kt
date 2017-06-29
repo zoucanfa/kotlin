@@ -33,13 +33,12 @@ import org.jetbrains.kotlin.load.kotlin.header.KotlinClassHeader
 import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCache
 import org.jetbrains.kotlin.load.kotlin.incremental.components.JvmPackagePartProto
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.FqNameUnsafe
 import org.jetbrains.kotlin.protobuf.MessageLite
 import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 import org.jetbrains.kotlin.serialization.Flags
 import org.jetbrains.kotlin.serialization.ProtoBuf
 import org.jetbrains.kotlin.serialization.deserialization.NameResolver
-import org.jetbrains.kotlin.serialization.deserialization.TypeTable
-import org.jetbrains.kotlin.serialization.deserialization.supertypes
 import org.jetbrains.kotlin.serialization.jvm.BitEncoding
 import org.jetbrains.kotlin.serialization.jvm.JvmProtoBufUtil
 import org.jetbrains.org.objectweb.asm.*
@@ -53,7 +52,7 @@ open class IncrementalCacheImpl<Target>(
         private val targetDataRoot: File,
         targetOutputDir: File?,
         target: Target
-) : BasicMapsOwner(File(targetDataRoot, KOTLIN_CACHE_DIRECTORY_NAME)), IncrementalCache {
+) : IncrementalCacheCommon(File(targetDataRoot, KOTLIN_CACHE_DIRECTORY_NAME)), IncrementalCache {
     companion object {
         private val PROTO_MAP = "proto"
         private val CONSTANTS_MAP = "constants"
@@ -63,9 +62,6 @@ open class IncrementalCacheImpl<Target>(
         private val SOURCE_TO_CLASSES = "source-to-classes"
         private val DIRTY_OUTPUT_CLASSES = "dirty-output-classes"
         private val INLINE_FUNCTIONS = "inline-functions"
-        private val SUBTYPES = "subtypes"
-        private val SUPERTYPES = "supertypes"
-        private val CLASS_FQ_NAME_TO_SOURCE = "class-fq-name-to-source"
         private val INTERNAL_NAME_TO_SOURCE = "internal-name-to-source"
 
         private val MODULE_MAPPING_FILE_NAME = "." + ModuleMapping.MAPPING_FILE_EXT
@@ -79,26 +75,12 @@ open class IncrementalCacheImpl<Target>(
     private val sourceToClassesMap = registerMap(SourceToClassesMap(SOURCE_TO_CLASSES.storageFile))
     private val dirtyOutputClassesMap = registerMap(DirtyOutputClassesMap(DIRTY_OUTPUT_CLASSES.storageFile))
     private val inlineFunctionsMap = registerMap(InlineFunctionsMap(INLINE_FUNCTIONS.storageFile))
-    private val subtypesMap = registerMap(SubtypesMap(SUBTYPES.storageFile))
-    private val supertypesMap = registerMap(SupertypesMap(SUPERTYPES.storageFile))
-    private val classFqNameToSourceMap = registerMap(ClassFqNameToSourceMap(CLASS_FQ_NAME_TO_SOURCE.storageFile))
     // todo: try to use internal names only?
     private val internalNameToSource = registerMap(InternalNameToSourcesMap(INTERNAL_NAME_TO_SOURCE.storageFile))
 
-    private val dependents = arrayListOf<IncrementalCacheImpl<Target>>()
     private val outputDir by lazy(LazyThreadSafetyMode.NONE) { requireNotNull(targetOutputDir) { "Target is expected to have output directory: $target" } }
 
-    val thisWithDependentCaches: Iterable<IncrementalCacheImpl<Target>> by lazy {
-        val result = arrayListOf(this)
-        result.addAll(dependents)
-        result
-    }
-
     protected open fun debugLog(message: String) {}
-
-    fun addDependentCache(cache: IncrementalCacheImpl<Target>) {
-        dependents.add(cache)
-    }
 
     fun markOutputClassesDirty(removedAndCompiledSources: List<File>) {
         for (sourceFile in removedAndCompiledSources) {
@@ -115,12 +97,6 @@ open class IncrementalCacheImpl<Target>(
     @Suppress("unused")
     fun classesBySources(sources: Iterable<File>): Iterable<JvmClassName> =
             sources.flatMap { sourceToClassesMap[it] }
-
-    fun getSubtypesOf(className: FqName): Sequence<FqName> =
-            subtypesMap[className].asSequence()
-
-    fun getSourceFileIfClass(fqName: FqName): File? =
-            classFqNameToSourceMap[fqName]
 
     fun sourcesByInternalName(internalName: String): Collection<File> =
             internalNameToSource[internalName]
@@ -316,7 +292,7 @@ open class IncrementalCacheImpl<Target>(
             internalNameToSource.remove(it.internalName)
         }
 
-        removeAllFromClassStorage(dirtyClasses)
+        removeAllFromClassStorage(dirtyClasses.map { it.fqNameForClassNameWithoutDollars })
 
         dirtyOutputClassesMap.clean()
         return changesInfo
@@ -561,22 +537,6 @@ open class IncrementalCacheImpl<Target>(
         }
     }
 
-    inner class ClassFqNameToSourceMap(storageFile: File) : BasicStringMap<String>(storageFile, EnumeratorStringDescriptor(), PathStringDescriptor) {
-        operator fun set(fqName: FqName, sourceFile: File) {
-            storage[fqName.asString()] = sourceFile.canonicalPath
-        }
-
-        operator fun get(fqName: FqName): File? =
-                storage[fqName.asString()]?.let(::File)
-
-        fun remove(fqName: FqName) {
-            storage.remove(fqName.asString())
-        }
-
-        override fun dumpValue(value: String) = value
-    }
-
-
     inner class InternalNameToSourcesMap(storageFile: File) : BasicStringMap<Collection<String>>(storageFile, EnumeratorStringDescriptor(), PathCollectionExternalizer) {
         operator fun set(internalName: String, sourceFiles: Iterable<File>) {
             storage[internalName] = sourceFiles.map { it.canonicalPath }
@@ -594,49 +554,8 @@ open class IncrementalCacheImpl<Target>(
     }
 
     private fun addToClassStorage(kotlinClass: LocalFileKotlinClass, srcFile: File) {
-        val classData = JvmProtoBufUtil.readClassDataFrom(kotlinClass.classHeader.data!!, kotlinClass.classHeader.strings!!)
-        val supertypes = classData.classProto.supertypes(TypeTable(classData.classProto.typeTable))
-        val parents = supertypes.map { classData.nameResolver.getClassId(it.className).asSingleFqName() }
-                                .filter { it.asString() != "kotlin.Any" }
-                                .toSet()
-        val child = kotlinClass.classId.asSingleFqName()
-
-        parents.forEach { subtypesMap.add(it, child) }
-
-        val removedSupertypes = supertypesMap[child].filter { it !in parents }
-        removedSupertypes.forEach { subtypesMap.removeValues(it, setOf(child)) }
-
-        supertypesMap[child] = parents
-        classFqNameToSourceMap[kotlinClass.className.fqNameForClassNameWithoutDollars] = srcFile
-    }
-
-    private fun removeAllFromClassStorage(removedClasses: Collection<JvmClassName>) {
-        if (removedClasses.isEmpty()) return
-
-        val removedFqNames = removedClasses.map { it.fqNameForClassNameWithoutDollars }.toSet()
-
-        for (cache in thisWithDependentCaches) {
-            val parentsFqNames = hashSetOf<FqName>()
-            val childrenFqNames = hashSetOf<FqName>()
-
-            for (removedFqName in removedFqNames) {
-                parentsFqNames.addAll(cache.supertypesMap[removedFqName])
-                childrenFqNames.addAll(cache.subtypesMap[removedFqName])
-
-                cache.supertypesMap.remove(removedFqName)
-                cache.subtypesMap.remove(removedFqName)
-            }
-
-            for (child in childrenFqNames) {
-                cache.supertypesMap.removeValues(child, removedFqNames)
-            }
-
-            for (parent in parentsFqNames) {
-                cache.subtypesMap.removeValues(parent, removedFqNames)
-            }
-        }
-
-        removedFqNames.forEach { classFqNameToSourceMap.remove(it) }
+        val (nameResolver, proto) = JvmProtoBufUtil.readClassDataFrom(kotlinClass.classHeader.data!!, kotlinClass.classHeader.strings!!)
+        addToClassStorage(proto, nameResolver, srcFile)
     }
 
     private inner class DirtyOutputClassesMap(storageFile: File) : BasicStringMap<Boolean>(storageFile, BooleanDataDescriptor.INSTANCE) {
