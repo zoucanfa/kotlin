@@ -377,8 +377,10 @@ class FunctionDescriptorResolver(
             val valueParameterDescriptor = descriptorResolver.resolveValueParameterDescriptor(parameterScope, functionDescriptor,
                                                                                               valueParameter, i, type, trace)
 
-            // Do not report NAME_SHADOWING for lambda destructured parameters as they may be not fully resolved at this time
-            ExpressionTypingUtils.checkVariableShadowing(parameterScope, trace, valueParameterDescriptor)
+            if (ExpressionTypingUtils.isFunctionLiteral(valueParameterDescriptor.containingDeclaration)) {
+                // Do not report NAME_SHADOWING for lambda destructured parameters as they may be not fully resolved at this time
+                ExpressionTypingUtils.checkVariableShadowing(parameterScope, trace, valueParameterDescriptor)
+            }
 
             parameterScope.addVariableDescriptor(valueParameterDescriptor)
             result.add(valueParameterDescriptor)
