@@ -168,6 +168,12 @@ public class CompileKotlinAgainstJavaTestGenerated extends AbstractCompileKotlin
         doTest(fileName);
     }
 
+    @TestMetadata("InnerWithGenericOuter.kt")
+    public void testInnerWithGenericOuter() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/compileKotlinAgainstJava/InnerWithGenericOuter.kt");
+        doTest(fileName);
+    }
+
     @TestMetadata("Interface.kt")
     public void testInterface() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/compileKotlinAgainstJava/Interface.kt");

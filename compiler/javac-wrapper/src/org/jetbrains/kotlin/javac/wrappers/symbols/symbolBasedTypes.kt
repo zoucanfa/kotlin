@@ -82,12 +82,22 @@ class SymbolBasedClassifierType<out T : TypeMirror>(
         }
 
     override val typeArguments: List<JavaType>
-        get() = if (typeMirror.kind == TypeKind.DECLARED) {
-                    (typeMirror as DeclaredType).typeArguments.map { create(it, javac) }
-                }
-                else {
-                    emptyList()
-                }
+        get() {
+            val args = if (typeMirror.kind == TypeKind.DECLARED) {
+                (typeMirror as DeclaredType).typeArguments.map { create(it, javac) }.toMutableList()
+            }
+            else {
+                return emptyList()
+            }
+
+            var enclosingType = (typeMirror as DeclaredType).enclosingType
+            while (enclosingType.kind == TypeKind.DECLARED) {
+                args.addAll((enclosingType as DeclaredType).typeArguments.map { create(it, javac) })
+                enclosingType = enclosingType.enclosingType
+            }
+
+            return args
+        }
 
     override val isRaw: Boolean
         get() = when {
