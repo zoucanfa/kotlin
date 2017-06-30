@@ -73,8 +73,7 @@ fun makeCompileServices(
 
 fun updateIncrementalCache(
         generatedFiles: List<GeneratedFile<*>>,
-        cache: IncrementalCacheImpl,
-        compiledWithErrors: Boolean
+        cache: IncrementalCacheImpl
 ): CompilationResult {
     var changesInfo = CompilationResult.NO_CHANGES
     for (generatedFile in generatedFiles) {
@@ -84,10 +83,8 @@ fun updateIncrementalCache(
         }
     }
 
-    if (!compiledWithErrors) {
-        val newChangesInfo = cache.clearCacheForRemovedClasses()
-        changesInfo += newChangesInfo
-    }
+    val newChangesInfo = cache.clearCacheForRemovedClasses()
+    changesInfo += newChangesInfo
 
     return changesInfo
 }
