@@ -75,7 +75,7 @@ class IncrementalJvmCachesManager(
 ) : IncrementalCachesManager(cacheDirectory, reporter) {
 
     private val jvmCacheFile = File(cacheDirectory, "jvm").apply { mkdirs() }
-    val jvmCache = IncrementalCacheImpl(cacheDirectory, outputDir, targetId).apply { registerCache() }
+    val jvmCache = IncrementalCacheImpl(jvmCacheFile, outputDir, targetId).apply { registerCache() }
 }
 
 class IncrementalJsCachesManager(
