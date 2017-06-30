@@ -24,13 +24,13 @@ import org.gradle.api.tasks.SourceSetOutput
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.com.intellij.openapi.util.io.FileUtil
+import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtil
 import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtil.compareVersionNumbers
 import org.jetbrains.kotlin.com.intellij.util.ReflectionUtil
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptionsImpl
 import org.jetbrains.kotlin.gradle.internal.*
 import org.jetbrains.kotlin.gradle.internal.Kapt3KotlinGradleSubplugin.Companion.getKaptClasssesDir
 import org.jetbrains.kotlin.gradle.tasks.*
-import org.jetbrains.kotlin.gradle.utils.ParsedGradleVersion
 import org.jetbrains.kotlin.incremental.configureMultiProjectIncrementalCompilation
 import java.io.File
 import java.net.URL
@@ -576,8 +576,9 @@ internal fun configureJavaTask(kotlinTask: KotlinCompile, javaTask: AbstractComp
     // Gradle Java IC in older Gradle versions (before 2.14) cannot check .class directories updates.
     // To make it work, reset the up-to-date status of compileJava with this flag.
     kotlinTask.anyClassesCompiled = false
-    val gradleSupportsJavaIcWithClassesDirs = ParsedGradleVersion.parse(javaTask.project.gradle.gradleVersion)
-                                                      ?.let { it >= ParsedGradleVersion(2, 14) } ?: false
+    val gradleSupportsJavaIcWithClassesDirs =
+            StringUtil.compareVersionNumbers(javaTask.project.gradle.gradleVersion, "2.14") >= 0
+
     if (!gradleSupportsJavaIcWithClassesDirs) {
         javaTask.outputs.upToDateWhen { task ->
             if (kotlinTask.anyClassesCompiled) {
