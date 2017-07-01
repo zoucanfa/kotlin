@@ -6,6 +6,11 @@ configureJvmProject(project)
 configurePublishing(project)
 
 sourceSets {
+    checkJavac {
+        java {
+            srcDir 'srcJava'
+        }
+    }
     annotations {
         if(!System.properties.'idea.active') {
             java {
@@ -45,7 +50,9 @@ dependencies {
     builtinsCompile group: 'org.jetbrains', name: 'annotations', version:'13.0'
     compile group: 'org.jetbrains', name: 'annotations', version:'13.0'
     compile sourceSets.builtins.output
-    
+
+    checkJavacCompile group: 'org.jetbrains', name: 'annotations', version:'13.0'
+
     testCompile project(':kotlin-test:kotlin-test-junit')
 }
 
@@ -97,6 +104,7 @@ dist {
 }
 
 compileBuiltinsJava {
+    dependsOn compileCheckJavacJava
     doFirst {
         configurations.compile.each {
             if (it.isFile()) {
