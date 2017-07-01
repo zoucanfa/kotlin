@@ -103,6 +103,25 @@ dist {
     }
 }
 
+task compileCheckJavacManual {
+    doLast {
+        def targetDir = file("$buildDir/classes")
+        targetDir.mkdirs()
+        exec {
+            executable = "${JDK_16}/bin/javac"
+            args = ['-source', '1.6', '-target', '1.6', '-d', targetDir.toString(), '-g',
+                    '-sourcepath', '-proc:none',  '-XDuseUnsharedTable=true', '-classpath']
+            args configurations.compile.collect { it.toString() }.join(File.pathSeparator)
+            args file("${projectDir}/srcJava/org/test/TestAnnotated.java").toString()
+            println(args)
+        }
+    }
+}
+
+compileCheckJavacJava {
+    dependsOn compileCheckJavacManual
+}
+
 compileBuiltinsJava {
     dependsOn compileCheckJavacJava
     doFirst {
