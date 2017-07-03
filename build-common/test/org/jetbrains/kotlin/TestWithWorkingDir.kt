@@ -28,13 +28,13 @@ abstract class TestWithWorkingDir : TestCase() {
         private set
 
     @Before
-    override fun setUp() {
+    public override fun setUp() {
         super.setUp()
         workingDir = FileUtil.createTempDirectory(this::class.java.simpleName, null, /* deleteOnExit = */ true)
     }
 
     @After
-    override fun tearDown() {
+    public override fun tearDown() {
         workingDir.deleteRecursively()
         super.tearDown()
     }
