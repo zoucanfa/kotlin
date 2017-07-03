@@ -329,7 +329,7 @@ class IncrementalJvmCompilerRunner(
     }
 
     override fun compareAndUpdateCache(caches: IncrementalJvmCachesManager, generatedFiles: List<GeneratedFile<*>>): CompilationResult =
-        updateIncrementalCache(caches.platformCache, generatedFiles)
+        updateIncrementalCache(generatedFiles, caches.platformCache)
 
     override fun compileIncrementally(
             args: K2JVMCompilerArguments,
