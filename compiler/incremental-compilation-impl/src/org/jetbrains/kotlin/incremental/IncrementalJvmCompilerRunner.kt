@@ -328,21 +328,8 @@ class IncrementalJvmCompilerRunner(
         }
     }
 
-    override fun compareAndUpdateCache(caches: IncrementalJvmCachesManager, generatedFiles: List<GeneratedFile<*>>): CompilationResult {
-        val cache = caches.platformCache
-        var changesInfo = CompilationResult.NO_CHANGES
-        for (generatedFile in generatedFiles) {
-            when {
-                generatedFile is GeneratedJvmClass<*> -> changesInfo += cache.saveFileToCache(generatedFile)
-                generatedFile.outputFile.isModuleMappingFile() -> changesInfo += cache.saveModuleMappingToCache(generatedFile.sourceFiles, generatedFile.outputFile)
-            }
-        }
-
-        val newChangesInfo = cache.clearCacheForRemovedClasses()
-        changesInfo += newChangesInfo
-
-        return changesInfo
-    }
+    override fun compareAndUpdateCache(caches: IncrementalJvmCachesManager, generatedFiles: List<GeneratedFile<*>>): CompilationResult =
+        updateIncrementalCache(caches.platformCache, generatedFiles)
 
     override fun compileIncrementally(
             args: K2JVMCompilerArguments,
