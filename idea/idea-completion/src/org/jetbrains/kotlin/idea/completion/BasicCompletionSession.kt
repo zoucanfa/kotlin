@@ -44,7 +44,7 @@ import org.jetbrains.kotlin.idea.core.NotPropertiesService
 import org.jetbrains.kotlin.idea.core.completion.DeclarationLookupObject
 import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.project.TargetPlatformDetector
-import org.jetbrains.kotlin.idea.references.KtSimpleNameReference
+import org.jetbrains.kotlin.idea.references.KtSimpleNameReference.ShorteningMode.FORCED_SHORTENING
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.stubindex.PackageIndexUtil
 import org.jetbrains.kotlin.idea.util.CallTypeAndReceiver
@@ -407,36 +407,38 @@ class BasicCompletionSession(
                             val receiverTypes = detectReceiverTypes(newContext, nameExpression, callTypeAndReceiver)
 
                             val factory = lookupElementFactory.copy(receiverTypes = receiverTypes, standardLookupElementsPostProcessor = {
-                                val lookupDescriptor = (it.`object` as? DeclarationLookupObject)
-                                                               ?.descriptor as? MemberDescriptor ?: return@copy it
 
-                                if (!desc.isAncestorOf(lookupDescriptor, false)) return@copy it
+                                lookupElement ->
+                                val lookupDescriptor = (lookupElement.`object` as? DeclarationLookupObject)
+                                                               ?.descriptor as? MemberDescriptor ?: return@copy lookupElement
 
-                                if (lookupDescriptor is CallableMemberDescriptor) {
-                                    if (lookupDescriptor.isExtension &&
-                                        lookupDescriptor.extensionReceiverParameter?.importableFqName != desc.fqNameSafe) return@copy it
+                                if (!desc.isAncestorOf(lookupDescriptor, false)) return@copy lookupElement
+
+                                if (lookupDescriptor is CallableMemberDescriptor &&
+                                    lookupDescriptor.isExtension &&
+                                    lookupDescriptor.extensionReceiverParameter?.importableFqName != desc.fqNameSafe) {
+                                    return@copy lookupElement
                                 }
 
-                                val fqNameToImport = lookupDescriptor.containingDeclaration.importableFqName
+                                val fqNameToImport = lookupDescriptor.containingDeclaration.importableFqName ?: return@copy lookupElement
 
-                                object : LookupElementDecorator<LookupElement>(it) {
-                                    val name = fqNameToImport?.shortName()
-                                    val packageName = fqNameToImport?.parent()
+                                object : LookupElementDecorator<LookupElement>(lookupElement) {
+                                    val name = fqNameToImport.shortName()
+                                    val packageName = fqNameToImport.parent()
 
                                     override fun handleInsert(context: InsertionContext) {
                                         super.handleInsert(context)
                                         context.commitDocument()
                                         val file = context.file as? KtFile
-                                        if (file != null && fqNameToImport != null) {
+                                        if (file != null) {
                                             val receiverInFile = file.findElementAt(receiver.startOffset)?.getParentOfType<KtSimpleNameExpression>(false) ?: return
-                                            receiverInFile.mainReference.bindToFqName(fqNameToImport, KtSimpleNameReference.ShorteningMode.FORCED_SHORTENING)
+                                            receiverInFile.mainReference.bindToFqName(fqNameToImport, FORCED_SHORTENING)
                                         }
                                     }
 
                                     override fun renderElement(presentation: LookupElementPresentation?) {
                                         super.renderElement(presentation)
-                                        if (fqNameToImport != null)
-                                            presentation?.appendTailText(" for $name in $packageName", true)
+                                        presentation?.appendTailText(" for $name in $packageName", true)
                                     }
                                 }
                             })

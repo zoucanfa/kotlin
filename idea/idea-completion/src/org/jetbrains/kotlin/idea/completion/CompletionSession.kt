@@ -130,13 +130,9 @@ abstract class CompletionSession(
                                                                     isVisibleFilter,
                                                                     NotPropertiesService.getNotProperties(position))
 
-    protected val callTypeAndReceiver: CallTypeAndReceiver<*, *>
-    protected val receiverTypes: Collection<ReceiverType>?
+    protected val callTypeAndReceiver = if (nameExpression == null) CallTypeAndReceiver.UNKNOWN else CallTypeAndReceiver.detect(nameExpression)
+    protected val receiverTypes = nameExpression?.let { detectReceiverTypes(bindingContext, nameExpression, callTypeAndReceiver) }
 
-    init {
-        this.callTypeAndReceiver = if (nameExpression == null) CallTypeAndReceiver.UNKNOWN else CallTypeAndReceiver.detect(nameExpression)
-        this.receiverTypes = nameExpression?.let { detectReceiverTypes(bindingContext, nameExpression, callTypeAndReceiver) }
-    }
 
     protected val basicLookupElementFactory = BasicLookupElementFactory(project, InsertHandlerProvider(callTypeAndReceiver.callType) { expectedInfos })
 
