@@ -136,10 +136,10 @@ class JavacWrapper(
             javaClasses.values.associateBy { it.computeClassId() }
 
     private val javaPackages = compilationUnits
-            .mapNotNullTo(hashSetOf()) { unit ->
+            .mapNotNullTo(hashSetOf<TreeBasedPackage>()) { unit ->
                 unit.packageName?.toString()?.let { packageName ->
                     TreeBasedPackage(packageName, this, unit.sourcefile)
-                }
+                } ?: TreeBasedPackage("<root>", this, unit.sourcefile)
             }
             .associateBy(TreeBasedPackage::fqName)
 

@@ -62,7 +62,7 @@ class TreeBasedClass(
         get() = tree.modifiers.isFinal
 
     override val visibility: Visibility
-        get() = if (outerClass?.isInterface ?: false) PUBLIC else tree.modifiers.visibility
+        get() = if (outerClass?.isInterface == true) PUBLIC else tree.modifiers.visibility
 
     override val typeParameters: List<JavaTypeParameter>
         get() = tree.typeParameters.map { parameter ->
@@ -74,10 +74,9 @@ class TreeBasedClass(
                     .filterIsInstance<JCTree.JCClassDecl>()
                     .joinToString(
                             separator = ".",
-                            prefix = "${treePath.compilationUnit.packageName}.",
                             transform = JCTree.JCClassDecl::name
                     )
-                    .let(::FqName)
+                    .let { treePath.compilationUnit.packageName?.let { packageName -> FqName("$packageName.$it") } ?: FqName.topLevel(Name.identifier(it))}
 
     override val supertypes: Collection<JavaClassifierType>
         get() = arrayListOf<JavaClassifierType>().apply {

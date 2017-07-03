@@ -200,6 +200,10 @@ fun main(args: Array<String>) {
             model("diagnostics/tests")
             model("diagnostics/tests/script", extension = "kts")
             model("codegen/box/diagnostics")
+
+            model("diagnostics/tests", testClassName = "TestsWithJavac", testMethod = "doTestWithJavac")
+            model("codegen/box/diagnostics", testClassName = "DiagnosticsWithJavac", testMethod = "doTestWithJavac")
+
         }
 
         testClass<AbstractDiagnosticsTestWithStdLib> {
