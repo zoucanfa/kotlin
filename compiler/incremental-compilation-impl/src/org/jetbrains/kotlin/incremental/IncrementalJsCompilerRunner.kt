@@ -164,7 +164,7 @@ class IncrementalJsCompilerRunner(
 
             val services = Services.Builder()
             if (compilationMode is CompilationMode.Incremental) {
-                val translationResults = caches.jsCache.translationResults
+                val translationResults = caches.platformCache.translationResults
                 dirtySources.forEach { translationResults.remove(it) }
                 val headerMetada = metadataHeaderFile.readBytes()
                 val packagePartsMetadata = arrayListOf<ByteArray>()
@@ -196,7 +196,7 @@ class IncrementalJsCompilerRunner(
 
             var hasChanges = false
             incrementalResults.packageParts.forEach {
-                hasChanges = hasChanges || caches.jsCache.translationResults.put(it.sourceFile, metadata = it.proto, binaryAst = it.binaryAst)
+                hasChanges = hasChanges || caches.platformCache.translationResults.put(it.sourceFile, metadata = it.proto, binaryAst = it.binaryAst)
             }
 
             if (compilationMode is CompilationMode.Rebuild || !hasChanges) break

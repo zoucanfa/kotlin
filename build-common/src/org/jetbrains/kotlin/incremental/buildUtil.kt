@@ -71,24 +71,6 @@ fun makeCompileServices(
         build()
     }
 
-fun updateIncrementalCache(
-        generatedFiles: List<GeneratedFile<*>>,
-        cache: IncrementalCacheImpl
-): CompilationResult {
-    var changesInfo = CompilationResult.NO_CHANGES
-    for (generatedFile in generatedFiles) {
-        when {
-            generatedFile is GeneratedJvmClass<*> -> changesInfo += cache.saveFileToCache(generatedFile)
-            generatedFile.outputFile.isModuleMappingFile() -> changesInfo += cache.saveModuleMappingToCache(generatedFile.sourceFiles, generatedFile.outputFile)
-        }
-    }
-
-    val newChangesInfo = cache.clearCacheForRemovedClasses()
-    changesInfo += newChangesInfo
-
-    return changesInfo
-}
-
 fun LookupStorage.update(
         lookupTracker: LookupTracker,
         filesToCompile: Iterable<File>,
