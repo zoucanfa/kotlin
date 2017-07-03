@@ -156,15 +156,6 @@ class GroovyBuildScriptManipulator(private val groovyScript: GroovyFile) : Gradl
         return null
     }
 
-    private fun DependencyScope.toGradleCompileScope(isAndroidModule: Boolean) = when (this) {
-        DependencyScope.COMPILE -> "compile"
-        // TODO we should add testCompile or androidTestCompile
-        DependencyScope.TEST -> if (isAndroidModule) "compile" else "testCompile"
-        DependencyScope.RUNTIME -> "runtime"
-        DependencyScope.PROVIDED -> "compile"
-        else -> "compile"
-    }
-
     private fun changeKotlinTaskParameter(
             gradleFile: GroovyFile,
             parameterName: String,
@@ -250,9 +241,6 @@ class GroovyBuildScriptManipulator(private val groovyScript: GroovyFile) : Gradl
         addLastExpressionInBlockIfNeeded(snippet)
     }
 
-    private fun isRepositoryConfigured(repositoriesBlockText: String): Boolean =
-            repositoriesBlockText.contains(MAVEN_CENTRAL) || repositoriesBlockText.contains(JCENTER)
-
     private fun GrClosableBlock.addLastExpressionInBlockIfNeeded(expressionText: String): Boolean =
             addExpressionInBlockIfNeeded(expressionText, false)
 
@@ -286,12 +274,9 @@ class GroovyBuildScriptManipulator(private val groovyScript: GroovyFile) : Gradl
     }
 
     companion object {
-        private val MAVEN_CENTRAL = "mavenCentral()"
-        private val JCENTER = "jcenter()"
         private val VERSION_TEMPLATE = "\$VERSION$"
         private val VERSION = String.format("ext.kotlin_version = '%s'", VERSION_TEMPLATE)
-        private val GROUP_ID = "org.jetbrains.kotlin"
         private val GRADLE_PLUGIN_ID = "kotlin-gradle-plugin"
-        private val CLASSPATH = "classpath \"$GROUP_ID:$GRADLE_PLUGIN_ID:\$kotlin_version\""
+        private val CLASSPATH = "classpath \"$KOTLIN_GROUP_ID:$GRADLE_PLUGIN_ID:\$kotlin_version\""
     }
 }

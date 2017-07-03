@@ -91,15 +91,6 @@ class KotlinBuildScriptManipulator(private val kotlinScript: KtFile) : GradleBui
 
     override fun getKotlinStdlibVersion(): String? = kotlinScript.getKotlinStdlibVersion()
 
-    private fun DependencyScope.toGradleCompileScope(isAndroidModule: Boolean) = when (this) {
-        DependencyScope.COMPILE -> "compile"
-        // TODO we should add testCompile or androidTestCompile
-        DependencyScope.TEST -> if (isAndroidModule) "compile" else "testCompile"
-        DependencyScope.RUNTIME -> "runtime"
-        DependencyScope.PROVIDED -> "compile"
-        else -> "compile"
-    }
-
     private fun KtBlockExpression.addCompileStdlibIfMissing(stdlibArtifactName: String): KtCallExpression? =
             findCompileStdLib() ?: addExpressionIfMissing(getCompileDependencySnippet(KOTLIN_GROUP_ID, stdlibArtifactName)) as? KtCallExpression
 
@@ -231,15 +222,11 @@ class KotlinBuildScriptManipulator(private val kotlinScript: KtFile) : GradleBui
         val repository = getRepositoryForVersion(version)
         val snippet = when {
             repository != null -> repository.toKotlinRepositorySnippet()
-            !isRepositoryConfigured() -> MAVEN_CENTRAL
+            !isRepositoryConfigured(text) -> MAVEN_CENTRAL
             else -> return null
         }
 
         return addExpressionIfMissing(snippet) as? KtCallExpression
-    }
-
-    private fun KtBlockExpression.isRepositoryConfigured(): Boolean {
-        return text.contains(MAVEN_CENTRAL) || text.contains(JCENTER)
     }
 
     private fun KtBlockExpression.addPluginToClassPathIfMissing(): KtCallExpression? =
@@ -322,10 +309,7 @@ class KotlinBuildScriptManipulator(private val kotlinScript: KtFile) : GradleBui
         get() = KtPsiFactory(this)
 
     companion object {
-        private val MAVEN_CENTRAL = "mavenCentral()"
-        private val JCENTER = "jcenter()"
         private val STDLIB_ARTIFACT_PREFIX = "org.jetbrains.kotlin:kotlin-stdlib"
-        private val KOTLIN_GROUP_ID = "org.jetbrains.kotlin"
         private val GSK_KOTLIN_VERSION_PROPERTY_NAME = "kotlin_version"
     }
 }
