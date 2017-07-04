@@ -126,10 +126,10 @@ class TypeAliasExpander(
     private fun SimpleType.combineAnnotations(annotations: Annotations): SimpleType {
         if (isError) return this
 
-        val existingAnnotationTypes = this.annotations.getAllAnnotations().mapTo(hashSetOf<KotlinType>()) { it.annotation.type }
+        val existingAnnotationFqNames = this.annotations.getAllAnnotations().mapNotNullTo(hashSetOf()) { it.annotation.fqName }
 
         for (annotation in annotations) {
-            if (annotation.type in existingAnnotationTypes) {
+            if (annotation.fqName in existingAnnotationFqNames) {
                 reportStrategy.repeatedAnnotation(annotation)
             }
         }

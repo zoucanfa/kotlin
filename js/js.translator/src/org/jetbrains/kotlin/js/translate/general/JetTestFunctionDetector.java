@@ -26,7 +26,6 @@ import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter;
 import org.jetbrains.kotlin.resolve.scopes.MemberScope;
-import org.jetbrains.kotlin.types.KotlinType;
 
 import java.util.Collection;
 import java.util.List;
@@ -41,10 +40,7 @@ public class JetTestFunctionDetector {
     private static boolean isTest(@NotNull FunctionDescriptor functionDescriptor) {
         Annotations annotations = functionDescriptor.getAnnotations();
         for (AnnotationDescriptor annotation : annotations) {
-            // TODO ideally we should find the fully qualified name here...
-            KotlinType type = annotation.getType();
-            String name = type.toString();
-            if (name.equals("Test")) {
+            if (new FqName("org.junit.Test").equals(annotation.getFqName())) {
                 return true;
             }
         }
