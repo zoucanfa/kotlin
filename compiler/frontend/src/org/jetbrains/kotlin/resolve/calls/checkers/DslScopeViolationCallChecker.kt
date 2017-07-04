@@ -18,7 +18,6 @@ package org.jetbrains.kotlin.resolve.calls.checkers
 
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.config.LanguageFeature
-import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.diagnostics.Errors
@@ -26,7 +25,6 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall
 import org.jetbrains.kotlin.resolve.calls.resolvedCallUtil.getImplicitReceivers
 import org.jetbrains.kotlin.resolve.descriptorUtil.annotationClass
-import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.scopes.LexicalScope
 import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue
@@ -80,7 +78,7 @@ private fun ReceiverValue.extractDslMarkerFqNames(): Set<FqName> {
 }
 
 private fun Annotations.extractDslMarkerFqNames() =
-        filter(AnnotationDescriptor::isDslMarker).map { it.annotationClass!!.fqNameSafe  }
+        filter(AnnotationDescriptor::isDslMarker).map { it.fqName!! }
 
 private fun AnnotationDescriptor.isDslMarker(): Boolean {
     val classDescriptor = annotationClass ?: return false
