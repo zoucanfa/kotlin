@@ -41,8 +41,8 @@ import org.jetbrains.kotlin.js.facade.K2JSTranslator
 import org.jetbrains.kotlin.js.facade.MainCallParameters
 import org.jetbrains.kotlin.js.facade.TranslationResult
 import org.jetbrains.kotlin.js.facade.TranslationUnit
-import org.jetbrains.kotlin.js.incremental.IncrementalDataProviderImpl
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumerImpl
+import org.jetbrains.kotlin.incremental.js.IncrementalDataProviderImpl
+import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.js.test.utils.DirectiveTestUtils
 import org.jetbrains.kotlin.js.test.utils.JsTestUtils
 import org.jetbrains.kotlin.js.test.utils.verifyAst
@@ -50,7 +50,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.serialization.js.ModuleKind
-import org.jetbrains.kotlin.serialization.js.PackagesWithHeaderMetadata
 import org.jetbrains.kotlin.test.InTextDirectivesUtils
 import org.jetbrains.kotlin.test.KotlinTestUtils
 import org.jetbrains.kotlin.test.KotlinTestUtils.TestFileFactory

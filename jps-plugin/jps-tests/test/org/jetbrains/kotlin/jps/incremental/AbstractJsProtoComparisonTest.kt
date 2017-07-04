@@ -25,8 +25,8 @@ import org.jetbrains.kotlin.incremental.Difference
 import org.jetbrains.kotlin.incremental.PackagePartProtoData
 import org.jetbrains.kotlin.incremental.ProtoData
 import org.jetbrains.kotlin.incremental.utils.TestMessageCollector
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumer
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumerImpl
+import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumer
+import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name

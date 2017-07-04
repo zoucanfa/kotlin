@@ -38,9 +38,9 @@ import org.jetbrains.kotlin.incremental.testingUtils.TouchPolicy
 import org.jetbrains.kotlin.incremental.testingUtils.copyTestSources
 import org.jetbrains.kotlin.incremental.testingUtils.getModificationsToPerform
 import org.jetbrains.kotlin.incremental.utils.TestMessageCollector
-import org.jetbrains.kotlin.js.incremental.IncrementalDataProvider
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumer
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumerImpl
+import org.jetbrains.kotlin.incremental.js.IncrementalDataProvider
+import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumer
+import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.preloading.ClassCondition
 import org.jetbrains.kotlin.test.KotlinTestUtils
 import org.jetbrains.kotlin.utils.PathUtil

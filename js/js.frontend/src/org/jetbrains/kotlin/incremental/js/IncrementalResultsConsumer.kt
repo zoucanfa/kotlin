@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.js.incremental
+package org.jetbrains.kotlin.incremental.js
 
 import java.io.File
 

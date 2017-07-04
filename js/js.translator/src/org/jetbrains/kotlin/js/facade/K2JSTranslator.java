@@ -29,7 +29,7 @@ import org.jetbrains.kotlin.js.config.JSConfigurationKeys;
 import org.jetbrains.kotlin.js.config.JsConfig;
 import org.jetbrains.kotlin.js.coroutine.CoroutineTransformer;
 import org.jetbrains.kotlin.js.facade.exceptions.TranslationException;
-import org.jetbrains.kotlin.js.incremental.IncrementalResultsConsumer;
+import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumer;
 import org.jetbrains.kotlin.js.inline.JsInliner;
 import org.jetbrains.kotlin.js.inline.clean.LabeledBlockToDoWhileTransformation;
 import org.jetbrains.kotlin.js.inline.clean.RemoveUnusedImportsKt;
