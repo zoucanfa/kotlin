@@ -44,6 +44,31 @@ public final class kotlin/LazyThreadSafetyMode : java/lang/Enum {
 	public static fun values ()[Lkotlin/LazyThreadSafetyMode;
 }
 
+public final class kotlin/Math {
+	public static final field E D
+	public static final field INSTANCE Lkotlin/Math;
+	public static final field PI D
+	public final fun acos (D)D
+	public final fun asin (D)D
+	public final fun atan (D)D
+	public final fun atan2 (DD)D
+	public final fun cbrt (D)D
+	public final fun cos (D)D
+	public final fun hypot (DD)D
+	public final fun max (DD)D
+	public final fun max (FF)F
+	public final fun max (II)I
+	public final fun max (JJ)J
+	public final fun min (DD)D
+	public final fun min (FF)F
+	public final fun min (II)I
+	public final fun min (JJ)J
+	public final fun pow (DD)D
+	public final fun sin (D)D
+	public final fun sqrt (D)D
+	public final fun tan (D)D
+}
+
 public final class kotlin/NotImplementedError : java/lang/Error {
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;)V

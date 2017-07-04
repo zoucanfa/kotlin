@@ -30,6 +30,7 @@ object JvmPlatform : TargetPlatform("JVM") {
 
             add(ImportPath.fromString("java.lang.*"))
             add(ImportPath.fromString("kotlin.jvm.*"))
+            add(ImportPath.fromString("kotlin.Math"))
 
             fun addAllClassifiersFromScope(scope: MemberScope) {
                 for (descriptor in scope.getContributedDescriptors(DescriptorKindFilter.CLASSIFIERS, MemberScope.ALL_NAME_FILTER)) {
