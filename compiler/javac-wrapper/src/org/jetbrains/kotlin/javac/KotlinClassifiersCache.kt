@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.javac.wrappers.trees.findInner
 import org.jetbrains.kotlin.javac.wrappers.trees.tryToResolveByFqName
 import org.jetbrains.kotlin.javac.wrappers.trees.tryToResolveInJavaLang
 import org.jetbrains.kotlin.load.java.structure.impl.VirtualFileBoundJavaClass
+import org.jetbrains.kotlin.name.ClassId
 
 class KotlinClassifiersCache(sourceFiles: Collection<KtFile>,
                              private val javac: JavacWrapper) {
@@ -42,8 +43,22 @@ class KotlinClassifiersCache(sourceFiles: Collection<KtFile>,
     }.toMap()
 
     private val classifiers = hashMapOf<FqName, JavaClass>()
+    private val classifiersByClassId = hashMapOf<ClassId, JavaClass>()
+
+    fun getKotlinClassifier(classId: ClassId) = classifiersByClassId[classId] ?: createClassifierByClassId(classId)
 
     fun getKotlinClassifier(fqName: FqName) = classifiers[fqName] ?: createClassifier(fqName)
+
+    private fun createClassifierByClassId(classId: ClassId): JavaClass? {
+        if (!kotlinClasses.containsKey(classId.asSingleFqName())) return null
+        val kotlinClassifier = kotlinClasses[classId.asSingleFqName()] ?: return null
+
+        return MockKotlinClassifier(classId.asSingleFqName(),
+                                    kotlinClassifier,
+                                    kotlinClassifier.typeParameters.isNotEmpty(),
+                                    javac)
+                .apply { classifiersByClassId[classId] = this }
+    }
 
     private fun createClassifier(fqName: FqName): JavaClass? {
         if (!kotlinClasses.containsKey(fqName)) return null
@@ -80,7 +95,7 @@ class MockKotlinClassifier(override val fqName: FqName,
 
     override val supertypes: Collection<JavaClassifierType>
         get() = classOrObject.superTypeListEntries
-                .mapNotNull { superTypeListEntry ->
+                .map { superTypeListEntry ->
                     val userType = superTypeListEntry.typeAsUserType
                     arrayListOf<String>().apply {
                         userType?.referencedName?.let { add(it) }

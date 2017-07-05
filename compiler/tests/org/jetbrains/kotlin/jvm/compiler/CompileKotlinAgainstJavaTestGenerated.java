@@ -198,6 +198,12 @@ public class CompileKotlinAgainstJavaTestGenerated extends AbstractCompileKotlin
         doTest(fileName);
     }
 
+    @TestMetadata("JavaLangClass.kt")
+    public void testJavaLangClass() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/compileKotlinAgainstJava/JavaLangClass.kt");
+        doTest(fileName);
+    }
+
     @TestMetadata("ListImpl.kt")
     public void testListImpl() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/compileKotlinAgainstJava/ListImpl.kt");

@@ -43,10 +43,7 @@ import com.sun.tools.javac.util.Options
 import org.jetbrains.kotlin.javac.wrappers.symbols.SymbolBasedClass
 import org.jetbrains.kotlin.javac.wrappers.symbols.SymbolBasedClassifierType
 import org.jetbrains.kotlin.javac.wrappers.symbols.SymbolBasedPackage
-import org.jetbrains.kotlin.javac.wrappers.trees.TreeBasedClass
-import org.jetbrains.kotlin.javac.wrappers.trees.TreeBasedPackage
-import org.jetbrains.kotlin.javac.wrappers.trees.TreePathResolverCache
-import org.jetbrains.kotlin.javac.wrappers.trees.computeClassId
+import org.jetbrains.kotlin.javac.wrappers.trees.*
 import org.jetbrains.kotlin.load.java.structure.JavaClass
 import org.jetbrains.kotlin.load.java.structure.JavaClassifier
 import org.jetbrains.kotlin.load.java.structure.JavaPackage
@@ -136,7 +133,7 @@ class JavacWrapper(
             javaClasses.values.associateBy { it.computeClassId() }
 
     private val javaPackages = compilationUnits
-            .mapNotNullTo(hashSetOf<TreeBasedPackage>()) { unit ->
+            .mapTo(hashSetOf<TreeBasedPackage>()) { unit ->
                 unit.packageName?.toString()?.let { packageName ->
                     TreeBasedPackage(packageName, this, unit.sourcefile)
                 } ?: TreeBasedPackage("<root>", this, unit.sourcefile)
@@ -144,7 +141,7 @@ class JavacWrapper(
             .associateBy(TreeBasedPackage::fqName)
 
     private val kotlinClassifiersCache = KotlinClassifiersCache(if (javaFiles.isNotEmpty()) kotlinFiles else emptyList(), this)
-    private val treePathResolverCache = TreePathResolverCache(this)
+    private val treePathResolverCache = TreePathResolverCacheByClassId(this)
     private val symbolBasedClassesCache = hashMapOf<String, SymbolBasedClass?>()
     private val symbolBasedPackagesCache = hashMapOf<String, SymbolBasedPackage?>()
 
@@ -240,6 +237,9 @@ class JavacWrapper(
 
     fun getKotlinClassifier(fqName: FqName): JavaClass? =
             kotlinClassifiersCache.getKotlinClassifier(fqName)
+
+    fun getKotlinClassifier(classId: ClassId): JavaClass? =
+            kotlinClassifiersCache.getKotlinClassifier(classId)
 
     fun isDeprecated(element: Element) = elements.isDeprecated(element)
 
