@@ -66,7 +66,11 @@ public class GradleRunner {
 
     public String connectedDebugAndroidTest() {
         System.out.println("Starting tests...");
-        RunResult result = RunUtils.execute(generateCommandLine("connectedAndroidTest"));
+        GeneralCommandLine test = generateCommandLine("connectedAndroidTest");
+        test.addParameter("--debug");
+        test.addParameter("--stacktrace");
+        RunUtils.RunSettings settings = new RunUtils.RunSettings(test, null, true, null, true);
+        RunResult result = RunUtils.execute(settings);
         return result.getOutput();
     }
 

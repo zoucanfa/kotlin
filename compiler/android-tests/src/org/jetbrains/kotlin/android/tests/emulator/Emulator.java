@@ -76,6 +76,8 @@ public class Emulator {
         commandLine.addParameter("my_avd");
         commandLine.addParameter("-no-audio");
         commandLine.addParameter("-no-window");
+        //commandLine.addParameter("-use-system-libs");
+        commandLine.addParameter("-verbose");
         return commandLine;
     }
 
