@@ -46,7 +46,7 @@ object CodegenJdkCommonTestSuite {
     fun setUp() {
         val boxInSeparateProcessPort = System.getProperty(CodegenTestCase.RUN_BOX_TEST_IN_SEPARATE_PROCESS_PORT)
         if (boxInSeparateProcessPort != null) {
-            val classpath = "out/test/tests-common" +
+            val classpath = "build/compiler.tests-common/classes/java/main" +
                             File.pathSeparatorChar +
                             ForTestCompileRuntime.runtimeJarForTests() +
                             File.pathSeparatorChar +
