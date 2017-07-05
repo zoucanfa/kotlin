@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -202,18 +202,18 @@ private class DifferenceCalculatorForClass(oldData: ProtoMapValue, newData: Prot
                     names.addAll(calcDifferenceForNames(oldProto.nestedClassNameList, newProto.nestedClassNameList))
                 }
                 ProtoBufClassKind.CONSTRUCTOR_LIST -> {
-                    val differentNonPrivateConstructors = calcDifferenceForNonPrivateMembers(ProtoBuf.Class::getConstructorList)
+                    val differentNonPrivateConstructors = calcDifferenceForNonPrivateMembers { it.getConstructorList() }
 
                     if (differentNonPrivateConstructors.isNotEmpty()) {
                         isClassAffected = true
                     }
                 }
                 ProtoBufClassKind.FUNCTION_LIST ->
-                    names.addAll(calcDifferenceForNonPrivateMembers(ProtoBuf.Class::getFunctionList))
+                    names.addAll(calcDifferenceForNonPrivateMembers { it.getFunctionList() })
                 ProtoBufClassKind.PROPERTY_LIST ->
-                    names.addAll(calcDifferenceForNonPrivateMembers(ProtoBuf.Class::getPropertyList))
+                    names.addAll(calcDifferenceForNonPrivateMembers { it.getPropertyList() })
                 ProtoBufClassKind.TYPE_ALIAS_LIST ->
-                    names.addAll(calcDifferenceForNonPrivateMembers(ProtoBuf.Class::getTypeAliasList))
+                    names.addAll(calcDifferenceForNonPrivateMembers { it.getTypeAliasList() })
                 ProtoBufClassKind.ENUM_ENTRY_LIST -> {
                     isClassAffected = true
                 }
@@ -269,11 +269,11 @@ private class DifferenceCalculatorForPackageFacade(oldData: ProtoMapValue, newDa
         for (kind in diff) {
             when (kind!!) {
                 ProtoBufPackageKind.FUNCTION_LIST ->
-                    names.addAll(calcDifferenceForNonPrivateMembers(ProtoBuf.Package::getFunctionList))
+                    names.addAll(calcDifferenceForNonPrivateMembers { it.getFunctionList() })
                 ProtoBufPackageKind.PROPERTY_LIST ->
-                    names.addAll(calcDifferenceForNonPrivateMembers(ProtoBuf.Package::getPropertyList))
+                    names.addAll(calcDifferenceForNonPrivateMembers { it.getPropertyList() })
                 ProtoBufPackageKind.TYPE_ALIAS_LIST ->
-                    names.addAll(calcDifferenceForNonPrivateMembers(ProtoBuf.Package::getTypeAliasList))
+                    names.addAll(calcDifferenceForNonPrivateMembers { it.getTypeAliasList() })
                 ProtoBufPackageKind.TYPE_TABLE,
                 ProtoBufPackageKind.SINCE_KOTLIN_INFO_TABLE,
                 ProtoBufPackageKind.PACKAGE_MODULE_NAME -> {

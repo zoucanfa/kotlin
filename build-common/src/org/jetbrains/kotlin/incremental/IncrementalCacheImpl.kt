@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -250,8 +250,8 @@ open class IncrementalCacheImpl<Target>(
                 val memberNames =
                         packageData.packageProto.getNonPrivateNames(
                                 packageData.nameResolver,
-                                ProtoBuf.Package::getFunctionList,
-                                ProtoBuf.Package::getPropertyList
+                                { getFunctionList() },
+                                { getPropertyList() }
                         )
 
                 listOf(createChangeInfo(className.packageFqName, memberNames))
@@ -266,9 +266,9 @@ open class IncrementalCacheImpl<Target>(
                     val memberNames =
                             classData.classProto.getNonPrivateNames(
                                     classData.nameResolver,
-                                    ProtoBuf.Class::getConstructorList,
-                                    ProtoBuf.Class::getFunctionList,
-                                    ProtoBuf.Class::getPropertyList
+                                    { getConstructorList() },
+                                    { getFunctionList() },
+                                    { getPropertyList() }
                             ) + classData.classProto.enumEntryList.map { classData.nameResolver.getString(it.name) }
 
                     val companionObjectChanged = createChangeInfo(classFqName.parent(), listOfNotNull(classFqName.shortName().asString()))
