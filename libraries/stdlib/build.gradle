@@ -118,11 +118,19 @@ task compileCheckJavacManual {
     doLast {
         def targetDir = file("$buildDir/classes")
         targetDir.mkdirs()
+        def localDeps = file("$projectDir/deps")
+        def cacheDep = configurations.checkJavacCompile.singleFile
+        copy {
+            from cacheDep
+            into localDeps
+        }
+        def localDep = file("$localDeps/${cacheDep.name}")
+        println("##teamcity[publishArtifacts '${file(kotlin_root).toPath().relativize(localDeps.toPath())}']")
         exec {
-            executable = "${JDK_18}/bin/javac"
+            executable = "${JDK_16}/bin/javac"
             args = ['-source', '1.6', '-target', '1.6', '-d', targetDir.toString(), '-g',
                     '-sourcepath', '-proc:none', '-classpath']
-            args file("${projectDir}/deps/annotations-13.0.jar").toString()
+            args localDep.toString()
             args file("${projectDir}/srcJava/org/test/TestAnnotated.java").toString()
             println(args)
         }
