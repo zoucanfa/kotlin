@@ -22,117 +22,148 @@ import com.sun.tools.javac.tree.JCTree
 import org.jetbrains.kotlin.javac.JavacWrapper
 import org.jetbrains.kotlin.load.java.structure.JavaClass
 import org.jetbrains.kotlin.load.java.structure.JavaClassifier
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 
 class TreePathResolverCache(private val javac: JavacWrapper) {
 
     private val cache = hashMapOf<Tree, JavaClassifier?>()
 
-    fun resolve(treePath: TreePath): JavaClassifier? = with(treePath) {
+    fun resolve(treePath: TreePath): JavaClassifier? = with (treePath) {
         if (cache.containsKey(leaf)) return cache[leaf]
 
-        return tryToGetClassifier().apply { cache[leaf] = this }
+        return tryToResolve().apply { cache[leaf] = this }
     }
 
-    private fun TreePath.tryToGetClassifier(): JavaClassifier? {
-        val name = leaf.toString().substringBefore("<").substringAfter("@")
-        val nameParts = name.split(".")
+    private fun TreePath.tryToResolve(): JavaClassifier? {
+        val pathSegments = leaf.toString()
+                .substringBefore("<")
+                .substringAfter("@")
+                .split(".")
 
-        with(compilationUnit as JCTree.JCCompilationUnit) {
-            tryToResolveInner(name, javac, nameParts)?.let { return it }
-            tryToResolvePackageClass(name, javac, nameParts)?.let { return it }
-            tryToResolveByFqName(name, javac)?.let { return it }
-            tryToResolveSingleTypeImport(name, javac, nameParts)?.let { return it }
-            tryToResolveTypeImportOnDemand(name, javac, nameParts)?.let { return it }
-            tryToResolveInJavaLang(name, javac)?.let { return it }
+        with (compilationUnit as JCTree.JCCompilationUnit) {
+            tryToResolveInner(pathSegments)?.let { return it }
+            tryToResolvePackageClass(pathSegments)?.let { return it }
+            tryToResolveByFqName(pathSegments)?.let { return it }
+            tryToResolveSingleTypeImport(pathSegments)?.let { return it }
+            tryToResolveTypeImportOnDemand(pathSegments)?.let { return it }
+            tryToResolveInJavaLang(pathSegments)?.let { return it }
         }
 
-        return tryToResolveTypeParameter(javac)
+        return tryToResolveTypeParameter()
     }
 
-    private fun TreePath.tryToResolveInner(
-            name: String,
-            javac: JavacWrapper,
-            nameParts: List<String> = emptyList()
-    ): JavaClass? = findEnclosingClasses(javac)?.forEach { javaClass ->
-                javaClass.findInner(name, javac, nameParts)?.let { inner -> return inner }
-            }.let { return null }
+    fun tryToResolveInJavaLang(pathSegments: List<String>): JavaClass? {
+        val classId = classId("java.lang", pathSegments.first())
+        var javaClass = findJavaOrKotlinClass(classId) ?: return null
 
-    private fun TreePath.findEnclosingClasses(javac: JavacWrapper) =
-            filterIsInstance<JCTree.JCClassDecl>()
-            .filter { it.extending != leaf && !it.implementing.contains(leaf) }
-            .reversed()
-            .joinToString(separator = ".", prefix = "${compilationUnit.packageName}.") { it.simpleName }
-            .let { javac.findClass(FqName(it)) }
-            ?.let {
-                arrayListOf(it).apply {
-                    var enclosingClass = it.outerClass
-                    while (enclosingClass != null) {
-                        add(enclosingClass)
-                        enclosingClass = enclosingClass.outerClass
+        for (it in pathSegments.drop(1)) {
+            javaClass = javaClass.findInner(Name.identifier(it)) ?: return null
+        }
+
+        return javaClass
+    }
+
+    private fun JCTree.JCCompilationUnit.tryToResolveTypeImportOnDemand(pathSegments: List<String>): JavaClass? {
+        imports.filter { it.qualifiedIdentifier.toString().endsWith("*") }
+                .forEach { import ->
+                    val fqName = "${import.qualifiedIdentifier.toString().dropLast(1)}${pathSegments.joinToString(separator = ".")}"
+                    tryToResolveByFqName(fqName.split("."))
+                            ?.let { return it }
+                }
+
+        return null
+    }
+
+    private fun JCTree.JCCompilationUnit.tryToResolveSingleTypeImport(pathSegments: List<String>): JavaClass? {
+        imports.filter { it.qualifiedIdentifier.toString().endsWith(".${pathSegments.first()}") }
+                .forEach { import ->
+                    val fqName = pathSegments.drop(1).let {
+                        if (it.isEmpty()) {
+                            import.qualifiedIdentifier.toString()
+                        }
+                        else {
+                            import.qualifiedIdentifier.toString() + "." + pathSegments.drop(1).joinToString(separator = ".")
+                        }
                     }
+                    tryToResolveByFqName(fqName.split("."))
+                            ?.let { return it }
+                }
+
+        return null
+    }
+
+    fun tryToResolveByFqName(pathSegments: List<String>): JavaClass? {
+        classId(className = pathSegments.joinToString(separator = "."))
+                .let { findJavaOrKotlinClass(it) }
+                ?.let { return it }
+
+        fun tryToResolveByFqName(packageSegments: List<String>, classSegments: List<String>): JavaClass? {
+            val javaClass = classId(packageSegments.joinToString(separator = "."), classSegments.first())
+                    .let { findJavaOrKotlinClass(it) } ?: return null
+
+            return classSegments.drop(1).let {
+                if (it.isNotEmpty()) {
+                    javaClass.findInner(it)
+                }
+                else {
+                    javaClass
                 }
             }
+        }
 
-    private fun JCTree.JCCompilationUnit.tryToResolveSingleTypeImport(
-            name: String,
-            javac: JavacWrapper,
-            nameParts: List<String> = emptyList()
-    ): JavaClass? {
-        nameParts.size.takeIf { it > 1 }?.let {
-                    imports.filter { it.qualifiedIdentifier.toString().endsWith(".${nameParts.first()}") }
-                            .forEach { import ->
-                                find(FqName("${import.qualifiedIdentifier}"), javac, nameParts)?.let { javaClass ->
-                                    return javaClass
-                                }
-                            }
-                            .let { return null }
-                }
+        val packageSegments = arrayListOf<String>()
 
-        return imports
-                .find { it.qualifiedIdentifier.toString().endsWith(".$name") }
-                ?.let { import ->
-                    FqName(import.qualifiedIdentifier.toString()).let { fqName ->
-                        javac.findClass(fqName) ?: javac.getKotlinClassifier(fqName)
-                    }
-                }
+        pathSegments.forEachIndexed { i, _ ->
+            packageSegments.add(pathSegments[i])
+            if (i == pathSegments.lastIndex) return null
+
+            tryToResolveByFqName(packageSegments, pathSegments.drop(i + 1))?.let { return it }
+        }
+
+        return null
     }
 
-    private fun JCTree.JCCompilationUnit.tryToResolvePackageClass(
-            name: String,
-            javac: JavacWrapper,
-            nameParts: List<String> = emptyList()
-    ): JavaClass? {
-        return nameParts.size.takeIf { it > 1 }?.let {
-                    find(FqName("$packageName.${nameParts.first()}"), javac, nameParts)
-               }
-               ?: javac.findClass(FqName("$packageName.$name"))
-               ?: javac.getKotlinClassifier(FqName("$packageName.$name"))
-    }
+    private fun JCTree.JCCompilationUnit.tryToResolvePackageClass(pathSegments: List<String>): JavaClass? {
+        val classId = classId(packageName?.toString() ?: "<root>", pathSegments.first())
+        val javaClass = findJavaOrKotlinClass(classId) ?: return null
 
-    private fun JCTree.JCCompilationUnit.tryToResolveTypeImportOnDemand(
-            name: String,
-            javac: JavacWrapper,
-            nameParts: List<String> = emptyList()
-    ): JavaClass? {
-        with(imports.filter { it.qualifiedIdentifier.toString().endsWith("*") }) {
-            nameParts.size.takeIf { it > 1 }
-                    ?.let {
-                        forEach { pack ->
-                            find(FqName("${pack.qualifiedIdentifier.toString().substringBefore("*")}${nameParts.first()}"),
-                                 javac,
-                                 nameParts)?.let { return it }
-                        }.let { return null }
-                    }
-
-            this.forEach {
-                val fqName = "${it.qualifiedIdentifier.toString().substringBefore("*")}$name".let(::FqName)
-                (javac.findClass(fqName) ?: javac.getKotlinClassifier(fqName))?.let { return it }
-            }.let { return null }
+        return pathSegments.drop(1).let {
+            if (it.isNotEmpty()) {
+                javaClass.findInner(it)
+            }
+            else {
+                javaClass
+            }
         }
     }
 
-    private fun TreePath.tryToResolveTypeParameter(javac: JavacWrapper) =
+    private fun TreePath.tryToResolveInner(pathSegments: List<String>): JavaClass? =
+            enclosingClasses.forEach { javaClass ->
+                javaClass.findInner(pathSegments)?.let { return it }
+            }.let { return null }
+
+    private fun JavaClass.findInner(pathSegments: List<String>): JavaClass? {
+        var javaClass = findInner(Name.identifier(pathSegments.first())) ?: return null
+
+        for (pathSegment in pathSegments.drop(1)) {
+            javaClass = javaClass.findInner(Name.identifier(pathSegment)) ?: return null
+        }
+
+        return javaClass
+    }
+
+    private fun JavaClass.findInner(name: Name): JavaClass? {
+        findInnerClass(name)?.let { return it }
+
+        supertypes.mapNotNull { it.classifier as? JavaClass }
+                .forEach { javaClass -> javaClass.findInner(name)?.let { return it } }
+
+        return null
+    }
+
+    private fun TreePath.tryToResolveTypeParameter() =
             flatMap {
                 when (it) {
                     is JCTree.JCClassDecl -> it.typarams
@@ -140,54 +171,42 @@ class TreePathResolverCache(private val javac: JavacWrapper) {
                     else -> emptyList<JCTree.JCTypeParameter>()
                 }
             }
-            .find { it.toString().substringBefore(" ") == leaf.toString() }
-            ?.let {
-                TreeBasedTypeParameter(it,
-                                       javac.getTreePath(it, compilationUnit),
-                                       javac)
+                    .find { it.toString().substringBefore(" ") == leaf.toString() }
+                    ?.let {
+                        TreeBasedTypeParameter(it,
+                                               javac.getTreePath(it, compilationUnit),
+                                               javac)
+                    }
+
+    private val TreePath.enclosingClasses: List<JavaClass>
+        get() {
+            val outerClasses = filterIsInstance<JCTree.JCClassDecl>()
+                    .dropWhile { it.extending == leaf || leaf in it.implementing }
+                    .asReversed()
+                    .map { it.simpleName.toString() }
+
+            val packageName = compilationUnit.packageName?.toString() ?: "<root>"
+            val outermostClassName = outerClasses.firstOrNull() ?: return emptyList()
+
+            val outermostClassId = classId(packageName, outermostClassName)
+            var outermostClass = javac.findClass(outermostClassId) ?: return emptyList()
+
+            val classes = arrayListOf<JavaClass>().apply { add(outermostClass) }
+
+            for (it in outerClasses.drop(1)) {
+                outermostClass = outermostClass.findInnerClass(Name.identifier(it)) ?: return classes
+                classes.add(outermostClass)
             }
 
+            return classes
+        }
+
+    private fun findJavaOrKotlinClass(classId: ClassId) = javac.findClass(classId) ?: javac.getKotlinClassifier(classId)
+
 }
 
-fun JavaClass.findInner(name: String,
-                        javac: JavacWrapper,
-                        nameParts: List<String> = emptyList()) : JavaClass? {
-    nameParts.size.takeIf { it > 1 }?.let {
-        return find(FqName("${fqName!!.asString()}.${nameParts[0]}"), javac, nameParts)
-    }
-
-    if (name == this.fqName?.shortName()?.asString()) return this
-
-    with(FqName("${fqName!!.asString()}.$name")) {
-        javac.findClass(this)?.let { return it }
-        javac.getKotlinClassifier(this)?.let { return it }
-    }
-
-    supertypes.mapNotNull { it.classifier as? JavaClass }
-            .forEach { javaClass ->
-                javaClass.findInner(name, javac)?.let { inner -> return inner }
-            }.let { return null }
-}
-
-fun tryToResolveByFqName(name: String,
-                         javac: JavacWrapper) = with(FqName(name)) {
-    javac.findClass(this) ?: javac.getKotlinClassifier(this)
-}
-
-fun tryToResolveInJavaLang(name: String,
-                           javac: JavacWrapper) = javac.findClass(FqName("java.lang.$name"))
-
-
-fun find(fqName: FqName,
-         javac: JavacWrapper,
-         nameParts: List<String>): JavaClass? {
-    val initial = with(fqName) {
-        javac.findClass(this)
-        ?: javac.getKotlinClassifier(this)
-        ?: return null
-    }
-
-    nameParts.drop(1).fold(initial) {
-        javaClass, namePart -> javaClass.findInner(namePart, javac) ?: return null
-    }.let { return it }
-}
+fun classId(packageName: String = "<root>", className: String) =
+        if (packageName != "<root>")
+            ClassId(FqName(packageName), Name.identifier(className))
+        else
+            ClassId.topLevel(FqName(className))

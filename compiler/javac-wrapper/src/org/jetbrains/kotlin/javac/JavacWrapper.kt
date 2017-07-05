@@ -47,10 +47,7 @@ import org.jetbrains.kotlin.javac.wrappers.trees.*
 import org.jetbrains.kotlin.load.java.structure.JavaClass
 import org.jetbrains.kotlin.load.java.structure.JavaClassifier
 import org.jetbrains.kotlin.load.java.structure.JavaPackage
-import org.jetbrains.kotlin.name.ClassId
-import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.name.isSubpackageOf
-import org.jetbrains.kotlin.name.parentOrNull
+import org.jetbrains.kotlin.name.*
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.Closeable
 import java.io.File
@@ -120,17 +117,14 @@ class JavacWrapper(
 
     private val javaClasses = compilationUnits
             .flatMap { unit ->
-                unit.typeDecls.flatMap { classDecl ->
+                unit.typeDecls.map { classDecl ->
                     TreeBasedClass(classDecl as JCTree.JCClassDecl,
                                    trees.getPath(unit, classDecl),
                                    this,
-                                   unit.sourceFile).withInnerClasses()
+                                   unit.sourceFile)
                 }
             }
-            .associateBy(JavaClass::fqName)
-
-    private val javaClassesAssociatedByClassId =
-            javaClasses.values.associateBy { it.computeClassId() }
+            .associateBy(JavaClass::computeClassId)
 
     private val javaPackages = compilationUnits
             .mapTo(hashSetOf<TreeBasedPackage>()) { unit ->
@@ -141,7 +135,7 @@ class JavacWrapper(
             .associateBy(TreeBasedPackage::fqName)
 
     private val kotlinClassifiersCache = KotlinClassifiersCache(if (javaFiles.isNotEmpty()) kotlinFiles else emptyList(), this)
-    private val treePathResolverCache = TreePathResolverCacheByClassId(this)
+    val treePathResolverCache = TreePathResolverCache(this)
     private val symbolBasedClassesCache = hashMapOf<String, SymbolBasedClass?>()
     private val symbolBasedPackagesCache = hashMapOf<String, SymbolBasedPackage?>()
 
@@ -164,20 +158,20 @@ class JavacWrapper(
         javac.close()
     }
 
-    fun findClass(fqName: FqName, scope: GlobalSearchScope = EverythingGlobalScope()): JavaClass? {
-        javaClasses[fqName]?.let { javaClass ->
-            javaClass.virtualFile?.let { if (it in scope) return javaClass }
-        }
-
-        findClassInSymbols(fqName.asString())?.let { javaClass ->
-            javaClass.virtualFile?.let { if (it in scope) return javaClass }
-        }
-
-        return null
-    }
-
     fun findClass(classId: ClassId, scope: GlobalSearchScope = EverythingGlobalScope()): JavaClass? {
-        javaClassesAssociatedByClassId[classId]?.let { javaClass ->
+        if (classId.isNestedClass) {
+            val pathSegments = classId.relativeClassName.pathSegments().map { it.asString() }
+            val outerClassId = ClassId(classId.packageFqName, Name.identifier(pathSegments.first()))
+            var outerClass = findClass(outerClassId, scope) ?: return null
+
+            pathSegments.drop(1).forEach {
+                outerClass = outerClass.findInnerClass(Name.identifier(it)) ?: return null
+            }
+
+            return outerClass
+        }
+
+        javaClasses[classId]?.let { javaClass ->
             javaClass.virtualFile?.let { if (it in scope) return javaClass }
         }
 
@@ -213,8 +207,8 @@ class JavacWrapper(
 
     fun findClassesFromPackage(fqName: FqName): List<JavaClass> =
             javaClasses
-                    .filterKeys { it?.parentOrNull() == fqName }
-                    .flatMap { it.value.withInnerClasses() } +
+                    .filterKeys { it?.packageFqName == fqName }
+                    .values +
             elements.getPackageElement(fqName.asString())
                     ?.members()
                     ?.elements
@@ -223,7 +217,7 @@ class JavacWrapper(
                     .orEmpty()
 
     fun knownClassNamesInPackage(fqName: FqName): Set<String> =
-            javaClasses.filterKeys { it?.parentOrNull() == fqName }
+            javaClasses.filterKeys { it?.packageFqName == fqName }
                     .mapTo(hashSetOf()) { it.value.name.asString() } +
             elements.getPackageElement(fqName.asString())
                     ?.members_field
@@ -234,9 +228,6 @@ class JavacWrapper(
 
     fun getTreePath(tree: JCTree, compilationUnit: CompilationUnitTree): TreePath =
             trees.getPath(compilationUnit, tree)
-
-    fun getKotlinClassifier(fqName: FqName): JavaClass? =
-            kotlinClassifiersCache.getKotlinClassifier(fqName)
 
     fun getKotlinClassifier(classId: ClassId): JavaClass? =
             kotlinClassifiersCache.getKotlinClassifier(classId)
@@ -312,9 +303,6 @@ class JavacWrapper(
                 }
 
     }
-
-    private fun TreeBasedClass.withInnerClasses(): List<TreeBasedClass> =
-            listOf(this) + innerClasses.values.flatMap { it.withInnerClasses() }
 
     private fun Symbol.PackageSymbol.findClass(name: String): SymbolBasedClass? {
         val nameParts = name.replace("$", ".").split(".")
