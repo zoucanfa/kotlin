@@ -105,7 +105,7 @@ class TreeBasedClass(
         tree.members
                 .filterIsInstance(JCTree.JCClassDecl::class.java)
                 .map { TreeBasedClass(it, TreePath(treePath, it), javac, file) }
-                .associateBy(JavaClass::name)
+                .associateBy { it.name }
     }
 
     override val outerClass: JavaClass? by lazy {
