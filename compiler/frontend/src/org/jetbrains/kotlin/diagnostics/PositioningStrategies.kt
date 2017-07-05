@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.diagnostics
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.tree.TokenSet
 import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
@@ -28,6 +29,7 @@ import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.getElementTextWithContext
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub
 import org.jetbrains.kotlin.utils.sure
 
 object PositioningStrategies {
@@ -126,16 +128,17 @@ object PositioningStrategies {
                     return markRange(begin, end)
                 }
                 is KtFunction -> {
-                    val endOfSignatureElement =
-                            element.typeReference
-                            ?: element.valueParameterList
-                            ?: element.nameIdentifier
-                            ?: element
+                    val typeReference: KtTypeReference? = element.typeReference
+                    val firstPart: KtElementImplStub<out KotlinPlaceHolderStub<out KtElementImplStub<out KotlinPlaceHolderStub<out KtElementImplStub<*>>>>>? = if (typeReference != null) typeReference else element.valueParameterList
+                    val endOfSignatureElement = firstPart ?: element.nameIdentifier ?: element
+
                     val startElement
                             = if (element is KtFunctionLiteral) {
-                                element.getReceiverTypeReference()
-                                ?: element.getValueParameterList()
-                                ?: element
+                                val receiverTypeReference = element.getReceiverTypeReference()
+                                val valueParameterList = element.getValueParameterList()
+                                val first: KtElementImplStub<out KotlinPlaceHolderStub<out KtElementImplStub<out KotlinPlaceHolderStub<out KtElementImplStub<*>>>>>? =
+                                        if (receiverTypeReference != null) receiverTypeReference else valueParameterList
+                                first ?: element
                             }
                             else element
                     return markRange(startElement, endOfSignatureElement)
@@ -453,7 +456,8 @@ object PositioningStrategies {
     @JvmField val DELEGATOR_SUPER_CALL: PositioningStrategy<KtEnumEntry> = object: PositioningStrategy<KtEnumEntry>() {
         override fun mark(element: KtEnumEntry): List<TextRange> {
             val specifiers = element.superTypeListEntries
-            return markElement(if (specifiers.isEmpty()) element else specifiers[0])
+            val specifierOrElement: KtElementImplStub<out StubElement<out KtElementImplStub<out StubElement<out KtElementImplStub<*>>>>> = if (specifiers.isEmpty()) element else specifiers[0]
+            return markElement(specifierOrElement)
         }
     }
 
