@@ -162,7 +162,7 @@ public final class StaticContext {
         JsName kotlinName = rootScope.declareName(Namer.KOTLIN_NAME);
         createImportedModule(new JsImportedModuleKey(Namer.KOTLIN_LOWER_NAME, null), Namer.KOTLIN_LOWER_NAME, kotlinName, null);
 
-        classModelGenerator = new ClassModelGenerator(this);
+        classModelGenerator = new ClassModelGenerator(TranslationContext.rootContext(this));
     }
 
     @NotNull
