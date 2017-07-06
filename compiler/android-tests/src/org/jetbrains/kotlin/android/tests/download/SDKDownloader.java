@@ -43,7 +43,7 @@ public class SDKDownloader {
     private static final String SDK_TOOLS = "25.2.2";
     public static final String BUILD_TOOLS = "25.0.3";
     private static final int ANDROID_VERSION = 19;
-    public static final String GRADLE_VERSION = "3.5";
+    public static final String GRADLE_VERSION = "4.0";
 
 
     public SDKDownloader(PathManager pathManager) {
