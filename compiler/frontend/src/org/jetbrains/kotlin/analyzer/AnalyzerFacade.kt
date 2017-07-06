@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.resolve.TargetPlatform
 import org.jetbrains.kotlin.storage.NotNullLazyValue
 import org.jetbrains.kotlin.utils.keysToMap
 import java.util.*
+import kotlin.collections.LinkedHashSet
 import kotlin.coroutines.experimental.buildSequence
 
 class ResolverForModule(
@@ -180,6 +181,17 @@ abstract class AnalyzerFacade<in P : PlatformAnalysisParameters> {
 
             for (module in modules) {
                 val moduleDescriptor = resolverForProject.descriptorForModule(module)
+                val computeModulesWhoseInternalsAreVisible: () -> LinkedHashSet<ModuleDescriptorImpl> = {
+                    module.modulesWhoseInternalsAreVisible().mapTo(LinkedHashSet<ModuleDescriptorImpl>()) {
+                        resolverForProject.descriptorForModule(it as M)
+                    }
+                }
+                val computeImplementingModules: () -> Set<ModuleDescriptorImpl> = {
+                    if (modulePlatforms(module) != MultiTargetPlatform.Common) emptySet()
+                    else modules
+                            .filter { modulePlatforms(it) != MultiTargetPlatform.Common && module in it.dependencies() }
+                            .mapTo(mutableSetOf(), resolverForProject::descriptorForModule)
+                }
                 moduleDescriptor.setDependencies(LazyModuleDependencies(
                         storageManager,
                         computeDependencies = {
@@ -198,17 +210,8 @@ abstract class AnalyzerFacade<in P : PlatformAnalysisParameters> {
                                 }
                             }.toList()
                         },
-                        computeModulesWhoseInternalsAreVisible = {
-                            module.modulesWhoseInternalsAreVisible().mapTo(LinkedHashSet()) {
-                                resolverForProject.descriptorForModule(it as M)
-                            }
-                        },
-                        computeImplementingModules = {
-                            if (modulePlatforms(module) != MultiTargetPlatform.Common) emptySet()
-                            else modules
-                                    .filter { modulePlatforms(it) != MultiTargetPlatform.Common && module in it.dependencies() }
-                                    .mapTo(mutableSetOf(), resolverForProject::descriptorForModule)
-                        }
+                        computeModulesWhoseInternalsAreVisible = computeModulesWhoseInternalsAreVisible,
+                        computeImplementingModules = computeImplementingModules
                 ))
             }
 
