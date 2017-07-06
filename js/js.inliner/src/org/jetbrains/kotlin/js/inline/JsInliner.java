@@ -226,11 +226,11 @@ public class JsInliner extends JsVisitorWithContextImpl {
         Map<String, JsName> oldExistingImports = existingImports;
 
         ListContext<JsStatement> innerContext = new ListContext<>();
-        existingImports = new HashMap<>();
 
         JsBlock wrapperBody = functionWithWrapper.getWrapperBody();
         List<JsStatement> statements = null;
         if (wrapperBody != null) {
+            existingImports = new HashMap<>();
             statementContexts.push(innerContext);
             statementContextForInline = innerContext;
 
@@ -245,6 +245,9 @@ public class JsInliner extends JsVisitorWithContextImpl {
 
             innerContext.traverse(statements);
             statementContexts.pop();
+        }
+        else {
+            statementContextForInline = getLastStatementLevelContext();
         }
 
         startFunction(functionWithWrapper.getFunction());

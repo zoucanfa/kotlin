@@ -25,9 +25,12 @@ Kotlin.defineInlineFunction = function(tag, fun) {
     return fun;
 };
 
-Kotlin.defineInlineFunctionBuilder = function(tag, fun) {
-    return function f() {
+Kotlin.wrapFunction = function(fun) {
+    var f = function() {
         f = fun();
+        return f.apply(this, arguments);
+    };
+    return function() {
         return f.apply(this, arguments);
     };
 };

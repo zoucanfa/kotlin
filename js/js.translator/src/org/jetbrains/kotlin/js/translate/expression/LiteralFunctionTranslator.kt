@@ -89,7 +89,7 @@ class LiteralFunctionTranslator(context: TranslationContext) : AbstractTranslato
 
         lambda.isLocal = true
 
-        invokingContext.addFunctionButNotExport(name, InlineMetadata.wrapFunction(FunctionWithWrapper(lambda, null)))
+        invokingContext.addFunctionDeclaration(name, lambda)
         lambda.fillCoroutineMetadata(invokingContext, descriptor)
         name.staticRef = lambda
         return JsAstUtils.pureFqn(name, null)
@@ -111,12 +111,21 @@ class LiteralFunctionTranslator(context: TranslationContext) : AbstractTranslato
     }
 }
 
+private fun TranslationContext.addFunctionDeclaration(name: JsName, function: JsFunction) {
+    addFunctionButNotExport(name, if (isPublicInlineFunction) {
+        InlineMetadata.wrapFunction(FunctionWithWrapper(function, null))
+    }
+    else {
+        function
+    })
+}
+
 fun JsFunction.withCapturedParameters(
         context: TranslationContext,
         functionName: JsName,
         invokingContext: TranslationContext
 ): JsExpression {
-    context.addFunctionButNotExport(functionName, InlineMetadata.wrapFunction(FunctionWithWrapper(this, null)))
+    context.addFunctionDeclaration(functionName, this)
     val ref = JsAstUtils.pureFqn(functionName, null)
     val invocation = JsInvocation(ref).apply { sideEffects = SideEffectKind.PURE }
 

@@ -103,15 +103,16 @@ fun TranslationContext.wrapWithInlineMetadata(function: JsFunction, descriptor: 
         metadata.functionWithMetadata
     }
     else {
-        val statements = if (isInline) {
+        val block = if (isInline) {
             inlineFunctionContext!!.let {
-                it.importBlock.statements + it.prototypeBlock.statements + it.declarationsBlock.statements
+                JsBlock(it.importBlock.statements + it.prototypeBlock.statements + it.declarationsBlock.statements +
+                        JsReturn(function))
             }
-        } else {
-            listOf()
         }
-        val block = if (statements.isNotEmpty()) JsBlock(statements + JsReturn(function)) else null
-        InlineMetadata.wrapFunction(FunctionWithWrapper(function, block))
+        else {
+            null
+        }
+        if (block != null) InlineMetadata.wrapFunction(FunctionWithWrapper(function, block)) else function
     }
 }
 
