@@ -7,9 +7,5 @@ dependencies {
 }
 
 sourceSets {
-    main {
-        kotlin {
-            srcDir 'src'
-        }
-    }
+    main.kotlin.srcDirs += 'src'
 }
