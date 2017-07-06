@@ -39,8 +39,8 @@ public class SDKDownloader {
     private final PathManager pathManager;
 
     //NOTE: PLATFORM_TOOLS 23.1.0 requires only 64 bit build agents
-    private static final String PLATFORM_TOOLS = "23.0.1";
-    private static final String SDK_TOOLS = "25.1.1";
+    private static final String PLATFORM_TOOLS = "24.0.4";
+    private static final String SDK_TOOLS = "25.2.2";
     public static final String BUILD_TOOLS = "25.0.3";
     private static final int ANDROID_VERSION = 19;
     public static final String GRADLE_VERSION = "3.5";
@@ -51,8 +51,8 @@ public class SDKDownloader {
         platformZipPath = pathManager.getRootForDownload() + "/platforms.zip";
         armImage = pathManager.getRootForDownload() + "/arm-image.zip";
         x86Image = pathManager.getRootForDownload() + "/x86-image.zip";
-        platformToolsZipPath = pathManager.getRootForDownload() + "/platform-tools.zip";
-        skdToolsZipPath = pathManager.getRootForDownload() + "/tools.zip";
+        platformToolsZipPath = pathManager.getRootForDownload() + "/platform-tools_" + PLATFORM_TOOLS+".zip";
+        skdToolsZipPath = pathManager.getRootForDownload() + "/tools_" + SDK_TOOLS + ".zip";
         buildToolsZipPath = pathManager.getRootForDownload() + "/build-tools_" + BUILD_TOOLS + ".zip";
         gradleZipPath = pathManager.getRootForDownload() + "/gradle_" + GRADLE_VERSION + ".zip";
     }
