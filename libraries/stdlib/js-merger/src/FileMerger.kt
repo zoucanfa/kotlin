@@ -56,7 +56,10 @@ fun main(args: Array<String>) {
         if (sourceMapFile.exists()) {
             val sourceMapParse = sourceMapFile.reader().use { SourceMapParser.parse(it) }
             when (sourceMapParse) {
-                is SourceMapError -> println("Error parsing source map file $sourceMapFile: ${sourceMapParse.message}")
+                is SourceMapError -> {
+                    System.err.println("Error parsing source map file $sourceMapFile: ${sourceMapParse.message}")
+                    System.exit(1)
+                }
                 is SourceMapSuccess -> {
                     val sourceMap = sourceMapParse.value
                     val remapper = SourceMapLocationRemapper(sourceMap)
@@ -78,11 +81,8 @@ fun main(args: Array<String>) {
     val sourceMapContent = sourceMapBuilder.build()
 
     val programText = textOutput.toString()
-            .replace(Regex("module.exports,\\s*require\\([^)]+\\)"), "")
-            .replace(Regex("function\\s*\\(_,\\s*Kotlin\\)"), "function()")
-            .replace(Regex("return\\s+_;"), "")
 
-    outputFile.writeText(programText + "\n//# sourceMappingURL=kotlin.js.map\n")
+    outputFile.writeText(programText + "\n//# sourceMappingURL=${sourceMapFile.name}\n")
 
     val sourceMapJson = StringReader(sourceMapContent).use { JSONObject(JSONTokener(it)) }
     val sources = sourceMapJson["sources"] as JSONArray
