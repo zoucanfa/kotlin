@@ -20,7 +20,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.SearchScope
 import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.fileClasses.javaFileFacadeFqName
-import org.jetbrains.kotlin.javac.wrappers.trees.*
 import org.jetbrains.kotlin.load.java.structure.*
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -44,6 +43,23 @@ class KotlinClassifiersCache(sourceFiles: Collection<KtFile>,
 
     fun getKotlinClassifier(classId: ClassId) = classifiers[classId] ?: createClassifierByClassId(classId)
 
+    fun resolveSupertype(name: String,
+                         classOrObject: KtClassOrObject,
+                         javac: JavacWrapper): JavaClass? {
+
+        val pathSegments = name.split(".")
+        val ktFile = classOrObject.containingKtFile
+
+        javac.treePathResolverCache.tryToResolveInner(pathSegments, classOrObject.enclosingClasses)?.let { return it }
+        javac.treePathResolverCache.tryToResolvePackageClass(pathSegments, ktFile.packageFqName.asString())?.let { return it }
+        javac.treePathResolverCache.tryToResolveByFqName(pathSegments)?.let { return it }
+        ktFile.tryToResolveSingleTypeImport(pathSegments)?.let { return it }
+        ktFile.tryToResolveTypeImportOnDemand(pathSegments)?.let { return it }
+        javac.treePathResolverCache.tryToResolveInJavaLang(pathSegments)?.let { return it }
+
+        return null
+    }
+
     private fun createClassifierByClassId(classId: ClassId): JavaClass? {
         if (!kotlinClasses.containsKey(classId)) return null
         val kotlinClassifier = kotlinClasses[classId] ?: return null
@@ -54,61 +70,6 @@ class KotlinClassifiersCache(sourceFiles: Collection<KtFile>,
                                     this,
                                     javac)
                 .apply { classifiers[classId] = this }
-    }
-
-    fun resolveSupertype(name: String,
-                         classOrObject: KtClassOrObject,
-                         javac: JavacWrapper): JavaClass? {
-
-        val pathSegments = name.split(".")
-        val ktFile = classOrObject.containingKtFile
-
-        classOrObject.tryToResolveInner(pathSegments)?.let { return it }
-        ktFile.tryToResolvePackageClass(pathSegments)?.let { return it }
-        javac.treePathResolverCache.tryToResolveByFqName(pathSegments)?.let { return it }
-        ktFile.tryToResolveSingleTypeImport(pathSegments)?.let { return it }
-        ktFile.tryToResolveTypeImportOnDemand(pathSegments)?.let { return it }
-        javac.treePathResolverCache.tryToResolveInJavaLang(pathSegments)?.let { return it }
-
-        return null
-    }
-
-    private fun KtClassOrObject.tryToResolveInner(pathSegments: List<String>): JavaClass? =
-            enclosingClasses.forEach { javaClass ->
-                javaClass.findInner(pathSegments)?.let { return it }
-            }.let { return null }
-
-    private fun JavaClass.findInner(pathSegments: List<String>): JavaClass? {
-        var javaClass = findInner(Name.identifier(pathSegments.first())) ?: return null
-
-        for (pathSegment in pathSegments.drop(1)) {
-            javaClass = javaClass.findInner(Name.identifier(pathSegment)) ?: return null
-        }
-
-        return javaClass
-    }
-
-    private fun JavaClass.findInner(name: Name): JavaClass? {
-        findInnerClass(name)?.let { return it }
-
-        supertypes.mapNotNull { it.classifier as? JavaClass }
-                .forEach { javaClass -> javaClass.findInner(name)?.let { return it } }
-
-        return null
-    }
-
-    private fun KtFile.tryToResolvePackageClass(pathSegments: List<String>): JavaClass? {
-        val classId = classId(packageFqName.asString(), pathSegments.first())
-        val javaClass = findJavaOrKotlinClass(classId) ?: return null
-
-        return pathSegments.drop(1).let {
-            if (it.isNotEmpty()) {
-                javaClass.findInner(it)
-            }
-            else {
-                javaClass
-            }
-        }
     }
 
     private fun KtFile.tryToResolveSingleTypeImport(pathSegments: List<String>): JavaClass? {
@@ -153,8 +114,6 @@ class KotlinClassifiersCache(sourceFiles: Collection<KtFile>,
 
             return classOrObjects.reversed().mapNotNull { it.computeClassId()?.let { createClassifierByClassId(it) } }
         }
-
-    private fun findJavaOrKotlinClass(classId: ClassId) = javac.findClass(classId) ?: javac.getKotlinClassifier(classId)
 
 }
 

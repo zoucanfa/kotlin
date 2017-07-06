@@ -134,8 +134,8 @@ class JavacWrapper(
             }
             .associateBy(TreeBasedPackage::fqName)
 
-    private val kotlinClassifiersCache = KotlinClassifiersCache(if (javaFiles.isNotEmpty()) kotlinFiles else emptyList(), this)
     val treePathResolverCache = TreePathResolverCache(this)
+    private val kotlinClassifiersCache = KotlinClassifiersCache(if (javaFiles.isNotEmpty()) kotlinFiles else emptyList(), this)
     private val symbolBasedClassesCache = hashMapOf<String, SymbolBasedClass?>()
     private val symbolBasedPackagesCache = hashMapOf<String, SymbolBasedPackage?>()
 
