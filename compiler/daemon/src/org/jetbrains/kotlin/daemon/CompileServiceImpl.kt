@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -430,7 +430,7 @@ class CompileServiceImpl(
             parsedModule
         }
         val javaSourceRoots = parsedModule.modules.flatMapTo(HashSet()) { it.getJavaSourceRoots().map { File(it.path) } }
-        val allKotlinFiles = parsedModule.modules.flatMap { it.getSourceFiles().map(::File) }
+        val allKotlinFiles = parsedModule.modules.flatMap { it.getSourceFiles().map { File(it) } }
         k2jvmArgs.friendPaths = parsedModule.modules.flatMap(Module::getFriendPaths).toTypedArray()
 
         val changedFiles = if (incrementalCompilationOptions.areFileChangesKnown) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,6 @@ class CliVirtualFileFinder(
 
     private fun findBinaryClass(classId: ClassId, fileName: String): VirtualFile? =
             index.findClass(classId, acceptedRootTypes = JavaRoot.OnlyBinary) { dir, _ ->
-                dir.findChild(fileName)?.takeIf(VirtualFile::isValid)
+                dir.findChild(fileName)?.takeIf { it.isValid() }
             }?.takeIf { it in scope }
 }
