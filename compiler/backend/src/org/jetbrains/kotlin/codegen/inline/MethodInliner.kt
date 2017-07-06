@@ -849,6 +849,12 @@ class MethodInliner(
                         val labelNode = endLabel.info as LabelNode
                         val jumpInsnNode = JumpInsnNode(Opcodes.GOTO, labelNode)
                         instructions.insert(insnNode, jumpInsnNode)
+
+                        val lineNumberNode = insnNode.previous as? LineNumberNode
+                        if (lineNumberNode != null) {
+                            instructions.remove(lineNumberNode)
+                        }
+
                         instructions.remove(insnNode)
                         insnNode = jumpInsnNode
                     }
