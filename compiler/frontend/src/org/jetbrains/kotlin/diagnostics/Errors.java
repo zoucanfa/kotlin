@@ -659,6 +659,8 @@ public interface Errors {
     DiagnosticFactory2<KtExpression, Name, Collection<? extends ResolvedCall<?>>> COMPONENT_FUNCTION_AMBIGUITY = DiagnosticFactory2.create(ERROR, DEFAULT);
     DiagnosticFactory3<KtExpression, Name, KotlinType, KotlinType> COMPONENT_FUNCTION_RETURN_TYPE_MISMATCH = DiagnosticFactory3.create(ERROR, DEFAULT);
 
+    DiagnosticFactory1<KtExpression, String> DESTRUCTURING_DECLARATION_INFERENCE_ERROR = DiagnosticFactory1.create(ERROR);
+
     // Super calls
 
     DiagnosticFactory1<KtSuperExpression, String> SUPER_IS_NOT_AN_EXPRESSION = DiagnosticFactory1.create(ERROR);

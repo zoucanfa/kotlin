@@ -10902,6 +10902,12 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTest {
                     doTest(fileName);
                 }
 
+                @TestMetadata("destructuringDeclarationInferenceError.kt")
+                public void testDestructuringDeclarationInferenceError() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/inference/reportingImprovements/destructuringDeclarationInferenceError.kt");
+                    doTest(fileName);
+                }
+
                 @TestMetadata("ErrorTypeAsGenericParameter.kt")
                 public void testErrorTypeAsGenericParameter() throws Exception {
                     String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/inference/reportingImprovements/ErrorTypeAsGenericParameter.kt");

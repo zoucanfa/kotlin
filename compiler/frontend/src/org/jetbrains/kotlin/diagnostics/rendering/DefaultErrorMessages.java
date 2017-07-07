@@ -214,6 +214,8 @@ public class DefaultErrorMessages {
         MAP.put(COMPONENT_FUNCTION_RETURN_TYPE_MISMATCH, "''{0}()'' function returns ''{1}'', but ''{2}'' is expected",
                                                                                     TO_STRING, RENDER_TYPE, RENDER_TYPE);
 
+        MAP.put(DESTRUCTURING_DECLARATION_INFERENCE_ERROR, "{0}", STRING);
+
         MAP.put(ABSTRACT_PROPERTY_IN_PRIMARY_CONSTRUCTOR_PARAMETERS, "This property cannot be declared abstract");
         MAP.put(ABSTRACT_PROPERTY_WITH_INITIALIZER, "Property with initializer cannot be abstract");
         MAP.put(ABSTRACT_PROPERTY_WITH_GETTER, "Property with getter implementation cannot be abstract");
