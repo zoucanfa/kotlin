@@ -54,7 +54,7 @@ configurations {
 }
 dependencies {
     testCompile project(':kotlin-test:kotlin-test-js')
-    merger project(":kotlin-stdlib-js-merger")
+    merger project(":tools:kotlin-stdlib-js-merger")
 }
 
 createPreprocessorTask(project, "Main", "${projectDir}/../src/kotlin", commonSrcDir)
