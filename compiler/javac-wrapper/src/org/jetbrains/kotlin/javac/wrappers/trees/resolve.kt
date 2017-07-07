@@ -56,17 +56,14 @@ class TreePathResolverCache(private val javac: JavacWrapper) {
 
     fun tryToResolveInJavaLang(pathSegments: List<String>): JavaClass? {
         val classId = classId("java.lang", pathSegments.first())
-        var javaClass = findJavaOrKotlinClass(classId) ?: return null
 
-        for (it in pathSegments.drop(1)) {
-            javaClass = javaClass.findInner(Name.identifier(it)) ?: return null
+        return pathSegments.drop(1).fold(findJavaOrKotlinClass(classId) ?: return null) { javaClass, it ->
+            javaClass.findInner(Name.identifier(it)) ?: return null
         }
-
-        return javaClass
     }
 
     fun tryToResolveByFqName(pathSegments: List<String>): JavaClass? {
-        classId(className = pathSegments.joinToString(separator = "."))
+        classId("<root>", pathSegments.joinToString(separator = "."))
                 .let { findJavaOrKotlinClass(it) }
                 ?.let { return it }
 
@@ -186,21 +183,14 @@ class TreePathResolverCache(private val javac: JavacWrapper) {
 
 }
 
-fun JavaClass.findInner(pathSegments: List<String>): JavaClass? {
-    var javaClass = findInner(Name.identifier(pathSegments.first())) ?: return null
-
-    for (pathSegment in pathSegments.drop(1)) {
-        javaClass = javaClass.findInner(Name.identifier(pathSegment)) ?: return null
-    }
-
-    return javaClass
-}
+fun JavaClass.findInner(pathSegments: List<String>): JavaClass? =
+        pathSegments.fold(this) { javaClass, it -> javaClass.findInner(Name.identifier(it)) ?: return null }
 
 fun classId(packageName: String = "<root>", className: String) =
         if (packageName != "<root>")
             ClassId(FqName(packageName), Name.identifier(className))
         else
-            ClassId.topLevel(FqName(className))
+            ClassId(FqName.ROOT, FqName(className), false)
 
 private fun JavaClass.findInner(name: Name): JavaClass? {
     findInnerClass(name)?.let { return it }
