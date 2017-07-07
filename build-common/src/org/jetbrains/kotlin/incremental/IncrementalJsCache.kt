@@ -16,23 +16,71 @@
 
 package org.jetbrains.kotlin.incremental
 
+import com.intellij.util.SmartList
 import com.intellij.util.io.DataExternalizer
+import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.incremental.storage.*
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.serialization.ProtoBuf
+import org.jetbrains.kotlin.serialization.deserialization.NameResolverImpl
+import org.jetbrains.kotlin.serialization.js.JsProtoBuf
+import org.jetbrains.kotlin.serialization.js.JsSerializerProtocol
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.File
-import java.util.*
+import kotlin.collections.HashSet
 
 open class IncrementalJsCache(cachesDir: File) : IncrementalCacheCommon(cachesDir) {
     companion object {
         private val TRANSLATION_RESULT_MAP = "translation-result"
+        private val HEADER_FILE_NAME = "header.meta"
     }
 
-    val translationResults = registerMap(TranslationResultMap(TRANSLATION_RESULT_MAP.storageFile))
+    private val dirtySources = arrayListOf<File>()
+    private val translationResults = registerMap(TranslationResultMap(TRANSLATION_RESULT_MAP.storageFile))
+
+    private val headerFile: File
+        get() = File(cachesDir, HEADER_FILE_NAME)
+
+    var header: ByteArray
+        get() = headerFile.readBytes()
+        set(value) {
+            cachesDir.mkdirs()
+            headerFile.writeBytes(header)
+        }
+
+    override fun markDirty(removedAndCompiledSources: List<File>) {
+        dirtySources.addAll(removedAndCompiledSources)
+    }
+
+    fun compareAndUpdate(translatedFiles: Iterable<IncrementalResultsConsumerImpl.PackagePartData>): CompilationResult {
+        val sourcesAfterCompile = translatedFiles.mapTo(HashSet()) { it.sourceFile }
+        // todo: add dirty symbols to result
+        dirtySources.forEach {
+            if (it !in sourcesAfterCompile) {
+                translationResults.remove(it)
+            }
+        }
+        dirtySources.clear()
+
+        var result = CompilationResult.NO_CHANGES
+        for ((src, proto, binaryAst) in translatedFiles) {
+            result += translationResults.put(src, proto, binaryAst)
+        }
+        return result
+    }
+
+    fun packagePartsMetadata() =
+        translationResults.keys().filter { File(it) !in dirtySources }.map { translationResults.get(it)!!.metadata }
+
+    fun binaryTrees() =
+        translationResults.keys().filter { File(it) !in dirtySources }.map { translationResults.get(it)!!.binaryAst }
 }
 
-@Suppress("ArrayInDataClass")
-data class TranslationResultValue(val metadata: ByteArray, val binaryAst: ByteArray)
+private class TranslationResultValue(val metadata: ByteArray, val binaryAst: ByteArray)
+
 private object TranslationResultValueExternalizer : DataExternalizer<TranslationResultValue> {
     override fun save(output: DataOutput, value: TranslationResultValue) {
         output.writeInt(value.metadata.size)
@@ -55,16 +103,51 @@ private object TranslationResultValueExternalizer : DataExternalizer<Translation
     }
 }
 
-class TranslationResultMap(storageFile: File) : BasicStringMap<TranslationResultValue>(storageFile, TranslationResultValueExternalizer) {
+private class TranslationResultMap(storageFile: File) : BasicStringMap<TranslationResultValue>(storageFile, TranslationResultValueExternalizer) {
     override fun dumpValue(value: TranslationResultValue): String =
             "Metadata: ${value.metadata.md5String()}, Binary AST: ${value.binaryAst.md5String()}"
 
-    fun put(file: File, metadata: ByteArray, binaryAst: ByteArray): Boolean {
+    fun put(file: File, newMetadata: ByteArray, newBinaryAst: ByteArray): CompilationResult {
         val oldValue = storage[file.canonicalPath]
-        storage[file.canonicalPath] = TranslationResultValue(metadata = metadata, binaryAst = binaryAst)
+        storage[file.canonicalPath] = TranslationResultValue(metadata = newMetadata, binaryAst = newBinaryAst)
 
-        return oldValue != null && Arrays.equals(oldValue.metadata, metadata)
+        val oldProtoMap = oldValue?.metadata?.let { getProtoData(file, it) } ?: emptyMap()
+        val newProtoMap = getProtoData(file, newMetadata)
+
+        var compilationResult = CompilationResult.NO_CHANGES
+        val fqName = if (isPackage) className.packageFqName else className.fqNameForClassNameWithoutDollars
+        val changeList = SmartList<ChangeInfo>()
+
+        if (difference.isClassAffected) {
+            changeList.add(ChangeInfo.SignatureChanged(fqName, difference.areSubclassesAffected))
+        }
+
+        if (difference.changedMembersNames.isNotEmpty()) {
+            changeList.add(ChangeInfo.MembersChanged(fqName, difference.changedMembersNames))
+        }
+
+        for (classId in oldProtoMap.keys + newProtoMap.keys) {
+            val oldProto = oldProtoMap[classId]
+            val newProto = newProtoMap[classId]
+
+            when {
+                oldProto == null -> {
+                    // todo
+                }
+                newProto == null -> {
+                    // todo
+                }
+                else -> {
+                    compilationResult += difference(oldProto, newProto)
+                }
+            }
+        }
+        return CompilationResult(changes = changeList.asSequence())
     }
+
+    fun get(key: String) = storage[key]
+
+    fun keys() = storage.keys
 
     fun values(): Collection<TranslationResultValue> =
             storage.keys.map { storage[it]!! }
@@ -72,4 +155,26 @@ class TranslationResultMap(storageFile: File) : BasicStringMap<TranslationResult
     fun remove(file: File) {
         storage.remove(file.canonicalPath)
     }
+}
+
+fun getProtoData(sourceFile: File, metadata: ByteArray): Map<ClassId, ProtoData>  {
+    val classes = hashMapOf<ClassId, ProtoData>()
+    val proto = ProtoBuf.PackageFragment.parseFrom(metadata, JsSerializerProtocol.extensionRegistry)
+    val nameResolver = NameResolverImpl(proto.strings, proto.qualifiedNames)
+
+    proto.class_List.forEach {
+        val classId = nameResolver.getClassId(it.fqName)
+        classes[classId] = ClassProtoData(it, nameResolver)
+    }
+
+    proto.`package`.apply {
+        val packageFqName = if (hasExtension(JsProtoBuf.packageFqName)) {
+            nameResolver.getPackageFqName(getExtension(JsProtoBuf.packageFqName))
+        }
+        else FqName.ROOT
+
+        val packagePartClassId = ClassId(packageFqName, Name.identifier(sourceFile.nameWithoutExtension.capitalize() + "Kt"))
+        classes[packagePartClassId] = PackagePartProtoData(this, nameResolver)
+    }
+    return classes
 }
