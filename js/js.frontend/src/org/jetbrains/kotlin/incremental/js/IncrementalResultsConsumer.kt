@@ -26,7 +26,7 @@ interface IncrementalResultsConsumer {
 }
 
 class IncrementalResultsConsumerImpl : IncrementalResultsConsumer {
-    var headerMetadata: ByteArray? = null
+    lateinit var headerMetadata: ByteArray
         private set
 
     private val _packageParts = arrayListOf<PackagePartData>()
