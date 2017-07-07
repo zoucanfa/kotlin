@@ -736,6 +736,7 @@ class CompileServiceImpl(
                     shutdownImpl()
                     CompileService.CallResult.Ok()
                 }
+                Unit
             }
             else {
                 log.info("Cancel delayed shutdown due to new client")
