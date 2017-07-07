@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,11 +132,11 @@ fun Iterable<String>.filterExtractProps(propMappers: List<PropMapper<*, *, *>>, 
 
     while (iter.hasNext()) {
         val param = iter.next()
-        val (propMapper, matchingOption) = propMappers.findWithTransform { mapper ->
+        val (propMapper, matchingOption) = (propMappers.findWithTransform { mapper ->
             mapper.names
                     .firstOrNull { param.startsWith(prefix + it) }
                     .let { Pair(it != null, Pair(mapper, it)) }
-        } ?: Pair(null, null)
+        } ?: Pair(null, null)) as Pair<PropMapper<*, *, *>?, String?>
 
         when {
             propMapper != null -> {
