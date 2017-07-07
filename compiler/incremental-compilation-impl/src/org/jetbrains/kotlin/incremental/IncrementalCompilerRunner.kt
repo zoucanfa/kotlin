@@ -131,10 +131,11 @@ abstract class IncrementalCompilerRunner<
         }
     }
 
-    protected open fun markOutputDirty(caches: CacheManager, dirtySources: List<File>) {
+    protected open fun markDirty(caches: CacheManager, dirtySources: List<File>) {
+        caches.platformCache.markDirty(dirtySources)
     }
 
-    protected abstract fun compareAndUpdateCache(caches: CacheManager, generatedFiles: List<GeneratedFile>): CompilationResult
+    protected abstract fun compareAndUpdateCache(services: Services, caches: CacheManager, generatedFiles: List<GeneratedFile>): CompilationResult
 
     protected open fun preBuildHook(args: Args, compilationMode: CompilationMode) {}
     protected open fun postCompilationHook(exitCode: ExitCode) {}
@@ -143,11 +144,22 @@ abstract class IncrementalCompilerRunner<
     protected open fun additionalDirtyLookupSymbols(): Iterable<LookupSymbol> =
             emptyList()
 
+    protected open fun makeServices(
+            args: Args,
+            lookupTracker: LookupTracker,
+            caches: CacheManager,
+            compilationMode: CompilationMode
+    ): Services.Builder =
+        Services.Builder().apply {
+            register(LookupTracker::class.java, lookupTracker)
+            register(CompilationCanceledStatus::class.java, EmptyCompilationCanceledStatus)
+        }
+
     protected abstract fun runCompiler(
             sourcesToCompile: Set<File>,
             args: Args,
             caches: CacheManager,
-            services: Services.Builder,
+            services: Services,
             messageCollector: MessageCollector
     ): ExitCode
 
@@ -175,7 +187,7 @@ abstract class IncrementalCompilerRunner<
         val allGeneratedFiles = hashSetOf<GeneratedFile>()
 
         while (dirtySources.any()) {
-            markOutputDirty(caches, dirtySources)
+            caches.platformCache.markDirty(dirtySources)
             caches.inputsCache.removeOutputForSourceFiles(dirtySources)
 
             val lookupTracker = LookupTrackerImpl(LookupTracker.DO_NOTHING)
@@ -187,10 +199,7 @@ abstract class IncrementalCompilerRunner<
             val text = allSourcesToCompile.map { it.canonicalPath }.joinToString(separator = System.getProperty("line.separator"))
             dirtySourcesSinceLastTimeFile.writeText(text)
 
-            val services = Services.Builder().apply {
-                register(LookupTracker::class.java, lookupTracker)
-                register(CompilationCanceledStatus::class.java, EmptyCompilationCanceledStatus)
-            }
+            val services = makeServices(args, lookupTracker, caches, compilationMode).build()
 
             args.reportOutputFiles = true
             val outputItemsCollector = OutputItemsCollectorImpl()
@@ -217,7 +226,7 @@ abstract class IncrementalCompilerRunner<
             allGeneratedFiles.addAll(generatedFiles)
             caches.inputsCache.registerOutputForSourceFiles(generatedFiles)
             caches.lookupCache.update(lookupTracker, sourcesToCompile, removedKotlinSources)
-            val compilationResult = compareAndUpdateCache(caches, generatedFiles)
+            val compilationResult = compareAndUpdateCache(services, caches, generatedFiles)
 
             if (compilationMode is CompilationMode.Rebuild) break
 
