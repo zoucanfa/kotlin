@@ -686,16 +686,11 @@ class CallableBuilder(val config: CallableBuilderConfiguration) {
             }
         }
 
-        private fun setupTypeParameterListTemplate(
-                builder: TemplateBuilderImpl,
-                declaration: KtNamedDeclaration
-        ): TypeParameterListExpression? {
+        private fun getTypeParameterListTemplateExpression(declaration: KtNamedDeclaration): TypeParameterListExpression? {
             when (declaration) {
                 is KtObjectDeclaration -> return null
                 !is KtTypeParameterListOwner -> throw AssertionError("Unexpected declaration kind: ${declaration.text}")
             }
-
-            val typeParameterList = (declaration as KtTypeParameterListOwner).typeParameterList ?: return null
 
             val typeParameterMap = HashMap<String, List<RenderedTypeParameter>>()
 
@@ -713,13 +708,11 @@ class CallableBuilder(val config: CallableBuilderConfiguration) {
                 }
             }
 
-            val expression = TypeParameterListExpression(
+            return TypeParameterListExpression(
                     mandatoryTypeParameters,
                     typeParameterMap,
                     callableInfo.kind != CallableKind.CLASS_WITH_PRIMARY_CONSTRUCTOR
             )
-            builder.replaceElement(typeParameterList, expression, false)
-            return expression
         }
 
         private fun setupParameterTypeTemplates(builder: TemplateBuilder, parameterList: List<KtParameter>): List<TypeExpression> {
@@ -862,6 +855,13 @@ class CallableBuilder(val config: CallableBuilderConfiguration) {
         // build templates
         fun buildAndRunTemplate(onFinish: () -> Unit) {
             val declarationSkeleton = createDeclarationSkeleton()
+
+            var typeParameterList = (declarationSkeleton as? KtTypeParameterListOwner)?.typeParameterList
+            val typeParameterListExpression = getTypeParameterListTemplateExpression(declarationSkeleton)
+            if (typeParameterListExpression == null || typeParameterListExpression.getRenderedTypeParameters(declarationSkeleton).isEmpty()) {
+                typeParameterList?.delete()
+            }
+
             val project = declarationSkeleton.project
             val declarationPointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(declarationSkeleton)
 
@@ -886,18 +886,23 @@ class CallableBuilder(val config: CallableBuilderConfiguration) {
 
             val parameterTypeExpressions = setupParameterTypeTemplates(builder, declaration.getValueParameters())
 
+            typeParameterList = (declaration as? KtTypeParameterListOwner)?.typeParameterList
+
             // add a segment for the parameter list
             // Note: because TemplateBuilderImpl does not have a replaceElement overload that takes in both a TextRange and alwaysStopAt, we
             // need to create the segment first and then hack the Expression into the template later. We use this template to update the type
             // parameter list as the user makes selections in the parameter types, and we need alwaysStopAt to be false so the user can't tab to
             // it.
-            val expression = setupTypeParameterListTemplate(builder, declaration)
+            val hasTypeParameters = typeParameterListExpression != null && typeParameterList != null
+            if (hasTypeParameters) {
+                builder.replaceElement(typeParameterList, typeParameterListExpression, false)
+            }
 
             // the template built by TemplateBuilderImpl is ordered by element position, but we want types to be first, so hack it
             val templateImpl = builder.buildInlineTemplate() as TemplateImpl
             val variables = templateImpl.variables!!
             if (variables.isNotEmpty()) {
-                val typeParametersVar = if (expression != null) variables.removeAt(0) else null
+                val typeParametersVar = if (hasTypeParameters) variables.removeAt(0) else null
                 for (i in 0..(callableInfo.parameterInfos.size - 1)) {
                     Collections.swap(variables, i * 2, i * 2 + 1)
                 }
@@ -936,7 +941,7 @@ class CallableBuilder(val config: CallableBuilderConfiguration) {
 
                             val callElement = config.originalElement as? KtCallElement
                             if (callElement != null) {
-                                setupCallTypeArguments(callElement, expression?.currentTypeParameters ?: Collections.emptyList())
+                                setupCallTypeArguments(callElement, typeParameterListExpression?.currentTypeParameters ?: Collections.emptyList())
                             }
 
                             CodeStyleManager.getInstance(project).reformat(newDeclaration)

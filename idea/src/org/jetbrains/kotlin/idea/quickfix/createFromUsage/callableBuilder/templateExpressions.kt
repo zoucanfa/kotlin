@@ -150,6 +150,21 @@ internal class TypeParameterListExpression(private val mandatoryTypeParameters: 
         val elementAt = file.findElementAt(offset)
         val declaration = elementAt?.getStrictParentOfType<KtNamedDeclaration>() ?: return TextResult("")
 
+        val renderedTypeParameters = getRenderedTypeParameters(declaration)
+        val sortedRenderedTypeParameters = renderedTypeParameters.sortedBy { if (it.fake) it.typeParameter.index else -1 }
+        currentTypeParameters = sortedRenderedTypeParameters.map { it.typeParameter }
+
+        return TextResult(
+                if (sortedRenderedTypeParameters.isEmpty()) "" else sortedRenderedTypeParameters.joinToString(", ", prefix, ">") { it.text }
+        )
+    }
+
+    override fun calculateQuickResult(context: ExpressionContext?): Result = calculateResult(context)
+
+    // do not offer the user any choices
+    override fun calculateLookupItems(context: ExpressionContext?) = arrayOf<LookupElement>()
+
+    internal fun getRenderedTypeParameters(declaration: KtNamedDeclaration): Set<RenderedTypeParameter> {
         val renderedTypeParameters = LinkedHashSet<RenderedTypeParameter>()
         renderedTypeParameters.addAll(mandatoryTypeParameters)
         for (parameter in declaration.getValueParameters()) {
@@ -168,18 +183,6 @@ internal class TypeParameterListExpression(private val mandatoryTypeParameters: 
                 renderedTypeParameters.addAll(typeParameterNamesFromReturnType)
             }
         }
-
-
-        val sortedRenderedTypeParameters = renderedTypeParameters.sortedBy { if (it.fake) it.typeParameter.index else -1 }
-        currentTypeParameters = sortedRenderedTypeParameters.map { it.typeParameter }
-
-        return TextResult(
-                if (sortedRenderedTypeParameters.isEmpty()) "" else sortedRenderedTypeParameters.joinToString(", ", prefix, ">") { it.text }
-        )
+        return renderedTypeParameters
     }
-
-    override fun calculateQuickResult(context: ExpressionContext?): Result = calculateResult(context)
-
-    // do not offer the user any choices
-    override fun calculateLookupItems(context: ExpressionContext?) = arrayOf<LookupElement>()
 }
