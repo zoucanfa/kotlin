@@ -33,6 +33,8 @@ class JvmLower(val context: JvmBackendContext) {
         KCallableNamePropertyLowering(context).lower(irFile)
         LateinitLowering(context).lower(irFile)
         ConstAndJvmFieldPropertiesLowering().lower(irFile)
+
+        CallableReferenceLowering(context).lower(irFile)
         PropertiesLowering().lower(irFile)
 
         //Should be before interface lowering
@@ -53,7 +55,5 @@ class JvmLower(val context: JvmBackendContext) {
         BridgeLowering(context.state).runOnFilePostfix(irFile)
 
         TailrecLowering(context).runOnFilePostfix(irFile)
-
-        //CallableReferenceLowering(context).lower(irFile)
     }
 }

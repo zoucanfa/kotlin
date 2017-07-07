@@ -7,7 +7,7 @@ String jdkPath(String version) {
 
 ext {
     JDK_16 = jdkPath("1.6")
-    JDK_17 = jdkPath("1.7")
+    JDK_17 = jdkPath("1.8")
     JDK_18 = jdkPath("1.8")
     distDir = file("$kotlin_root/dist")
     distLibDir = file("$kotlin_root/dist/kotlinc/lib")
