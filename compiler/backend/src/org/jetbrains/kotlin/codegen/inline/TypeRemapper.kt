@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ class TypeRemapper private constructor(
 
         private fun createNewAndMerge(remapper: TypeRemapper, additionalTypeMappings: Map<String, String?>): MutableMap<String, String> {
             return HashMap(remapper.typeMapping).apply {
-                this += additionalTypeMappings
+                (this as MutableMap<String, String?>).plusAssign(additionalTypeMappings)
             }
         }
     }
