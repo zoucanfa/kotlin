@@ -299,17 +299,17 @@ fun CallTypeAndReceiver<*, *>.receiverTypesWithIndex(
 
     var receiverIndex = 0
 
-    fun List<ReceiverValue>.mapReceiverValuesToTypes(implicit: Boolean) {
-        for (receiverValue in this) {
-            val types = receiverValueTypes(receiverValue, dataFlowInfo, bindingContext, moduleDescriptor, stableSmartCastsOnly)
-            types.mapTo(result) { ReceiverType(it, receiverIndex, implicit) }
-            receiverIndex++
-        }
+    fun addReceiverType(receiverValue: ReceiverValue, implicit: Boolean) {
+        val types = receiverValueTypes(receiverValue, dataFlowInfo, bindingContext, moduleDescriptor, stableSmartCastsOnly)
+        types.mapTo(result) { ReceiverType(it, receiverIndex, implicit) }
+        receiverIndex++
     }
-    if (withImplicitReceiversWhenExplicitPresent || expressionReceiver == null)
-        implicitReceiverValues.mapReceiverValuesToTypes(true)
-    listOfNotNull(expressionReceiver).mapReceiverValuesToTypes(false)
-
+    if (withImplicitReceiversWhenExplicitPresent || expressionReceiver == null) {
+        implicitReceiverValues.forEach { addReceiverType(it, true) }
+    }
+    if (expressionReceiver != null) {
+        addReceiverType(expressionReceiver, false)
+    }
     return result
 }
 

@@ -352,7 +352,7 @@ class LookupElementFactory(
 
         val bothReceivers = listOfNotNull(extensionReceiverParameter, dispatchReceiverParameter)
 
-        val receiverTypesForFirstReceiver = receiverTypes.ifEmpty { receiverTypes }
+        val receiverTypesForFirstReceiver = receiverTypes.filterNot { it.implicit }.ifEmpty { receiverTypes }
 
         val weights = bothReceivers.zip(generateSequence(receiverTypesForFirstReceiver) { receiverTypes }.asIterable())
                 .map { (receiverParameter, receiverTypes) ->

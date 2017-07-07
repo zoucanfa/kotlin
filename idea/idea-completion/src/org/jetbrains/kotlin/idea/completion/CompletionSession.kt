@@ -391,14 +391,16 @@ abstract class CompletionSession(
             val typesByDslScopes = LinkedHashMap<FqName, MutableList<ReceiverType>>()
 
             receiverTypes
-                    .map { receiver -> receiver to receiver.type.extractDslMarkerFqNames() }
-                    .filter { (_, dslMarkers) -> dslMarkers.isNotEmpty() }
+                    .mapNotNull { receiver ->
+                        val dslMarkers = receiver.type.extractDslMarkerFqNames()
+                        (receiver to dslMarkers).takeIf { dslMarkers.isNotEmpty() }
+                    }
                     .forEach { (v, dslMarkers) -> dslMarkers.forEach { typesByDslScopes.getOrPut(it, { mutableListOf() }) += v } }
 
             val shadowedDslReceivers = mutableSetOf<ReceiverType>()
             typesByDslScopes.flatMapTo(shadowedDslReceivers) { (_, v) -> v.asSequence().drop(1).asIterable() }
 
-            receiverTypes = receiverTypes.filterNot { it in shadowedDslReceivers }
+            receiverTypes -= shadowedDslReceivers
         }
 
         return receiverTypes
