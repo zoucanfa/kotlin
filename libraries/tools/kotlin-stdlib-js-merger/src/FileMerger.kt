@@ -39,16 +39,18 @@ fun main(args: Array<String>) {
     val program = JsProgram()
 
     val outputFile = File(args[0])
+    val baseDir = File(args[1]).canonicalFile.toPath()
+    fun File.relativizeIfNecessary(): String = baseDir.relativize(canonicalFile.toPath()).toString()
 
-    val wrapperFile = File(args[1])
-    val wrapper = parse(wrapperFile.readText(), ThrowExceptionOnErrorReporter, program.scope, wrapperFile.path)
+    val wrapperFile = File(args[2])
+    val wrapper = parse(wrapperFile.readText(), ThrowExceptionOnErrorReporter, program.scope, wrapperFile.relativizeIfNecessary())
     val insertionPlace = wrapper.createInsertionPlace()
 
     val allFiles = mutableListOf<File>()
-    args.drop(2).map { File(it) }.forEach { collectFiles(it, allFiles) }
+    args.drop(3).map { File(it) }.forEach { collectFiles(it, allFiles) }
 
     for (file in allFiles) {
-        val statements = parse(file.readText(), ThrowExceptionOnErrorReporter, program.scope, file.path)
+        val statements = parse(file.readText(), ThrowExceptionOnErrorReporter, program.scope, file.relativizeIfNecessary())
         val block = JsBlock(statements)
         block.fixForwardNameReferences()
 
