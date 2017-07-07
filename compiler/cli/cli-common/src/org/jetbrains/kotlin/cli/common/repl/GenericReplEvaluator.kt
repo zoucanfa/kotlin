@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ open class GenericReplEvaluator(val baseClasspath: Iterable<File>,
                                                      (useScriptArgs?.mapIndexed { i, it -> useScriptArgsTypes?.getOrNull(i) ?: it?.javaClass ?: Any::class.java } ?: emptyList())
 
             val constructorArgs: Array<out Any?> = if (hasHistory) arrayOf(historyActor.effectiveHistory.map { it.instance }.takeIf { it.isNotEmpty() }?.toTypedArray(),
-                                                                           *(useScriptArgs.orEmpty()))
+                                                                           *(useScriptArgs.orEmpty()) as Array<out Any?>)
                                                    else useScriptArgs.orEmpty()
 
             // TODO: try/catch ?
