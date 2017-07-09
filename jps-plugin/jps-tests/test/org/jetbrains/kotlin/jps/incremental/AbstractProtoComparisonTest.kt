@@ -16,19 +16,16 @@
 
 package org.jetbrains.kotlin.jps.incremental
 
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.testFramework.UsefulTestCase
 import org.jetbrains.kotlin.TestWithWorkingDir
-import org.jetbrains.kotlin.incremental.Difference
+import org.jetbrains.kotlin.incremental.ChangeInfo
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.test.KotlinTestUtils
 import org.jetbrains.kotlin.utils.Printer
-import org.jetbrains.kotlin.utils.keysToMap
 import java.io.File
 
 abstract class AbstractProtoComparisonTest<PROTO_DATA> : TestWithWorkingDir() {
     protected abstract fun compileAndGetClasses(sourceDir: File, outputDir: File): Map<ClassId, PROTO_DATA>
-    protected abstract fun difference(oldData: PROTO_DATA, newData: PROTO_DATA): Difference?
+    protected abstract fun difference(oldData: PROTO_DATA, newData: PROTO_DATA): List<ChangeInfo>?
 
     protected open fun expectedOutputFile(testDir: File): File =
         File(testDir, "result.out")
@@ -51,23 +48,23 @@ abstract class AbstractProtoComparisonTest<PROTO_DATA> : TestWithWorkingDir() {
         }
 
         (oldClassMap.keys.intersect(newClassMap.keys)).sortedBy { it.toString() }.forEach { classId ->
-            val diff = difference(oldClassMap[classId]!!, newClassMap[classId]!!)
+            val changesInfo = difference(oldClassMap[classId]!!, newClassMap[classId]!!)
 
-            if (diff == null) {
+            if (changesInfo == null) {
                 p.println("SKIPPED $classId")
                 return@forEach
             }
 
-            val changes = arrayListOf<String>()
-            if (diff.isClassAffected) {
-                changes.add("CLASS_SIGNATURE")
-            }
-            if (diff.changedMembersNames.isNotEmpty()) {
-                changes.add("MEMBERS\n    ${diff.changedMembersNames.sorted()}")
-            }
-            if (changes.isEmpty()) {
+            if (changesInfo.isEmpty()) {
                 return@forEach
             }
+
+            val changes = changesInfo.map {
+                when (it) {
+                    is ChangeInfo.SignatureChanged -> "CLASS_SIGNATURE"
+                    is ChangeInfo.MembersChanged -> "MEMBERS\n    ${it.names.sorted()}"
+                }
+            }.sorted()
 
             p.println("CHANGES in $classId: ${changes.joinToString()}")
         }

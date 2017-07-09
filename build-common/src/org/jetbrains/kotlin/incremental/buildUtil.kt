@@ -22,8 +22,6 @@ import org.jetbrains.kotlin.build.GeneratedFile
 import org.jetbrains.kotlin.build.GeneratedJvmClass
 import org.jetbrains.kotlin.build.JvmSourceRoot
 import org.jetbrains.kotlin.build.isModuleMappingFile
-import org.jetbrains.kotlin.compilerRunner.OutputItemsCollectorImpl
-import org.jetbrains.kotlin.config.IncrementalCompilation
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCache
@@ -32,7 +30,6 @@ import org.jetbrains.kotlin.modules.KotlinModuleXmlBuilder
 import org.jetbrains.kotlin.modules.TargetId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.progress.CompilationCanceledStatus
-import org.jetbrains.kotlin.utils.keysToMap
 import java.io.File
 import java.util.*
 
@@ -73,20 +70,17 @@ fun makeCompileServices(
 
 fun updateIncrementalCache(
         generatedFiles: Iterable<GeneratedFile>,
-        cache: IncrementalCacheImpl
-): CompilationResult {
-    var changesInfo = CompilationResult.NO_CHANGES
+        cache: IncrementalCacheImpl,
+        changesCollector: ChangesCollector
+) {
     for (generatedFile in generatedFiles) {
         when {
-            generatedFile is GeneratedJvmClass -> changesInfo += cache.saveFileToCache(generatedFile)
-            generatedFile.outputFile.isModuleMappingFile() -> changesInfo += cache.saveModuleMappingToCache(generatedFile.sourceFiles, generatedFile.outputFile)
+            generatedFile is GeneratedJvmClass -> cache.saveFileToCache(generatedFile, changesCollector)
+            generatedFile.outputFile.isModuleMappingFile() -> cache.saveModuleMappingToCache(generatedFile.sourceFiles, generatedFile.outputFile)
         }
     }
 
-    val newChangesInfo = cache.clearCacheForRemovedClasses()
-    changesInfo += newChangesInfo
-
-    return changesInfo
+    cache.clearCacheForRemovedClasses(changesCollector)
 }
 
 fun LookupStorage.update(
@@ -106,14 +100,14 @@ data class DirtyData(
         val dirtyClassesFqNames: Collection<FqName> = emptyList()
 )
 
-fun CompilationResult.getDirtyData(
+fun ChangesCollector.getDirtyData(
         caches: Iterable<IncrementalCacheCommon>,
         reporter: ICReporter
 ): DirtyData {
     val dirtyLookupSymbols = HashSet<LookupSymbol>()
     val dirtyClassesFqNames = HashSet<FqName>()
 
-    for (change in changes) {
+    for (change in changes()) {
         reporter.report { "Process $change" }
 
         if (change is ChangeInfo.SignatureChanged) {

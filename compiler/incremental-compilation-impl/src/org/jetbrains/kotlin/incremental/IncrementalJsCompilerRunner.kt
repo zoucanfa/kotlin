@@ -96,13 +96,18 @@ class IncrementalJsCompilerRunner(
             }
         }
 
-    override fun compareAndUpdateCache(services: Services, caches: IncrementalJsCachesManager, generatedFiles: List<GeneratedFile>): CompilationResult {
+    override fun updateCaches(
+            services: Services,
+            caches: IncrementalJsCachesManager,
+            generatedFiles: List<GeneratedFile>,
+            changesCollector: ChangesCollector
+    ) {
         val incrementalResults = services.get(IncrementalResultsConsumer::class.java) as IncrementalResultsConsumerImpl
 
         val jsCache = caches.platformCache
         jsCache.header = incrementalResults.headerMetadata
 
-        return jsCache.compareAndUpdate(incrementalResults.packageParts)
+        return jsCache.compareAndUpdate(incrementalResults.packageParts, changesCollector)
     }
 
     override fun runCompiler(
@@ -112,6 +117,6 @@ class IncrementalJsCompilerRunner(
             services: Services,
             messageCollector: MessageCollector
     ): ExitCode {
-
+        return ExitCode.OK
     }
 }

@@ -16,7 +16,6 @@
 
 package org.jetbrains.kotlin.incremental
 
-import com.intellij.util.SmartList
 import com.intellij.util.io.DataExternalizer
 import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumerImpl
 import org.jetbrains.kotlin.incremental.storage.*
@@ -55,7 +54,7 @@ open class IncrementalJsCache(cachesDir: File) : IncrementalCacheCommon(cachesDi
         dirtySources.addAll(removedAndCompiledSources)
     }
 
-    fun compareAndUpdate(translatedFiles: Iterable<IncrementalResultsConsumerImpl.PackagePartData>): CompilationResult {
+    fun compareAndUpdate(translatedFiles: Iterable<IncrementalResultsConsumerImpl.PackagePartData>, changesCollector: ChangesCollector) {
         val sourcesAfterCompile = translatedFiles.mapTo(HashSet()) { it.sourceFile }
         // todo: add dirty symbols to result
         dirtySources.forEach {
@@ -65,11 +64,9 @@ open class IncrementalJsCache(cachesDir: File) : IncrementalCacheCommon(cachesDi
         }
         dirtySources.clear()
 
-        var result = CompilationResult.NO_CHANGES
         for ((src, proto, binaryAst) in translatedFiles) {
-            result += translationResults.put(src, proto, binaryAst)
+            translationResults.put(src, proto, binaryAst, changesCollector)
         }
-        return result
     }
 
     fun packagePartsMetadata() =
@@ -107,42 +104,16 @@ private class TranslationResultMap(storageFile: File) : BasicStringMap<Translati
     override fun dumpValue(value: TranslationResultValue): String =
             "Metadata: ${value.metadata.md5String()}, Binary AST: ${value.binaryAst.md5String()}"
 
-    fun put(file: File, newMetadata: ByteArray, newBinaryAst: ByteArray): CompilationResult {
+    fun put(file: File, newMetadata: ByteArray, newBinaryAst: ByteArray, changesCollector: ChangesCollector) {
         val oldValue = storage[file.canonicalPath]
         storage[file.canonicalPath] = TranslationResultValue(metadata = newMetadata, binaryAst = newBinaryAst)
 
         val oldProtoMap = oldValue?.metadata?.let { getProtoData(file, it) } ?: emptyMap()
         val newProtoMap = getProtoData(file, newMetadata)
 
-        var compilationResult = CompilationResult.NO_CHANGES
-        val fqName = if (isPackage) className.packageFqName else className.fqNameForClassNameWithoutDollars
-        val changeList = SmartList<ChangeInfo>()
-
-        if (difference.isClassAffected) {
-            changeList.add(ChangeInfo.SignatureChanged(fqName, difference.areSubclassesAffected))
-        }
-
-        if (difference.changedMembersNames.isNotEmpty()) {
-            changeList.add(ChangeInfo.MembersChanged(fqName, difference.changedMembersNames))
-        }
-
         for (classId in oldProtoMap.keys + newProtoMap.keys) {
-            val oldProto = oldProtoMap[classId]
-            val newProto = newProtoMap[classId]
-
-            when {
-                oldProto == null -> {
-                    // todo
-                }
-                newProto == null -> {
-                    // todo
-                }
-                else -> {
-                    compilationResult += difference(oldProto, newProto)
-                }
-            }
+            changesCollector.collectProtoChanges(oldProtoMap[classId], newProtoMap[classId])
         }
-        return CompilationResult(changes = changeList.asSequence())
     }
 
     fun get(key: String) = storage[key]
@@ -174,7 +145,7 @@ fun getProtoData(sourceFile: File, metadata: ByteArray): Map<ClassId, ProtoData>
         else FqName.ROOT
 
         val packagePartClassId = ClassId(packageFqName, Name.identifier(sourceFile.nameWithoutExtension.capitalize() + "Kt"))
-        classes[packagePartClassId] = PackagePartProtoData(this, nameResolver)
+        classes[packagePartClassId] = PackagePartProtoData(this, nameResolver, packageFqName)
     }
     return classes
 }
