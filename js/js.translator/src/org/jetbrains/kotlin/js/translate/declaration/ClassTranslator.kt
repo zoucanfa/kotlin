@@ -227,12 +227,14 @@ class ClassTranslator private constructor(
         val superCallGenerators = mutableListOf<(MutableList<JsStatement>) -> Unit>()
         val referenceToClass = context.getInnerReference(classDescriptor)
 
-        superCallGenerators += { it += FunctionBodyTranslator.setDefaultValueForArguments(constructorDescriptor, context) }
+        superCallGenerators += { callGenerators: MutableList<JsStatement> ->
+            callGenerators += FunctionBodyTranslator.setDefaultValueForArguments(constructorDescriptor, context)
+        }
 
         val createInstance = Namer.createObjectWithPrototypeFrom(referenceToClass)
         val instanceVar = JsAstUtils.assignment(thisNameRef.deepCopy(), JsAstUtils.or(thisNameRef.deepCopy(), createInstance))
                 .source(constructor).makeStmt()
-        superCallGenerators += { it += instanceVar }
+        superCallGenerators += { callGenerators: MutableList<JsStatement> -> callGenerators += instanceVar }
 
         // Add parameter for outer instance
         val leadingArgs = mutableListOf<JsExpression>()
@@ -256,35 +258,35 @@ class ClassTranslator private constructor(
 
         if (resolvedCall != null && !KotlinBuiltIns.isAny(delegationClassDescriptor!!)) {
             if (JsDescriptorUtils.isImmediateSubtypeOfError(classDescriptor)) {
-                superCallGenerators += {
+                superCallGenerators += { callGenerators: MutableList<JsStatement> ->
                     val innerContext = context().innerBlock()
                     ClassInitializerTranslator.emulateSuperCallToNativeError(
                             innerContext, classDescriptor, resolvedCall, thisNameRef.deepCopy())
-                    it += innerContext.currentBlock.statements
+                    callGenerators += innerContext.currentBlock.statements
                 }
             }
             else {
-                superCallGenerators += {
+                superCallGenerators += { callGenerators: MutableList<JsStatement> ->
                     val delegationConstructor = resolvedCall.resultingDescriptor
                     val innerContext = context.innerBlock()
                     val statement = CallTranslator.translate(innerContext, resolvedCall).toInvocationWith(
                             leadingArgs, delegationConstructor.valueParameters.size, thisNameRef.deepCopy())
                             .source(resolvedCall.call.callElement)
                             .makeStmt()
-                    it += innerContext.currentBlock.statements
-                    it += statement
+                    callGenerators += innerContext.currentBlock.statements
+                    callGenerators += statement
                 }
             }
         }
 
         val delegationCtorInTheSameClass = delegationClassDescriptor == classDescriptor
         if (!delegationCtorInTheSameClass && !classDescriptor.hasPrimaryConstructor()) {
-            superCallGenerators += {
+            superCallGenerators += { callGenerators: MutableList<JsStatement> ->
                 val usageTracker = context.usageTracker()!!
                 val closure = context.getClassOrConstructorClosure(classDescriptor).orEmpty().map {
                     usageTracker.getNameForCapturedDescriptor(it)!!.makeRef()
                 }
-                it += JsInvocation(Namer.getFunctionCallRef(referenceToClass), listOf(thisNameRef.deepCopy()) + closure + leadingArgs)
+                callGenerators += JsInvocation(Namer.getFunctionCallRef(referenceToClass), listOf(thisNameRef.deepCopy()) + closure + leadingArgs)
                         .source(classDeclaration).makeStmt()
             }
         }
