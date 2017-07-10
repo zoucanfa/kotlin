@@ -50,9 +50,9 @@ class KotlinClassifiersCache(sourceFiles: Collection<KtFile>,
         val ktFile = classOrObject.containingKtFile
 
         javac.treePathResolverCache.tryToResolveInner(pathSegments, classOrObject.enclosingClasses)?.let { return it }
-        javac.treePathResolverCache.tryToResolvePackageClass(pathSegments, ktFile.packageFqName.asString())?.let { return it }
         javac.treePathResolverCache.tryToResolveByFqName(pathSegments)?.let { return it }
         ktFile.tryToResolveSingleTypeImport(pathSegments)?.let { return it }
+        javac.treePathResolverCache.tryToResolvePackageClass(pathSegments, ktFile.packageFqName.asString())?.let { return it }
         ktFile.tryToResolveTypeImportOnDemand(pathSegments)?.let { return it }
         javac.treePathResolverCache.tryToResolveInJavaLang(pathSegments)?.let { return it }
 

@@ -39,6 +39,7 @@ import org.jetbrains.kotlin.cfg.AbstractDataFlowTest
 import org.jetbrains.kotlin.cfg.AbstractDiagnosticsWithModifiedMockJdkTest
 import org.jetbrains.kotlin.cfg.AbstractPseudoValueTest
 import org.jetbrains.kotlin.checkers.*
+import org.jetbrains.kotlin.checkers.javac.AbstractJavacDiagnosticsTest
 import org.jetbrains.kotlin.cli.AbstractCliTest
 import org.jetbrains.kotlin.codegen.*
 import org.jetbrains.kotlin.codegen.defaultConstructor.AbstractDefaultArgumentsReflectionTest
@@ -204,6 +205,10 @@ fun main(args: Array<String>) {
             model("diagnostics/tests", testClassName = "TestsWithJavac", testMethod = "doTestWithJavac")
             model("codegen/box/diagnostics", testClassName = "DiagnosticsWithJavac", testMethod = "doTestWithJavac")
 
+        }
+
+        testClass<AbstractJavacDiagnosticsTest> {
+            model("javac/diagnostics/tests", testMethod = "doTestWithJavac")
         }
 
         testClass<AbstractDiagnosticsTestWithStdLib> {

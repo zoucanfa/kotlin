@@ -1,0 +1,6 @@
+package
+
+public fun test(/*0*/ ab_c: a.b.c): kotlin.Unit
+public fun test2(/*0*/ ab_c: a.b.c): kotlin.Unit
+public fun test3(): a.b.c!
+public fun test4(): kotlin.Unit

@@ -44,9 +44,9 @@ class TreePathResolverCache(private val javac: JavacWrapper) {
 
         with (compilationUnit as JCTree.JCCompilationUnit) {
             tryToResolveInner(pathSegments, enclosingClasses)?.let { return it }
-            tryToResolvePackageClass(pathSegments, packageName?.toString())?.let { return it }
             tryToResolveByFqName(pathSegments)?.let { return it }
             tryToResolveSingleTypeImport(pathSegments)?.let { return it }
+            tryToResolvePackageClass(pathSegments, packageName?.toString())?.let { return it }
             tryToResolveTypeImportOnDemand(pathSegments)?.let { return it }
             tryToResolveInJavaLang(pathSegments)?.let { return it }
         }
@@ -113,17 +113,19 @@ class TreePathResolverCache(private val javac: JavacWrapper) {
             }.let { return null }
 
     private fun JCTree.JCCompilationUnit.tryToResolveTypeImportOnDemand(pathSegments: List<String>): JavaClass? {
+        val found = hashSetOf<JavaClass>()
         imports.filter { it.qualifiedIdentifier.toString().endsWith("*") }
                 .forEach { import ->
                     val fqName = "${import.qualifiedIdentifier.toString().dropLast(1)}${pathSegments.joinToString(separator = ".")}"
                     tryToResolveByFqName(fqName.split("."))
-                            ?.let { return it }
+                            ?.let { found.add(it) }
                 }
 
-        return null
+        return found.singleOrNull()
     }
 
     private fun JCTree.JCCompilationUnit.tryToResolveSingleTypeImport(pathSegments: List<String>): JavaClass? {
+        val found = hashSetOf<JavaClass>()
         imports.filter { it.qualifiedIdentifier.toString().endsWith(".${pathSegments.first()}") }
                 .forEach { import ->
                     val fqName = pathSegments.drop(1).let {
@@ -135,10 +137,10 @@ class TreePathResolverCache(private val javac: JavacWrapper) {
                         }
                     }
                     tryToResolveByFqName(fqName.split("."))
-                            ?.let { return it }
+                            ?.let { found.add(it) }
                 }
 
-        return null
+        return found.singleOrNull()
     }
 
     private fun TreePath.tryToResolveTypeParameter() =
