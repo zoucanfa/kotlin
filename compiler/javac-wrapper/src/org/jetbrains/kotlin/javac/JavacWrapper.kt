@@ -118,7 +118,7 @@ class JavacWrapper(javaFiles: Collection<File>,
     private val trees = JavacTrees.instance(context)
     private val elements = JavacElements.instance(context)
     private val types = JavacTypes.instance(context)
-    private val fileObjects = fileManager.getJavaFileObjectsFromFiles(javaFiles).toJavacList()
+    private val fileObjects: com.sun.tools.javac.util.List<JavaFileObject> = fileManager.getJavaFileObjectsFromFiles(javaFiles).toJavacList()
     private val compilationUnits: JavacList<JCTree.JCCompilationUnit> = fileObjects.map { javac.parse(it) }.toJavacList()
 
     private val javaClasses = compilationUnits
@@ -258,7 +258,7 @@ class JavacWrapper(javaFiles: Collection<File>,
                 }
             }
 
-    private inline fun <reified T> Iterable<T>.toJavacList() = JavacList.from(this)
+    private inline fun <reified T> Iterable<T>.toJavacList(): com.sun.tools.javac.util.List<T> = JavacList.from(this)
 
     private fun findClassInSymbols(fqName: String): SymbolBasedClass? {
         if (symbolBasedClassesCache.containsKey(fqName)) return symbolBasedClassesCache[fqName]

@@ -208,7 +208,7 @@ object NewCommonSuperTypeCalculator {
             return if (parameter.variance != Variance.INVARIANT) return type.asTypeProjection() else TypeProjectionImpl(Variance.OUT_VARIANCE, type)
         }
         else {
-            val type = intersectTypes(arguments.map { it.type.unwrap() })
+            val type = intersectTypes(arguments.map { it.type.unwrap() } as List<UnwrappedType>)
             return if (parameter.variance != Variance.INVARIANT) return type.asTypeProjection() else TypeProjectionImpl(Variance.IN_VARIANCE, type)
         }
     }

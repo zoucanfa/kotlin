@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,12 +23,12 @@ import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.resolve.calls.smartcasts.Nullability.NOT_NULL
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.TypeUtils
+import org.jetbrains.kotlin.types.checker.NewCapturedTypeConstructor
 import org.jetbrains.kotlin.types.isError
 import org.jetbrains.kotlin.types.isFlexible
+import org.jetbrains.kotlin.types.typeUtil.contains
 import org.jetbrains.kotlin.types.typeUtil.isSubtypeOf
 import org.jetbrains.kotlin.utils.newLinkedHashSetWithExpectedSize
-import org.jetbrains.kotlin.types.checker.NewCapturedTypeConstructor
-import org.jetbrains.kotlin.types.typeUtil.contains
 import java.util.*
 
 internal class DelegatingDataFlowInfo private constructor(
@@ -135,9 +135,9 @@ internal class DelegatingDataFlowInfo private constructor(
         return enrichedTypes
     }
 
-    override fun getStableTypes(key: DataFlowValue) = getStableTypes(key, true)
+    override fun getStableTypes(key: DataFlowValue): Set<KotlinType> = getStableTypes(key, true)
 
-    private fun getStableTypes(key: DataFlowValue, enrichWithNotNull: Boolean) =
+    private fun getStableTypes(key: DataFlowValue, enrichWithNotNull: Boolean): Set<KotlinType> =
             if (!key.isStable) LinkedHashSet() else getCollectedTypes(key, enrichWithNotNull)
 
     /**

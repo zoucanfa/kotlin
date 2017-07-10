@@ -74,9 +74,8 @@ class TreeBasedClass(
                     .filterIsInstance<JCTree.JCClassDecl>()
                     .joinToString(
                             separator = ".",
-                            prefix = "${treePath.compilationUnit.packageName}.",
-                            transform = JCTree.JCClassDecl::name
-                    )
+                            prefix = "${treePath.compilationUnit.packageName}."
+                    ) { it.name }
                     .let(::FqName)
 
     override val supertypes: Collection<JavaClassifierType>

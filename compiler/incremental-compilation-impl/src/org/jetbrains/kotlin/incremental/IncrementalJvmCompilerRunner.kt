@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -183,7 +183,7 @@ class IncrementalJvmCompilerRunner(
             is ChangesEither.Unknown -> return rebuild {"Could not get changes for java files"}
         }
 
-        val dirtyFiles = HashSet<File>(with(changedFiles) {modified.size + removed.size})
+        val dirtyFiles = HashSet<File>(with<ChangedFiles.Known, Int>(changedFiles) { modified.size + removed.size})
         with(changedFiles) {
             modified.asSequence() + removed.asSequence()
         }.forEach {if (it.isKotlinFile()) dirtyFiles.add(it)}

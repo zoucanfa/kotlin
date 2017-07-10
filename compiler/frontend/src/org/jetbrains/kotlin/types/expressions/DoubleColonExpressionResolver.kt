@@ -685,7 +685,7 @@ class DoubleColonExpressionResolver(
                 return tryResolveRHSWithReceiver("resolve callable reference with empty LHS", null, reference, c, mode)
                        ?.apply { commitTrace() }?.results
 
-        val resultSequence = buildSequence {
+        val resultSequence = buildSequence<ResolutionResultsAndTraceCommitCallback> {
             when (lhs) {
                 is DoubleColonLHS.Type -> {
                     val classifier = lhsType.constructor.declarationDescriptor

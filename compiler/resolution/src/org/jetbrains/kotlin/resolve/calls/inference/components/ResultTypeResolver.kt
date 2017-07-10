@@ -138,7 +138,7 @@ class ResultTypeResolver(
     private fun findSuperType(c: Context, variableWithConstraints: VariableWithConstraints): UnwrappedType? {
         val upperConstraints = variableWithConstraints.constraints.filter { it.kind == ConstraintKind.UPPER && c.isProperType(it.type) }
         if (upperConstraints.isNotEmpty()) {
-            val upperType = intersectTypes(upperConstraints.map { it.type })
+            val upperType = intersectTypes(upperConstraints.map { it.type } as List<UnwrappedType>)
 
             return typeApproximator.approximateToSubType(upperType, TypeApproximatorConfiguration.CapturedTypesApproximation) ?: upperType
         }
