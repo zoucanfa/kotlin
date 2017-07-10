@@ -29,7 +29,6 @@ import org.jetbrains.kotlin.psi.Call
 import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.TemporaryBindingTrace
-import org.jetbrains.kotlin.resolve.calls.model.KotlinCallKind
 import org.jetbrains.kotlin.resolve.calls.CallTransformer
 import org.jetbrains.kotlin.resolve.calls.CandidateResolver
 import org.jetbrains.kotlin.resolve.calls.callResolverUtil.isBinaryRemOperator
@@ -38,9 +37,7 @@ import org.jetbrains.kotlin.resolve.calls.callResolverUtil.isInfixCall
 import org.jetbrains.kotlin.resolve.calls.callUtil.createLookupLocation
 import org.jetbrains.kotlin.resolve.calls.context.*
 import org.jetbrains.kotlin.resolve.calls.inference.CoroutineInferenceSupport
-import org.jetbrains.kotlin.resolve.calls.model.MutableResolvedCall
-import org.jetbrains.kotlin.resolve.calls.model.ResolvedCallImpl
-import org.jetbrains.kotlin.resolve.calls.model.VariableAsFunctionResolvedCallImpl
+import org.jetbrains.kotlin.resolve.calls.model.*
 import org.jetbrains.kotlin.resolve.calls.results.OverloadResolutionResultsImpl
 import org.jetbrains.kotlin.resolve.calls.results.ResolutionResultsHandler
 import org.jetbrains.kotlin.resolve.calls.results.ResolutionStatus
@@ -246,15 +243,15 @@ class NewResolutionOldInference(
             if (resolvedCall is VariableAsFunctionResolvedCallImpl) {
                 // todo hacks
                 tracing.bindReference(resolvedCall.variableCall.trace, resolvedCall.variableCall)
-                tracing.bindResolvedCall(resolvedCall.variableCall.trace, resolvedCall)
+                tracing.bindResolvedCall(resolvedCall.variableCall.trace, resolvedCall as VariableAsFunctionResolvedCallImpl)
 
                 resolvedCall.variableCall.trace.addOwnDataTo(resolvedCall.functionCall.trace)
 
                 resolvedCall.functionCall.tracingStrategy.bindReference(resolvedCall.functionCall.trace, resolvedCall.functionCall)
                 //                resolvedCall.hackInvokeTracing.bindResolvedCall(resolvedCall.functionCall.trace, resolvedCall)
             } else {
-                tracing.bindReference(resolvedCall.trace, resolvedCall)
-                tracing.bindResolvedCall(resolvedCall.trace, resolvedCall)
+                tracing.bindReference(resolvedCall.trace, resolvedCall as ResolvedCall<D>)
+                tracing.bindResolvedCall(resolvedCall.trace, resolvedCall as ResolvedCall<D>)
             }
 
             if (resolvedCall.status.possibleTransformToSuccess()) {
@@ -442,7 +439,7 @@ class NewResolutionOldInference(
                                                              variableType,
                                                              basicCallContext.trace.bindingContext)
             // used for smartCasts, see: DataFlowValueFactory.getIdForSimpleNameExpression
-            functionContext.tracing.bindReference(variable.resolvedCall.trace, variable.resolvedCall)
+            functionContext.tracing.bindReference(variable.resolvedCall.trace, variable.resolvedCall as ResolvedCall<CallableDescriptor>)
             // todo hacks
             val functionCall = CallTransformer.CallForImplicitInvoke(
                     basicCallContext.call.explicitReceiver?.takeIf { useExplicitReceiver },
