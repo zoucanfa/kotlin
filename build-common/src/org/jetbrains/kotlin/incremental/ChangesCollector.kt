@@ -133,10 +133,10 @@ class ChangesCollector {
                 )
 
         if (isRemoved) {
-            memberNames.forEach { collectRemovedMember(packageFqName, it) }
+            collectRemovedMembers(packageFqName, memberNames)
         }
         else {
-            memberNames.forEach { collectChangedMember(packageFqName, it) }
+            collectChangedMembers(packageFqName, memberNames)
         }
     }
 

@@ -59,7 +59,7 @@ open class IncrementalJsCache(cachesDir: File) : IncrementalCacheCommon(cachesDi
         // todo: add dirty symbols to result
         dirtySources.forEach {
             if (it !in sourcesAfterCompile) {
-                translationResults.remove(it)
+                translationResults.remove(it, changesCollector)
             }
         }
         dirtySources.clear()
@@ -123,7 +123,13 @@ private class TranslationResultMap(storageFile: File) : BasicStringMap<Translati
     fun values(): Collection<TranslationResultValue> =
             storage.keys.map { storage[it]!! }
 
-    fun remove(file: File) {
+    fun remove(file: File, changesCollector: ChangesCollector) {
+        val protoBytes = storage[file.canonicalPath]!!.metadata
+        val protoMap = getProtoData(file, protoBytes)
+
+        for ((_, protoData) in protoMap) {
+            changesCollector.collectProtoChanges(oldData = protoData, newData = null)
+        }
         storage.remove(file.canonicalPath)
     }
 }
