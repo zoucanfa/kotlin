@@ -25,42 +25,42 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.js.backend.ast.*
 import org.jetbrains.kotlin.resolve.inline.InlineStrategy
 
-var JsName.staticRef: JsNode? by MetadataProperty(default = null)
+var JsName.staticRef: JsNode? by MetadataProperty<JsName, JsNode?>(default = null)
 
-var JsName.descriptor: DeclarationDescriptor? by MetadataProperty(default = null)
+var JsName.descriptor: DeclarationDescriptor? by MetadataProperty<JsName, DeclarationDescriptor?>(default = null)
 
 // TODO: move this to module 'js.inliner' and change dependency on 'frontend' to dependency on 'descriptors'
-var JsInvocation.inlineStrategy: InlineStrategy? by MetadataProperty(default = null)
+var JsInvocation.inlineStrategy: InlineStrategy? by MetadataProperty<JsInvocation, InlineStrategy?>(default = null)
 
 var JsInvocation.isCallableReference by MetadataProperty(default = false)
 
-var JsInvocation.descriptor: CallableDescriptor? by MetadataProperty(default = null)
+var JsInvocation.descriptor: CallableDescriptor? by MetadataProperty<JsInvocation, CallableDescriptor?>(default = null)
 
-var JsInvocation.psiElement: PsiElement? by MetadataProperty(default = null)
+var JsInvocation.psiElement: PsiElement? by MetadataProperty<JsInvocation, PsiElement?>(default = null)
 
-var JsNameRef.inlineStrategy: InlineStrategy? by MetadataProperty(default = null)
+var JsNameRef.inlineStrategy: InlineStrategy? by MetadataProperty<JsNameRef, InlineStrategy?>(default = null)
 
-var JsNameRef.descriptor: CallableDescriptor? by MetadataProperty(default = null)
+var JsNameRef.descriptor: CallableDescriptor? by MetadataProperty<JsNameRef, CallableDescriptor?>(default = null)
 
-var JsNameRef.psiElement: PsiElement? by MetadataProperty(default = null)
+var JsNameRef.psiElement: PsiElement? by MetadataProperty<JsNameRef, PsiElement?>(default = null)
 
 var JsFunction.isLocal: Boolean by MetadataProperty(default = false)
 
 var JsParameter.hasDefaultValue: Boolean by MetadataProperty(default = false)
 
-var JsInvocation.typeCheck: TypeCheck? by MetadataProperty(default = null)
+var JsInvocation.typeCheck: TypeCheck? by MetadataProperty<JsInvocation, TypeCheck?>(default = null)
 
 var JsInvocation.boxing: Boolean by MetadataProperty(default = false)
 
-var JsVars.exportedPackage: String? by MetadataProperty(default = null)
+var JsVars.exportedPackage: String? by MetadataProperty<JsVars, String?>(default = null)
 
-var JsExpressionStatement.exportedTag: String? by MetadataProperty(default = null)
+var JsExpressionStatement.exportedTag: String? by MetadataProperty<JsExpressionStatement, String?>(default = null)
 
 /**
  * For function and lambda bodies indicates what declaration corresponds to.
  * When absent (`null`) on body of a named function, this function is from external JS module.
  */
-var JsFunction.functionDescriptor: FunctionDescriptor? by MetadataProperty(default = null)
+var JsFunction.functionDescriptor: FunctionDescriptor? by MetadataProperty<JsFunction, FunctionDescriptor?>(default = null)
 
 /**
  * For return statement specifies corresponding target descriptor given by [functionDescriptor].
@@ -69,7 +69,7 @@ var JsFunction.functionDescriptor: FunctionDescriptor? by MetadataProperty(defau
  * Absence of this property (expressed as `null`) means that the corresponding JsReturn got from external JS library.
  * In this case we assume that such return can never be non-local.
  */
-var JsReturn.returnTarget: FunctionDescriptor? by MetadataProperty(default = null)
+var JsReturn.returnTarget: FunctionDescriptor? by MetadataProperty<JsReturn, FunctionDescriptor?>(default = null)
 
 var HasMetadata.synthetic: Boolean by MetadataProperty(default = false)
 
@@ -102,7 +102,7 @@ var JsNameRef.coroutineReceiver by MetadataProperty(default = false)
 
 var JsName.imported by MetadataProperty(default = false)
 
-var JsFunction.coroutineMetadata: CoroutineMetadata? by MetadataProperty(default = null)
+var JsFunction.coroutineMetadata: CoroutineMetadata? by MetadataProperty<JsFunction, CoroutineMetadata?>(default = null)
 
 data class CoroutineMetadata(
         val doResumeName: JsName,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import org.jetbrains.kotlin.js.backend.ast.JsDebugger
 import org.jetbrains.kotlin.js.backend.ast.JsExpressionStatement
 import org.jetbrains.kotlin.js.backend.ast.metadata.MetadataProperty
 
-var JsDebugger.targetBlock: CoroutineBlock? by MetadataProperty(default = null)
-var JsDebugger.targetExceptionBlock: CoroutineBlock? by MetadataProperty(default = null)
+var JsDebugger.targetBlock: CoroutineBlock? by MetadataProperty<JsDebugger, CoroutineBlock?>(default = null)
+var JsDebugger.targetExceptionBlock: CoroutineBlock? by MetadataProperty<JsDebugger, CoroutineBlock?>(default = null)
 var JsDebugger.finallyPath: List<CoroutineBlock>? by MetadataProperty(default = null)
 
 var JsExpressionStatement.targetBlock by MetadataProperty(default = false)
