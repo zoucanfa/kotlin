@@ -18,6 +18,7 @@ package org.jetbrains.kotlin.load.java.typeEnhancement
 
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.load.kotlin.SignatureBuildingComponents
@@ -42,7 +43,7 @@ private fun <D : CallableMemberDescriptor> D.enhanceSignature(): D {
 
     val receiverTypeEnhancement =
             if (extensionReceiverParameter != null)
-                parts(isCovariant = false) { it.extensionReceiverParameter!!.type }.enhance()
+                parts<D>(isCovariant = false) { it: D -> it.extensionReceiverParameter!!.type }.enhance()
             else null
 
 
@@ -59,12 +60,12 @@ private fun <D : CallableMemberDescriptor> D.enhanceSignature(): D {
     }
 
     val valueParameterEnhancements = valueParameters.map {
-        p ->
-        parts(isCovariant = false) { it.valueParameters[p.index].type }
+        p: ValueParameterDescriptor ->
+        parts<D>(isCovariant = false) { it: D -> it.valueParameters[p.index].type }
                 .enhance(predefinedEnhancementInfo?.parametersInfo?.getOrNull(p.index))
     }
 
-    val returnTypeEnhancement = parts(isCovariant = true) { it.returnType!! }.enhance(predefinedEnhancementInfo?.returnTypeInfo)
+    val returnTypeEnhancement = parts<D>(isCovariant = true) { it: D -> it.returnType!! }.enhance(predefinedEnhancementInfo?.returnTypeInfo)
 
     if ((receiverTypeEnhancement?.wereChanges ?: false)
             || returnTypeEnhancement.wereChanges || valueParameterEnhancements.any { it.wereChanges }) {
