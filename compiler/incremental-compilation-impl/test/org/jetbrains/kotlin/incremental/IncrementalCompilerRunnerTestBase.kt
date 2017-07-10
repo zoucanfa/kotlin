@@ -20,48 +20,13 @@ import com.intellij.util.containers.HashMap
 import org.jetbrains.kotlin.TestWithWorkingDir
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.incremental.testingUtils.*
 import org.jetbrains.kotlin.incremental.utils.TestCompilationResult
-import org.jetbrains.kotlin.incremental.utils.TestICReporter
-import org.jetbrains.kotlin.incremental.utils.TestMessageCollector
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import java.io.File
-
-class IncrementalJvmCompilerRunnerTest : IncrementalCompilerRunnerTestBase<K2JVMCompilerArguments>() {
-    override fun make(cacheDir: File, sourceRoots: Iterable<File>, args: K2JVMCompilerArguments): TestCompilationResult {
-        val reporter = TestICReporter()
-        val messageCollector = TestMessageCollector()
-        makeIncrementally(cacheDir, sourceRoots, args, reporter = reporter, messageCollector = messageCollector)
-        return TestCompilationResult(reporter, messageCollector)
-    }
-
-    override fun createCompilerArguments(destinationDir: File, testDir: File): K2JVMCompilerArguments =
-            K2JVMCompilerArguments().apply {
-                moduleName = testDir.name
-                destination = destinationDir.path
-                classpathAsList = listOf(File(bootstrapKotlincLib, "kotlin-stdlib.jar"))
-            }
-}
-
-class IncrementalJsCompilerRunnerTest : IncrementalCompilerRunnerTestBase<K2JSCompilerArguments>() {
-    override fun make(cacheDir: File, sourceRoots: Iterable<File>, args: K2JSCompilerArguments): TestCompilationResult {
-        val reporter = TestICReporter()
-        val messageCollector = TestMessageCollector()
-        makeJsIncrementally(cacheDir, sourceRoots, args, reporter = reporter, messageCollector = messageCollector)
-        return TestCompilationResult(reporter, messageCollector)
-    }
-
-    override fun createCompilerArguments(destinationDir: File, testDir: File): K2JSCompilerArguments =
-            K2JSCompilerArguments().apply {
-                outputFile = File(destinationDir, "${testDir.name}.js").path
-                libraries = File(bootstrapKotlincLib, "kotlin-stdlib-js.jar").path
-            }
-}
 
 @RunWith(Parameterized::class)
 abstract class IncrementalCompilerRunnerTestBase<Args : CommonCompilerArguments> : TestWithWorkingDir() {
@@ -93,9 +58,9 @@ abstract class IncrementalCompilerRunnerTestBase<Args : CommonCompilerArguments>
         val buildLogFile = buildLogFinder.findBuildLog(testDir) ?: throw IllegalStateException("build log file not found in $workingDir")
         val buildLogSteps = parseTestBuildLog(buildLogFile)
         val modifications = getModificationsToPerform(testDir,
-                moduleNames = null,
-                allowNoFilesWithSuffixInTestData = false,
-                touchPolicy = TouchPolicy.CHECKSUM)
+                                                                                                    moduleNames = null,
+                                                                                                    allowNoFilesWithSuffixInTestData = false,
+                                                                                                    touchPolicy = TouchPolicy.CHECKSUM)
 
         assert(modifications.size == buildLogSteps.size) {
             "Modifications count (${modifications.size}) != expected build log steps count (${buildLogSteps.size})"
