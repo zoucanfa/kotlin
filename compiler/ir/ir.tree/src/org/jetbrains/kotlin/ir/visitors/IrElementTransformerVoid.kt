@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 
 abstract class IrElementTransformerVoid : IrElementTransformer<Nothing?> {
-    protected fun <T : IrElement> T.transformChildren() = apply { transformChildrenVoid() }
+    protected fun <T : IrElement> T.transformChildren(): T = apply { transformChildrenVoid() }
 
     open fun visitElement(element: IrElement): IrElement = element.transformChildren()
     override final fun visitElement(element: IrElement, data: Nothing?): IrElement = visitElement(element)
@@ -98,7 +98,7 @@ abstract class IrElementTransformerVoid : IrElementTransformer<Nothing?> {
     override final fun visitExpression(expression: IrExpression, data: Nothing?): IrExpression = visitExpression(expression)
 
     open fun <T> visitConst(expression: IrConst<T>) = visitExpression(expression)
-    override final fun <T> visitConst(expression: IrConst<T>, data: Nothing?) = visitConst(expression)
+    override final fun <T> visitConst(expression: IrConst<T>, data: Nothing?): IrExpression = visitConst(expression)
 
     open fun visitVararg(expression: IrVararg) = visitExpression(expression)
     override final fun visitVararg(expression: IrVararg, data: Nothing?) = visitVararg(expression)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,8 @@ open class DeepCopyIrTreeWithSymbols(private val symbolRemapper: SymbolRemapper)
     private inline fun <reified T : IrElement> T.transform() =
             transform(this@DeepCopyIrTreeWithSymbols, null) as T
 
-    private inline fun <reified T : IrElement> List<T>.transform() =
-            map { it.transform() }
+    private inline fun <reified T : IrElement> List<T>.transform(): List<T> =
+            map<T, T> { it.transform() }
 
     private inline fun <reified T : IrElement> List<T>.transformTo(destination: MutableList<T>) =
             mapTo(destination) { it.transform() }
@@ -59,7 +59,7 @@ open class DeepCopyIrTreeWithSymbols(private val symbolRemapper: SymbolRemapper)
             IrModuleFragmentImpl(
                     declaration.descriptor,
                     declaration.irBuiltins,
-                    declaration.files.transform()
+                    declaration.files.transform() as List<IrFile>
             )
 
     override fun visitExternalPackageFragment(declaration: IrExternalPackageFragment, data: Nothing?): IrExternalPackageFragment =
@@ -225,7 +225,7 @@ open class DeepCopyIrTreeWithSymbols(private val symbolRemapper: SymbolRemapper)
             IrVarargImpl(
                     expression.startOffset, expression.endOffset,
                     expression.type, expression.varargElementType,
-                    expression.elements.transform()
+                    expression.elements.transform() as List<IrVarargElement>
             )
 
     override fun visitSpreadElement(spread: IrSpreadElement): IrSpreadElement =

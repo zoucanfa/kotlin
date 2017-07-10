@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ interface IrElementVisitorVoid : IrElementVisitor<Unit, Nothing?> {
     override fun visitExpression(expression: IrExpression, data: Nothing?) = visitExpression(expression)
 
     fun <T> visitConst(expression: IrConst<T>) = visitExpression(expression)
-    override fun <T> visitConst(expression: IrConst<T>, data: Nothing?) = visitConst(expression)
+    override fun <T> visitConst(expression: IrConst<T>, data: Nothing?): Unit = visitConst(expression)
 
     fun visitVararg(expression: IrVararg) = visitExpression(expression)
     override fun visitVararg(expression: IrVararg, data: Nothing?) = visitVararg(expression)

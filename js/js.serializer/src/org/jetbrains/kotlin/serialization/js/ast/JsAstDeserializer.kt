@@ -395,13 +395,13 @@ class JsAstDeserializer(program: JsProgram) {
     private fun deserializeVars(proto: Vars): JsVars {
         val vars = JsVars(proto.multiline)
         for (declProto in proto.declarationList) {
-            vars.vars += withLocation(
+            vars.vars.plusAssign<JsVars.JsVar>(withLocation<JsVars.JsVar>(
                     fileId = if (declProto.hasFileId()) declProto.fileId else null,
                     location = if (declProto.hasLocation()) declProto.location else null
             ) {
                 val initialValue = if (declProto.hasInitialValue()) deserialize(declProto.initialValue) else null
                 JsVars.JsVar(deserializeName(declProto.nameId), initialValue)
-            }
+            })
         }
         if (proto.hasExportedPackageId()) {
             vars.exportedPackage = deserializeString(proto.exportedPackageId)
