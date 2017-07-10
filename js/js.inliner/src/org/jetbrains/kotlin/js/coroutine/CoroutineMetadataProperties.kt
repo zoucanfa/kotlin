@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.js.backend.ast.metadata.MetadataProperty
 
 var JsDebugger.targetBlock: CoroutineBlock? by MetadataProperty<JsDebugger, CoroutineBlock?>(default = null)
 var JsDebugger.targetExceptionBlock: CoroutineBlock? by MetadataProperty<JsDebugger, CoroutineBlock?>(default = null)
-var JsDebugger.finallyPath: List<CoroutineBlock>? by MetadataProperty(default = null)
+var JsDebugger.finallyPath: List<CoroutineBlock>? by MetadataProperty<JsDebugger, List<CoroutineBlock>?>(default = null)
 
 var JsExpressionStatement.targetBlock by MetadataProperty(default = false)
 var JsExpressionStatement.targetExceptionBlock by MetadataProperty(default = false)
