@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,11 +24,10 @@ import com.sun.tools.javac.tree.JCTree
 import com.sun.tools.javac.tree.JCTree.*
 import com.sun.tools.javac.tree.TreeMaker
 import org.jetbrains.kotlin.codegen.state.GenerationState
-import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.kapt3.*
-import org.jetbrains.kotlin.kapt3.javac.KaptTreeMaker
 import org.jetbrains.kotlin.kapt3.javac.KaptJavaFileObject
+import org.jetbrains.kotlin.kapt3.javac.KaptTreeMaker
 import org.jetbrains.kotlin.kapt3.util.*
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
@@ -133,8 +132,8 @@ class ClassFileToSourceStubConverter(
 
         val classDeclaration = convertClass(clazz, packageName, true) ?: return null
 
-        val imports = if (correctErrorTypes) convertImports(ktFile, classDeclaration) else JavacList.nil()
-        val classes = JavacList.of<JCTree>(classDeclaration)
+        val imports: com.sun.tools.javac.util.List<JCTree> = if (correctErrorTypes) convertImports(ktFile, classDeclaration) else JavacList.nil()
+        val classes: com.sun.tools.javac.util.List<JCTree> = JavacList.of<JCTree>(classDeclaration)
 
         val topLevel = treeMaker.TopLevel(packageAnnotations, packageClause, imports + classes)
 
@@ -617,7 +616,7 @@ class ClassFileToSourceStubConverter(
             visibleAnnotations: List<AnnotationNode>?,
             invisibleAnnotations: List<AnnotationNode>?
     ): JCModifiers {
-        var annotations = visibleAnnotations?.fold(JavacList.nil<JCAnnotation>()) { list, anno ->
+        var annotations: com.sun.tools.javac.util.List<JCAnnotation> = visibleAnnotations?.fold(JavacList.nil<JCAnnotation>()) { list, anno ->
             convertAnnotation(anno, packageFqName)?.let { list.prepend(it) } ?: list
         } ?: JavacList.nil()
         annotations = invisibleAnnotations?.fold(annotations) { list, anno ->
