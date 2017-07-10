@@ -29,7 +29,7 @@ internal open class GradleCompilerServicesFacadeImpl(
 
     protected val log: Logger = project.logger
 
-    override fun report(category: Int, severity: Int, message: String?, attachment: Serializable?) {
+    override fun report(category: Int, severity: Int, message: String?, attachment: Serializable?): Void? {
         when (ReportCategory.fromCode(category)) {
             ReportCategory.IC_MESSAGE -> {
                 log.kotlinDebug { "[IC] $message" }
@@ -46,6 +46,7 @@ internal open class GradleCompilerServicesFacadeImpl(
                         attachment = attachment)
             }
         }
+        return null
     }
 }
 

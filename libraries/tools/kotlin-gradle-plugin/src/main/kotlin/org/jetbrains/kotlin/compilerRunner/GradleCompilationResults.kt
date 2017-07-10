@@ -21,7 +21,7 @@ internal class GradleCompilationResults(
     private val projectRootFile = project.rootProject.projectDir
 
     @Throws(RemoteException::class)
-    override fun add(compilationResultCategory: Int, value: Serializable) {
+    override fun add(compilationResultCategory: Int, value: Serializable): Void? {
         if (compilationResultCategory == CompilationResultCategory.IC_COMPILE_ITERATION.code) {
             @Suppress("UNCHECKED_CAST")
             val compileIterationResult = value as? CompileIterationResult
@@ -34,5 +34,6 @@ internal class GradleCompilationResults(
                 log.kotlinDebug { "compiler exit code: $exitCode" }
             }
         }
+        return null
     }
 }
