@@ -1331,6 +1331,10 @@ fun main(args: Array<String>) {
         testClass<AbstractAndroidExtractionTest> {
             model("android/extraction", recursive = false, extension = null)
         }
+
+        testClass<AbstractAndroidExtensionsInspectionTest> {
+            model("android/inspection", recursive = false, extension = null)
+        }
     }
 
     testGroup("idea/idea-android/tests", "idea/testData") {
