@@ -47,7 +47,7 @@ open class IncrementalJsCache(cachesDir: File) : IncrementalCacheCommon(cachesDi
         get() = headerFile.readBytes()
         set(value) {
             cachesDir.mkdirs()
-            headerFile.writeBytes(header)
+            headerFile.writeBytes(value)
         }
 
     override fun markDirty(removedAndCompiledSources: List<File>) {

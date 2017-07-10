@@ -20,6 +20,8 @@ import org.jetbrains.kotlin.build.GeneratedFile
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.cli.js.K2JSCompiler
+import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.IncrementalCompilation
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.incremental.components.LookupTracker
@@ -78,8 +80,10 @@ class IncrementalJsCompilerRunner(
     override fun destionationDir(args: K2JSCompilerArguments): File =
         File(args.outputFile).parentFile
 
-    override fun markDirty(caches: IncrementalJsCachesManager, dirtySources: List<File>) {
-        super.markDirty(caches, dirtySources)
+    override fun calculateSourcesToCompile(caches: IncrementalJsCachesManager, changedFiles: ChangedFiles.Known, args: K2JSCompilerArguments): CompilationMode {
+        if (BuildInfo.read(lastBuildInfoFile) == null) return CompilationMode.Rebuild { "No information on previous build" }
+
+        return CompilationMode.Incremental(getDirtyFiles(changedFiles))
     }
 
     override fun makeServices(
@@ -117,6 +121,16 @@ class IncrementalJsCompilerRunner(
             services: Services,
             messageCollector: MessageCollector
     ): ExitCode {
-        return ExitCode.OK
+        val freeArgsBackup = args.freeArgs.toMutableList()
+
+        try {
+            sourcesToCompile.mapTo(args.freeArgs) { it.absolutePath }
+            val exitCode = K2JSCompiler().exec(messageCollector, services, args)
+            reporter.reportCompileIteration(sourcesToCompile, exitCode)
+            return exitCode
+        }
+        finally {
+            args.freeArgs = freeArgsBackup
+        }
     }
 }
