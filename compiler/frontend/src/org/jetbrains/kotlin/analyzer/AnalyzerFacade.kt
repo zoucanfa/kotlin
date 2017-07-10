@@ -208,7 +208,7 @@ abstract class AnalyzerFacade<in P : PlatformAnalysisParameters> {
                                 if (module.dependencyOnBuiltIns() == ModuleInfo.DependencyOnBuiltIns.LAST) {
                                     yield(moduleDescriptor.builtIns.builtInsModule)
                                 }
-                            }.toList()
+                            }.toList() as List<ModuleDescriptorImpl>
                         },
                         computeModulesWhoseInternalsAreVisible = computeModulesWhoseInternalsAreVisible,
                         computeImplementingModules = computeImplementingModules

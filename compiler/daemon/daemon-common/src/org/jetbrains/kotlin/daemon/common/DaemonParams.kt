@@ -135,8 +135,8 @@ fun Iterable<String>.filterExtractProps(propMappers: List<PropMapper<*, *, *>>, 
         val (propMapper, matchingOption) = (propMappers.findWithTransform { mapper ->
             mapper.names
                     .firstOrNull { param.startsWith(prefix + it) }
-                    .let { Pair(it != null, Pair(mapper, it)) }
-        } ?: Pair(null, null)) as Pair<PropMapper<*, *, *>?, String?>
+                    .let<String?, Pair<Boolean, Pair<PropMapper<*, *, *>, String?>>> { Pair(it != null, Pair(mapper, it)) }
+        } ?: Pair(null, null))
 
         when {
             propMapper != null -> {

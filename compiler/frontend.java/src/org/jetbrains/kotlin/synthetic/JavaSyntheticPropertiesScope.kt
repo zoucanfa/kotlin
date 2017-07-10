@@ -226,7 +226,7 @@ class JavaSyntheticPropertiesScope(storageManager: StorageManager, private val l
 
     private fun SmartList<PropertyDescriptor>?.add(property: PropertyDescriptor?): SmartList<PropertyDescriptor>? {
         if (property == null) return this
-        val list = if (this != null) this else SmartList()
+        val list = if (this != null) this else SmartList<PropertyDescriptor>()
         list.add(property)
         return list
     }

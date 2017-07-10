@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.cfg
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil.getParentOfType
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.cfg.TailRecursionKind.*
@@ -1051,7 +1052,7 @@ class ControlFlowInformationProvider private constructor(
 
         fun getDeclarationDescriptorIncludingConstructors(context: BindingContext, declaration: KtDeclaration?): DeclarationDescriptor? {
             val descriptor = context.get(DECLARATION_TO_DESCRIPTOR,
-                                       (declaration as? KtClassInitializer)?.containingDeclaration ?: declaration)
+                                         ((declaration as? KtClassInitializer)?.containingDeclaration ?: declaration) as? PsiElement)
             return if (descriptor is ClassDescriptor && declaration is KtClassInitializer) {
                 // For a class primary constructor, we cannot directly get ConstructorDescriptor by KtClassInitializer,
                 // so we have to do additional conversion: KtClassInitializer -> KtClassOrObject -> ClassDescriptor -> ConstructorDescriptor
